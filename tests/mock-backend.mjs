@@ -100,6 +100,16 @@ function withSimulatorGear(data) {
   );
   return data;
 }
+/**
+ * The simulator's ark rows (api #838 core, #842 도약): a 도약 tree beside 진화, and a
+ * 혼돈의 별 : 무기 core the api does not compute yet, so its row stays locked.
+ */
+function withArkSimulator(data) {
+  withSimulatorGear(data);
+  data.loadout.arkPassive.points.push({ name: "도약", value: 60, description: "포인트 설명" });
+  data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
+  return data;
+}
 const marketRead = (name) =>
   JSON.parse(
     readFileSync(new URL(`./market-fixtures/${name}`, import.meta.url), "utf8"),
@@ -1230,11 +1240,12 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = request.characterName === "전투력계산";
+    const computed = ["전투력계산", "전투력코어도약"].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
-    if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
+    if (request.characterName === "전투력코어도약") withArkSimulator(search);
+    else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -2687,6 +2698,7 @@ createServer(async (req, res) => {
     ];
   }
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
+  if (name === "전투력코어도약") withArkSimulator(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not

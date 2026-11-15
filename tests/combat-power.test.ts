@@ -12,6 +12,10 @@ import {
   polishSwapValue,
   wornPolish,
   POLISH_NONE,
+  ARK_PASSIVE_MAX,
+  arkPassiveMax,
+  isArkPassiveOpen,
+  isCoreOpen,
   isOpen,
   isRefineOpen,
   gemLevel,
@@ -99,7 +103,7 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
     bracelet: [{ line: 1, name: "치명타 피해", grade: "MID" as const }],
     engravings: [{ name: "원한", level: 3 }],
     stones: [{ name: "원한", level: 1 }],
-    arkPassive: [{ tree: "진화", points: 100 }],
+    arkPassive: [{ tree: "도약", points: 60 }],
     cores: [{ slotIndex: 0, grade: "유물", point: 17 }],
   };
   // Same values as now: nothing to send.
@@ -123,7 +127,7 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
         bracelet: { 1: "HIGH" },
         engraving: { 원한: 4 },
         stone: { 원한: 2 },
-        arkPassive: { 진화: 120 },
+        arkPassive: { 도약: 70 },
         core: { 0: { grade: "고대", point: 20 } },
       },
       full,
@@ -133,7 +137,7 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
       { kind: "BRACELET_EFFECT", line: 1, name: "치명타 피해", grade: "HIGH" },
       { kind: "ENGRAVING_LEVEL", name: "원한", level: 4 },
       { kind: "STONE_ENGRAVING", name: "원한", level: 2 },
-      { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 120 },
+      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
       { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
     ],
   );
@@ -273,14 +277,62 @@ test("the simulator is hidden on the production host unless turned on", () => {
 test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", () => {
   assert.deepEqual(
     // sim v8: bracelet families (#332) and 팔 보호구 (#342); polish lines (api #460).
-    ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING", "BRACELET_EFFECT", "ARM_GUARD", "POLISH"].map(
+    // api #838: ark grid cores (PM 총괄 11-15).
+    ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING", "BRACELET_EFFECT", "ARM_GUARD", "POLISH", "ARK_GRID_CORE"].map(
       (k) => isOpen(k as never),
     ),
-    [true, true, true, true, true, true, true, true],
+    [true, true, true, true, true, true, true, true, true],
   );
   assert.deepEqual(
-    ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "ARK_PASSIVE_POINT", "ARK_GRID_CORE"].map((k) => isOpen(k as never)),
-    [false, false, false, false],
+    ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "ARK_PASSIVE_POINT"].map((k) => isOpen(k as never)),
+    [false, false, false],
+  );
+});
+
+test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
+  assert.deepEqual(
+    ["도약", "진화", "깨달음"].map((tree) => isArkPassiveOpen(tree)),
+    [true, false, false],
+  );
+  // The in-game maximum (official guide 2026-06-24): 도약 70; other trees keep the api range.
+  assert.deepEqual([arkPassiveMax("도약"), arkPassiveMax("진화")], [70, ARK_PASSIVE_MAX]);
+  const leap = { ...current, arkPassive: [{ tree: "도약", points: 60 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 70 } }, leap), [
+    { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
+  ]);
+  // 71 cannot exist in game: not sent (an old saved input, say).
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 71 } }, leap), []);
+  assert.deepEqual(
+    ["질서의 해 코어 : 테스트", "혼돈의 별 코어 : 공격", "혼돈의 별 코어 : 무기", " 혼돈의 별 코어 : 무기"].map((name) =>
+      isCoreOpen(name),
+    ),
+    [true, true, false, false],
+  );
+  // A locked row sends nothing even with an edit in hand (an old saved input, say).
+  const worn = {
+    ...current,
+    arkPassive: [
+      { tree: "진화", points: 120 },
+      { tree: "도약", points: 60 },
+    ],
+    cores: [
+      { slotIndex: 0, name: "질서의 해 코어 : 테스트", grade: "유물", point: 14 },
+      { slotIndex: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 },
+    ],
+  };
+  assert.deepEqual(
+    toChanges(
+      {
+        ...NO_EDITS,
+        arkPassive: { 진화: 140, 도약: 70 },
+        core: { 0: { grade: "고대", point: 20 }, 1: { grade: "고대", point: 20 } },
+      },
+      worn,
+    ),
+    [
+      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
+      { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
+    ],
   );
 });
 
