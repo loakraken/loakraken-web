@@ -44,6 +44,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/auctions/accessories/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** T4 장신구 칸 기간 시세(api #920) */
+        get: {
+            parameters: {
+                query: {
+                    grade?: "ANCIENT" | "RELIC";
+                    role?: "DEALER" | "SUPPORT";
+                    /** @description NECKLACE, EARRING, RING */
+                    slot: "NECKLACE" | "EARRING" | "RING";
+                    /** @description 옵션 순서대로 LOW·MID·HIGH를 쉼표로 */
+                    levels: ("LOW" | "MID" | "HIGH")[];
+                    minQuality?: number;
+                    /** @description 기간: 7d, 14d(기본), 30d, 90d, 365d */
+                    range?: "7d" | "14d" | "30d" | "90d" | "365d";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiResponseAuctionAccessoryCellHistoryResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -178,6 +224,50 @@ export interface components {
             className: string;
             skill: number | null;
             skillName: string | null;
+        };
+        /** @description 경매장 칸 하나의 기간 시세(api #920). 값은 그날 마지막으로 관측한 즉시 구매 최저가(공식 일평균 아님)이고, 누군가 그 칸을 본 날만 행이 있습니다. */
+        AuctionCellHistoryResponse: {
+            /** @example auction-board-v1 */
+            ruleVersion: string;
+            /** @description 적용한 기간(7d·14d·30d·90d·365d) */
+            range: string;
+            /** @description 이 칸을 처음 저장한 날짜. 없으면 null */
+            recordedSince: string | null;
+            /**
+             * Format: int32
+             * @description 기간 안 저장 일수
+             */
+            storedDays: number;
+            /** @description 최신순. 저장이 없는 날은 행 없음 */
+            days: components["schemas"]["AuctionCellDayResponse"][];
+        };
+        /** @description api #920: 그날 마지막 관측(LOAKraken 관측, 공식 일평균 아님). */
+        AuctionCellDayResponse: {
+            /** Format: date */
+            date: string;
+            /**
+             * Format: int64
+             * @description 그날 마지막 관측 즉시 구매 최저가
+             */
+            minBuyPrice: number;
+            /**
+             * Format: int64
+             * @description 그 관측의 매물 수(공식 TotalCount)
+             */
+            totalCount: number;
+            /**
+             * Format: date-time
+             * @description 그 관측 시각(UTC)
+             */
+            observedAt: string;
+            /** @description 오늘(한국 날짜)이면 true: 하루가 끝나지 않아 값이 바뀔 수 있음 */
+            partial: boolean;
+        };
+        ApiResponseAuctionAccessoryCellHistoryResponse: {
+            /** @example AUCTION_ACCESSORIES_SUCCESS */
+            code: string;
+            message: string;
+            data: components["schemas"]["AuctionCellHistoryResponse"];
         };
     };
     responses: never;

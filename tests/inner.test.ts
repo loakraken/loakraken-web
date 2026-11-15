@@ -47,12 +47,100 @@ test("기본 vs 덧입기 follows IsInner as the game shows it (user 11-12, in g
   assert.equal(slot("하의"), "속삭이는 영원 하의");
   assert.equal(slot("하의 덧입기"), "7주년 궤적 하의");
   // A base alone stays the base; a slot with no 덧입기 is never one; an unknown flag reads as the base.
-  assert.equal(isOverlay(avatar("하의 아바타", "속삭이는 영원 하의", true)), false);
-  assert.equal(isOverlay(avatar("하의 아바타", "7주년 궤적 하의", false)), true);
-  assert.equal(isOverlay(avatar("이동 효과", "폭풍우", false)), false);
-  assert.equal(isOverlay(avatar("얼굴1 아바타", "눈", false)), false);
-  assert.equal(isOverlay(avatar("상의 아바타", "옛 답", null)), false);
-  assert.equal(isOverlay(avatar("머리 덧입기 아바타", "모자", null)), true);
+  const base = avatar("하의 아바타", "속삭이는 영원 하의", true);
+  const over = avatar("하의 아바타", "7주년 궤적 하의", false);
+  assert.equal(isOverlay(base, [base, over]), false);
+  assert.equal(isOverlay(over, [base, over]), true);
+  assert.equal(isOverlay(avatar("이동 효과", "폭풍우", false), worn), false);
+  assert.equal(isOverlay(avatar("얼굴1 아바타", "눈", false), worn), false);
+  assert.equal(isOverlay(avatar("상의 아바타", "옛 답", null), []), false);
+  assert.equal(isOverlay(avatar("머리 덧입기 아바타", "모자", null), []), true);
+});
+
+test("IsInner false worn alone in its slot is the base, not a 덧입기 (PM 총괄 11-15, saved raws)", () => {
+  const avatar = (type: string, name: string, isInner: boolean | null) =>
+    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
+  // As the official answer has it: a lone 영웅 avatar can read IsInner=false and has no "(덧입기 슬롯에 착용 중)" line;
+  // the real 덧입기 always sits next to an IsInner=true avatar in the same slot.
+  const lone = avatar("머리 아바타", "혼자 쓴 모자", false);
+  const worn = [
+    lone,
+    avatar("상의 아바타", "기본 상의", true),
+    avatar("상의 아바타", "덧입은 상의", false),
+    avatar("하의 아바타", "혼자 입은 하의", false),
+  ];
+  assert.equal(isOverlay(lone, worn), false);
+  const slot = (name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+  assert.equal(slot("머리"), "혼자 쓴 모자");
+  assert.equal(slot("머리 덧입기"), undefined);
+  assert.equal(slot("하의"), "혼자 입은 하의");
+  assert.equal(slot("하의 덧입기"), undefined);
+  assert.equal(slot("상의"), "기본 상의");
+  assert.equal(slot("상의 덧입기"), "덧입은 상의");
+});
+
+test("One-piece (상의&하의) avatars come as 상의 아바타 and pair in 상의 (PM 총괄 11-15, saved raws)", () => {
+  const avatar = (type: string, name: string, isInner: boolean | null) =>
+    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
+  // The two shapes in the saved raws: a one-piece 덧입기 over a separate 상의 and 하의 base, and a one-piece worn alone.
+  const over = [avatar("상의 아바타", "기본 상의", true), avatar("하의 아바타", "기본 하의", true), avatar("상의 아바타", "덧입은 상하의", false)];
+  const slotOf = (worn: ReturnType<typeof avatar>[], name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+  assert.equal(slotOf(over, "상의"), "기본 상의");
+  assert.equal(slotOf(over, "하의"), "기본 하의");
+  assert.equal(slotOf(over, "상의 덧입기"), "덧입은 상하의");
+  assert.equal(slotOf(over, "하의 덧입기"), undefined);
+  const alone = [avatar("상의 아바타", "혼자 입은 상하의", false)];
+  assert.equal(slotOf(alone, "상의"), "혼자 입은 상하의");
+  assert.equal(slotOf(alone, "상의 덧입기"), undefined);
+  assert.equal(avatarSlots(alone).length, AVATAR_SLOTS.length);
+});
+
+test("api overlay (api #941) decides when it is true or false; null and absent fall back to pairing (PM 총괄 11-15)", () => {
+  type Avatar = Parameters<typeof avatarSlots>[0][number];
+  const avatar = (type: string, name: string, isInner: boolean | null, overlay?: boolean | null) =>
+    ({
+      type,
+      name,
+      icon: null,
+      grade: "영웅",
+      isSet: false,
+      isInner,
+      effects: [],
+      tendencies: [],
+      ...(overlay === undefined ? {} : { overlay }),
+    }) as Avatar;
+  const slotOf = (worn: Avatar[], name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+
+  // true: a 덧입기 even over an empty base (the pairing rule's known gap).
+  const lone = avatar("머리 아바타", "덧입은 모자", false, true);
+  assert.equal(isOverlay(lone, [lone]), true);
+  assert.equal(slotOf([lone], "머리 덧입기"), "덧입은 모자");
+  assert.equal(slotOf([lone], "머리"), undefined);
+  // true in a slot with no 덧입기 one stays in its own slot (no made-up "얼굴1 덧입기").
+  const face = avatar("얼굴1 아바타", "얼굴", false, true);
+  assert.equal(isOverlay(face, [face]), false);
+
+  // false: the base, even when IsInner is false next to a true one (the mark says it is not worn as a 덧입기).
+  const base = avatar("상의 아바타", "기본 상의", true, false);
+  const notMarked = avatar("상의 아바타", "표시 없는 상의", false, false);
+  assert.equal(isOverlay(notMarked, [base, notMarked]), false);
+  // The mark wins over the type's words too (codex #1682): a type naming 덧입기 with overlay false is the base.
+  const namedOverlay = avatar("상의 덧입기 아바타", "이름만 덧입기", false, false);
+  assert.equal(isOverlay(namedOverlay, [base, namedOverlay]), false);
+  // With no mark (null / older api) the type's words still count, as before.
+  assert.equal(isOverlay(avatar("상의 덧입기 아바타", "표시 모름", false, null), [base]), true);
+
+  // null (tooltip unreadable) and absent (an api before #941): the pairing rule, as before.
+  for (const flag of [null, undefined]) {
+    const top = avatar("상의 아바타", "기본 상의", true, flag);
+    const over = avatar("상의 아바타", "덧입은 상의", false, flag);
+    const alone = avatar("하의 아바타", "혼자 입은 하의", false, flag);
+    const worn = [top, over, alone];
+    assert.equal(isOverlay(over, worn), true, `${flag}: paired false is the 덧입기`);
+    assert.equal(isOverlay(alone, worn), false, `${flag}: lone false is the base`);
+    assert.equal(slotOf(worn, "상의 덧입기"), "덧입은 상의");
+    assert.equal(slotOf(worn, "하의"), "혼자 입은 하의");
+  }
 });
 
 test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
@@ -76,6 +164,25 @@ test("아바타 성향 (user 11-02): a line per avatar, totals in the game's ord
   // An api before the field (missing or empty everywhere): nothing to show, never zeros.
   assert.deepEqual(avatarTendencyTotals([avatar(undefined), avatar([])]), []);
   assert.equal(avatarTendencyText(avatar(undefined)), "");
+});
+
+test("아바타 성향 total leaves out 덧입기 avatars, by the same rule as the effect total (PM 총괄 11-15)", () => {
+  type Avatar = Parameters<typeof avatarTendencyTotals>[0][number];
+  const avatar = (isInner: boolean, overlay: boolean | null | undefined, point: number) =>
+    ({
+      type: "상의 아바타", name: "a", icon: null, grade: "전설", isSet: false, isInner, effects: [],
+      tendencies: [{ type: "지성", point }],
+      ...(overlay === undefined ? {} : { overlay }),
+    }) as Avatar;
+  // The mark decides: the 덧입기's 지성 5 does not apply.
+  assert.deepEqual(avatarTendencyTotals([avatar(true, false, 10), avatar(false, true, 5)]), [{ type: "지성", point: 10 }]);
+  // No mark (older api) or null: the slot pairing finds the same 덧입기.
+  for (const overlay of [undefined, null])
+    assert.deepEqual(avatarTendencyTotals([avatar(true, overlay, 10), avatar(false, overlay, 5)]), [
+      { type: "지성", point: 10 },
+    ]);
+  // Never IsInner alone: a lone non-inner avatar's points apply.
+  assert.deepEqual(avatarTendencyTotals([avatar(false, false, 5)]), [{ type: "지성", point: 5 }]);
 });
 
 test("가장 희귀한 보유: lowest share among finished items, unknown shares left out", () => {

@@ -126,6 +126,8 @@ export interface components {
             topStats: components["schemas"]["ClassBuildTopStatSection"];
             /** @description 팔찌에 그 전투 특성 줄이 있는 캐릭터 수(여러 특성에 셈, 합이 100%를 넘음) */
             braceletStats: components["schemas"]["ClassBuildBraceletSection"];
+            /** @description 코어 이름·스킬 상세를 저장한 표본으로만 센 항목(그 표본 30명 미만이면 칸이 비어 있음) */
+            details?: components["schemas"]["ClassBuildDetails"];
         };
         /** @description 공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다. */
         StatsMetaResponse: {
@@ -442,6 +444,62 @@ export interface components {
             /** @description 관측 전투력 */
             combatPower: number;
             observedAt: string | null;
+        };
+        /** @description 장비 요약 v2(코어 이름·스킬 상세 저장) 표본으로만 센 항목. status가 COLLECTING이면(v2 표본 30명 미만) 목록이 모두 비어 있고 detailedSamples·coverage만 의미가 있습니다 */
+        ClassBuildDetails: {
+            /**
+             * Format: int64
+             * @description 표본 가운데 코어 이름·스킬 상세가 있는 캐릭터 수
+             * @example 412
+             */
+            detailedSamples: number;
+            coverage: number | null;
+            /**
+             * @description detailedSamples 30 이상이면 READY
+             * @enum {string}
+             */
+            status: "COLLECTING" | "READY";
+            /** @description 질서·혼돈 × 해·달·별 6칸(이 순서). COLLECTING이면 빈 목록 */
+            arkGridCores: components["schemas"]["ClassBuildCoreSection"][];
+            /** @description 스킬별 채용(레벨 2 이상) 캐릭터 수(여러 스킬에 셈) */
+            skills: components["schemas"]["ClassBuildNameSection"];
+            /** @description skills.cells에 든 스킬마다 트라이포드·룬 분포(skills.cells 순서) */
+            skillDetails: components["schemas"]["ClassBuildSkillDetail"][];
+        };
+        /** @description 코어 한 칸. cells.name은 코어 이름, known은 그 칸 코어 이름을 읽은 캐릭터 수 */
+        ClassBuildCoreSection: {
+            /** @enum {string} */
+            kind: "질서" | "혼돈";
+            /** @enum {string} */
+            position: "해" | "달" | "별";
+            /** Format: int64 */
+            known: number;
+            hidden: components["schemas"]["ClassBuildHidden"];
+            cells: components["schemas"]["ClassBuildNameCell"][];
+        };
+        /** @description users: 그 스킬을 레벨 2 이상 올린 캐릭터 수(트라이포드·룬의 분모) */
+        ClassBuildSkillDetail: {
+            skill: string;
+            /** Format: int64 */
+            users: number;
+            /** @description 선택한 트라이포드(한 캐릭터가 단계마다 하나씩 여러 칸에 듦) */
+            tripods: components["schemas"]["ClassBuildTripodSection"];
+            /** @description 룬 이름별 인원. 룬을 안 낀 사용자는 분모(known)에만 듦 */
+            runes: components["schemas"]["ClassBuildNameSection"];
+        };
+        ClassBuildTripodSection: {
+            /** Format: int64 */
+            known: number;
+            hidden: components["schemas"]["ClassBuildHidden"];
+            cells: components["schemas"]["ClassBuildTripodCell"][];
+        };
+        ClassBuildTripodCell: {
+            tier: number | null;
+            name: string;
+            /** Format: int64 */
+            count: number;
+            /** @description known 대비 %, 소수 둘째 자리 */
+            share: number;
         };
     };
     responses: never;

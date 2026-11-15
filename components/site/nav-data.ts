@@ -194,10 +194,13 @@ export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
   market: {
     label: "시세",
     tabs: [
-      { label: "거래소", href: "/market" },
-      { label: "보석", href: "/market/gems" },
-      // 장신구 시세 and 악세 검색 in one tab (user 11-02), the search a view inside it.
-      { label: "장신구", href: "/market/accessories", also: ["/market/accessories/search"] },
+      // Exchange categories, 보석 and 장신구 share one category row under it (user 11-12), so one
+      // tab covers all three pages (and the accessory search, a view of 장신구).
+      {
+        label: "품목 시세",
+        href: "/market",
+        also: ["/market/gems", "/market/accessories", "/market/accessories/search"],
+      },
       { label: "재료 견적", href: "/market/quote" },
       { label: "시세 알림", href: "/market/alerts", flag: "priceAlerts" },
     ],

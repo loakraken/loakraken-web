@@ -96,6 +96,19 @@ export interface components {
             combatPowerMedian: number | null;
             /** Format: int64 */
             combatPowerCount: number;
+            combatPowerAvgTop?: number | null;
+            /**
+             * @description combatPowerAvgTop의 최소 아이템 레벨 기준(화면이 기준을 하드코딩하지 않게 함)
+             * @example 1750
+             */
+            combatPowerTopItemLevelMin?: number;
+            /**
+             * Format: int64
+             * @description combatPowerAvgTop에 쓴 길드원 수
+             * @example 8
+             */
+            combatPowerTopCount?: number;
+            combatPowerTotal?: number | null;
         };
         GuildClassCount: {
             className: string;

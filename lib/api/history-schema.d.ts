@@ -49,6 +49,8 @@ export interface components {
             serverName: string;
             /** @description 값이 바뀐 관측만 한 점이 됩니다. 같은 값의 재수집은 lastConfirmedAt만 갱신합니다. */
             points: components["schemas"]["PointResponse"][];
+            /** @description 검색 때 관측한 장착 칭호. 획득일이 아니라 LOAKraken이 처음·마지막으로 관측한 시각이며, 장착한 적 없는 보유 칭호는 알 수 없습니다. */
+            titles?: components["schemas"]["TitleResponse"][];
         };
         PointResponse: {
             /**
@@ -74,6 +76,13 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        TitleResponse: {
+            title: string;
+            /** Format: date-time */
+            firstObservedAt: string;
+            /** Format: date-time */
+            lastObservedAt: string;
         };
     };
     responses: never;

@@ -12,7 +12,7 @@ for (const width of [1280, 360])
     test(`@A37 ${width} 시세 ${tab}: 등락 차액에 G, 목록·품목 정보 어디서도 잘리지 않음 @regression`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await gotoReady(page, "/market");
-      await page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: tab }).click();
+      await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: tab }).click();
       const board = page.getByRole("region", { name: new RegExp(`${tab} 시세`) });
       const changes = board.locator('[class*="change"][data-direction]');
       await expect(changes.first()).toBeVisible();

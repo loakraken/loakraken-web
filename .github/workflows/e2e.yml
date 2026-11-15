@@ -7,7 +7,8 @@ name: E2E
 #
 # 나눠 돌리기(사용자 요청 2026-10-31, 한 번에 약 33분 → 목표 약 10분, 테스트는 하나도 빼지 않는다):
 # 1) build: 운영 빌드(next build → standalone)를 한 번만 만들어 산출물로 넘긴다(4번 빌드하지 않음).
-# 2) shard 1~6: 화면 크기 세 프로젝트(desktop-1440·tablet-768·mobile-390)를 6개 러너가 나눠 돈다(--shard).
+# 2) shard 1~6: 화면 크기 세 프로젝트(desktop-1440·tablet-768·mobile-390)를 6개 러너가 나눠 돈다(파일을 잰 시간으로
+#    나눔, e2e/shard-plan.mjs).
 # 3) serial: 혼자 돌아야 하는 isolated(목 실패 장치)·solo(CPU 측정)와 성능 점검을 자기 러너에서 차례로 돈다.
 #    러너마다 목 백엔드가 따로 떠서 다른 shard와 실패 예약을 나누지 않는다.
 # 4) e2e: 위 결과를 하나로 합쳐 요약·통계를 남기고, 하나라도 실패하면 실패한다. 검사 이름 'e2e'는 그대로라
@@ -158,9 +159,26 @@ jobs:
           name: e2e-build
       - name: Unpack build
         run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
+      # --shard은 테스트 수로 똑같이 잘라, 오래 걸리는 첫 화면 훑기·a7-controls가 몰린 shard 셋이 16분, 나머지가
+      # 6~8분이었다(develop 43598870311). 파일을 잰 시간(shard-times.json)으로 나눠 shard마다 비슷하게 돈다
+      # (shard-plan.mjs). 파일 목록은 모든 shard가 같은 계산으로 얻는다. 먼저 smoke/·regression/의 spec 파일이 모두
+      # shard 하나 또는 serial(isolated·solo) 하나에서만 도는지 확인하고(--verify), 실행 뒤에는 'e2e' job의 테스트 수
+      # 검사가 한 번 더 잡는다.
+      - name: Plan shard files by measured time
+        working-directory: e2e
+        run: |
+          npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --list --reporter=json > shard-list.json
+          npx playwright test --project=isolated --project=solo --no-deps --list --reporter=json > serial-list.json
+          node shard-plan.mjs --verify shard-list.json serial-list.json ${{ strategy.job-total }}
+          node shard-plan.mjs shard-list.json ${{ matrix.shard }} ${{ strategy.job-total }} > shard-files.txt
+          # 이 shard가 도는 파일(느린 shard를 볼 때 무엇이 들었는지 바로 보이게).
+          cat shard-files.txt
       - name: Run E2E shard
         working-directory: e2e
-        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=list,blob
+        env:
+          # --shard 없이는 shard마다 blob 이름이 report.zip이라, 합칠 때 서로 덮어쓴다.
+          PLAYWRIGHT_BLOB_OUTPUT_NAME: report-${{ matrix.shard }}.zip
+        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 $(cat shard-files.txt) --reporter=list,blob
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -304,6 +322,64 @@ jobs:
           path: e2e/e2e-perf.jsonl
           if-no-files-found: ignore
           retention-days: 1
+
+  # WebKit(Safari 엔진) 휴대폰 크기, @webkit 태그 검사만(#1609). Safari만 다르게 가는 길(scroll-initial-target ·
+  # overflow-anchor 없음)을 실제 브라우저로 본다. 위 build의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD).
+  # 처음에는 묶음 'e2e'의 needs에 넣지 않는다(새 브라우저가 흔들리면 모든 PR 병합이 막히므로). 초록이 이어지면
+  # 필수로 넣을지 정리 담당이 정한다. WebKit 캐시 키는 chromium과 따로 둔다.
+  webkit:
+    needs: build
+    name: e2e webkit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_SKIP_BUILD: "1"
+      E2E_WEBKIT: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+      - name: Read Playwright version
+        id: pw
+        working-directory: e2e
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-webkit
+      - name: Install WebKit with system dependencies
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: e2e
+        run: npx playwright install --with-deps webkit
+      - name: Install WebKit system dependencies only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: e2e
+        run: npx playwright install-deps webkit
+      - name: Download build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: e2e-build
+      - name: Unpack build
+        run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
+      - name: Run WebKit checks
+        working-directory: e2e
+        run: npx playwright test --project=webkit-phone --reporter=list
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-traces-webkit
+          path: e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   e2e:
     # 검사 이름 'e2e'를 지키는 묶음 job: 모든 shard·serial 결과를 합쳐 요약하고, 하나라도 실패하면 실패한다.

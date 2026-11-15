@@ -34,10 +34,38 @@ export const AVATAR_SLOTS = [
  * it (user 11-12, in game: 속삭이는 영원 기본, 7주년 궤적 덧입기). Slots with
  * no 덧입기 (얼굴, 악기, 이동 효과) are false too and are never one; an
  * unknown flag reads as the base.
+ *
+ * IsInner false alone is not enough (PM 총괄 11-15): an avatar worn by itself
+ * in a slot can be false too and is still the base. The official tooltip line
+ * "(덧입기 슬롯에 착용 중)" marks the real 덧입기, and in the saved raws (19
+ * characters) every marked one is false with a true avatar in the same slot,
+ * while the 5 lone false ones carry no mark: so a false one is the 덧입기 only
+ * next to a base in its slot (65/65). `worn` is everything the character wears.
+ *
+ * The api now reads that mark for us (api #941, `overlay`: true = marked,
+ * false = not marked, null = tooltip unreadable). When it is a boolean it
+ * decides; pairing is only the fallback for null or an older api without the
+ * field (until the api release that ships it, PM 총괄 11-15).
+ *
+ * Known gap of the fallback: a real 덧입기 worn over an empty base slot reads
+ * as the base (0 of 65 in the saved raws). The `overlay` field has no such gap.
+ *
+ * One-piece (한벌) avatars: the official answer sends them as "상의 아바타"
+ * (their tooltip says "상의&하의 아바타"), never as a type of their own, so
+ * they pair in 상의 like any top. The saved raws have 3: two 덧입기 over a
+ * separate 상의 and 하의 base (marked, read as 상의 덧입기) and one worn
+ * alone (unmarked, read as 상의).
  */
-export function isOverlay(avatar: Avatar) {
+export function isOverlay(avatar: Avatar, worn: readonly Avatar[]) {
+  const slot = avatarSlot(avatar);
+  // Only the four slots that have a 덧입기 one (an unknown slot never gets a made-up "얼굴1 덧입기").
+  const layered = (AVATAR_SLOTS as readonly string[]).includes(`${slot} 덧입기`);
+  // The tooltip mark first, before the type's words (codex #1682, 백엔드 11-15): the official types are
+  // '<slot> 아바타' for every avatar today, so a type naming 덧입기 is a guess, the mark is not.
+  if (typeof avatar.overlay === "boolean") return avatar.overlay && layered;
   if (/덧입기/.test(avatar.type ?? "")) return true;
-  return avatar.isInner === false && (AVATAR_SLOTS as readonly string[]).includes(`${avatarSlot(avatar)} 덧입기`);
+  if (avatar.isInner !== false || !layered) return false;
+  return worn.some((other) => other !== avatar && other.isInner === true && avatarSlot(other) === slot);
 }
 
 /**
@@ -48,7 +76,7 @@ export function avatarSlots(avatars: Avatar[]) {
   const worn = new Map<string, Avatar>();
   const extra: { slot: string; avatar: Avatar }[] = [];
   for (const avatar of avatars) {
-    const slot = `${avatarSlot(avatar)}${isOverlay(avatar) ? " 덧입기" : ""}`;
+    const slot = `${avatarSlot(avatar)}${isOverlay(avatar, avatars) ? " 덧입기" : ""}`;
     if ((AVATAR_SLOTS as readonly string[]).includes(slot) && !worn.has(slot)) worn.set(slot, avatar);
     else extra.push({ slot, avatar });
   }
@@ -73,21 +101,42 @@ export function avatarTendencyText(avatar: Avatar) {
 /**
  * The worn avatars' 성향 points summed by type, in the game's order (지성·담력·
  * 매력·친절, then any other); empty when none add any. Only the avatars' share,
- * not the character's total 성향 (that is the 내실 tab's).
+ * not the character's total 성향 (that is the 내실 tab's). A 덧입기 avatar's
+ * points are left out like its effects: its official tooltip puts the "아래
+ * 능력들이 적용되지 않는 상태입니다" mark above the 성향 line too (PM 총괄 11-15,
+ * official source alone by the data rule).
  */
 export function avatarTendencyTotals(avatars: Avatar[]) {
   const totals = new Map<string, number>();
-  for (const avatar of avatars)
+  for (const avatar of avatars.filter((avatar) => avatarEffectApplies(avatar, avatars)))
     for (const t of pointsOf(avatar)) totals.set(t.type, (totals.get(t.type) ?? 0) + t.point);
   return [...totals]
     .sort(([a], [b]) => tendencyRank(a) - tendencyRank(b))
     .map(([type, point]) => ({ type, point }));
 }
 
-/** Sums "민첩 +2.00%" style lines by stat name; other lines are kept as text. */
+/**
+ * Whether a worn avatar's effect lines apply. A 덧입기 avatar's do not: its
+ * official tooltip says "아래 능력들이 적용되지 않는 상태입니다.(덧입기 슬롯에
+ * 착용 중)" (QA v0.3.13 RC P0-1; the api's combat-power model skips them too,
+ * api #939). The api's `overlay` is that mark: true never counts, false always
+ * counts. Only when it is absent (null, or an older api) does the slot pairing
+ * of `isOverlay` decide. Never IsInner alone: an avatar worn by itself in its
+ * slot is false and still applies (계산 검증 11-15: two such pieces give
+ * 지능 +6, an IsInner filter would give +4).
+ */
+export function avatarEffectApplies(avatar: Avatar, worn: readonly Avatar[]) {
+  if (typeof avatar.overlay === "boolean") return !avatar.overlay;
+  return !isOverlay(avatar, worn);
+}
+
+/**
+ * Sums "민첩 +2.00%" style lines by stat name over the avatars whose effects
+ * apply (덧입기 ones left out); other lines are kept as text.
+ */
 export function avatarEffectTotals(avatars: Avatar[]) {
   const totals = new Map<string, number>();
-  for (const avatar of avatars)
+  for (const avatar of avatars.filter((avatar) => avatarEffectApplies(avatar, avatars)))
     for (const line of avatar.effects) {
       const match = /^(.+?)\s*\+([\d.]+)%$/.exec(line.trim());
       if (match)

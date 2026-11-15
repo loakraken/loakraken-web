@@ -15,15 +15,21 @@ for (const width of [1280, 360])
     await gotoReady(page, characterPath("상세", "avatars"));
     const totals = panelOf(page, "아바타 성향");
     await expect(totals).toBeVisible();
-    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock.
+    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock, without the two
+    // 덧입기 (지성 5, 담력 5): their points do not apply either (PM 총괄 11-15).
     await expect(totals.locator("dt")).toHaveText(["지성", "담력", "매력", "친절"]);
-    await expect(totals.locator("dd")).toHaveText(["+25", "+20", "+35", "+15"]);
+    await expect(totals.locator("dd")).toHaveText(["+20", "+15", "+35", "+15"]);
     await expect(totals).toContainText("캐릭터 전체 성향은 내실 탭에 있어요.");
 
     const list = panelOf(page, "아바타 목록");
     const row = (name) => list.locator("li").filter({ hasText: name }).first();
     await expect(row("합성 하의 (패스)")).toContainText("담력 5 · 매력 15");
     await expect(row("합성 무기 아바타")).toContainText("지성 5 · 담력 5 · 매력 5 · 친절 5");
+    // The two 덧입기 carry 민첩 +1% each with overlay true: not applied, so the effect total is the four
+    // others' 2 + 2 + 2 + 1, not 9 (QA v0.3.13 RC P0-1).
+    const effects = panelOf(page, "아바타 효과");
+    await expect(effects.locator("dt")).toHaveText(["민첩"]);
+    await expect(effects.locator("dd")).toHaveText(["+7%"]);
     // 기본 and 덧입기 as the game shows them (user 11-12): the official answer names both "무기 아바타";
     // IsInner true is the base, false the 덧입기 over it.
     await expect(row("합성 무기 아바타").locator("small").first()).toHaveText("무기");
@@ -43,19 +49,32 @@ for (const width of [1280, 360])
     await expectNoHorizontalOverflow(page);
   });
 
-// 덧입기 아바타의 상세 카드는 중립 문구 한 줄만(PM 총괄 11-13 #1551: '능력 미적용'은 확인되지 않아 쓰지 않음).
-// 기본 아바타 카드에는 그 줄이 없다.
-test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아바타에는 없음 @regression", async ({ page }) => {
+// 덧입기 아바타의 상세 카드는 능력치가 적용되지 않는다고 한 줄로 말한다: 공식 툴팁의 문구가 근거이고, 아바타 효과
+// 합계도 그 효과를 뺀다(QA v0.3.13 RC P0-1, web #1708; PM 총괄 11-15). 기본 아바타 카드에는 그 줄이 없다.
+test("덧입기 아바타 상세에는 '능력치가 적용되지 않아요', 기본 아바타에는 없음 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세", "avatars"));
   await page.getByRole("button", { name: "합성 무기 덧입기 상세 보기" }).click();
   const card = page.getByRole("dialog");
-  await expect(card).toContainText("덧입기 칸에 착용 중");
-  await expect(card).not.toContainText("능력 미적용");
+  await expect(card).toContainText("덧입기 칸에 착용 중이라 능력치가 적용되지 않아요.");
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
   await page.getByRole("button", { name: "합성 무기 아바타 상세 보기" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
+});
+
+// PM 총괄 11-15: IsInner=false alone is not a 덧입기. A lone avatar in its slot (the mock's 머리, false with no base
+// next to it, as real raws have it) is labelled 머리, not 머리 덧입기, and its card has no 덧입기 line.
+test("혼자 착용한 IsInner=false 아바타는 기본 칸으로 표시하고 덧입기 문구가 없다 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세", "avatars"));
+  const row = page.getByRole("region", { name: "아바타 목록" }).locator("li").filter({ hasText: "합성 머리" });
+  await expect(row).toHaveCount(1);
+  await expect(row.locator("small").first()).toHaveText("머리");
+  await row.getByRole("button", { name: "합성 머리 상세 보기" }).click();
+  const card = page.getByRole("dialog");
+  // The card's body is in (its 기본 효과) before the absence is read, so a half-drawn card cannot pass it.
+  await expect(card).toContainText("민첩 +1.00%");
+  await expect(card).not.toContainText("덧입기 칸에 착용 중");
 });
 
 // The api before #833 sends no tendencies field (PM-프론트 11-02): the tab draws as before, with no
@@ -64,6 +83,8 @@ test("성향 값이 없는 예전 응답: 아바타 탭은 그대로, 성향 칸
   await gotoReady(page, characterPath("아바타옛응답", "avatars"));
   await expect(page.getByRole("heading", { name: "아바타 목록", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "아바타 효과", exact: true })).toBeVisible();
+  // No overlay field either: the slot pairing leaves out the same two 덧입기 (QA v0.3.13 RC P0-1).
+  await expect(panelOf(page, "아바타 효과").locator("dd")).toHaveText(["+7%"]);
   await expect(page.getByRole("heading", { name: "아바타 성향", exact: true })).toHaveCount(0);
   const list = panelOf(page, "아바타 목록");
   await expect(list.locator("li").filter({ hasText: "합성 하의 (패스)" }).first()).toBeVisible();

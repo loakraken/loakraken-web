@@ -117,7 +117,7 @@ test("@시세검색 받지 않는 글자는 묻지 않고 안내, 지우기·1�
   await expect(page).toHaveURL(/[?&]sort=high/);
   await expect(page).not.toHaveURL(/[?&]page=/);
   // Another tab keeps the search.
-  await page.getByRole("tab").nth(1).click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link").nth(1).click();
   await expect(page).toHaveURL(/[?&]q=%ED%8C%8C%EA%B4%B4%EC%84%9D/);
   await expect(field(page)).toHaveValue("파괴석");
 

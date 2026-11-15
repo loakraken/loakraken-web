@@ -7,6 +7,7 @@ import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Tree } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
+import { FpEnd } from "@/components/ui/fp-end";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
@@ -154,7 +155,10 @@ export function LifeEnergyTool() {
         </section>
 
         <div className={quote.band}>
-          <div className={craft.workspace}>
+          {/* Drawn once whole (data-fp-whole): at 900px and under the results show above the conditions (CSS order)
+             but come after them in the page, so results that came later pushed the conditions already drawn
+             down (A7, craft tools sweep). The page order stays: it is also the reading and focus order. */}
+          <div className={craft.workspace} data-fp-whole="">
             <section className={craft.settings} aria-labelledby="life-settings">
               <h2 id="life-settings" className={craft.sectionTitle}>
                 계산 조건
@@ -312,6 +316,7 @@ export function LifeEnergyTool() {
                 아니라 {UNKNOWN}으로 둬요. 확인 {LIFE_DATA.checkedAt}.
               </MoreDetail>
             </section>
+            <FpEnd />
           </div>
         </div>
       </main>

@@ -97,6 +97,21 @@ test("적용해 보기 turns a change into simulator inputs, through the URL", (
   assert.deepEqual(editsFor(readTry(tryParam(guard)), NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
   // An unknown grade from a hand-written address is not read.
   assert.equal(readTry(JSON.stringify({ ...guard, grade: "<b>" }))?.grade, undefined);
+  // 연마 path step lines (api #951): option and grade, or NONE without a grade, through the address.
+  const polish = { ...gem, kind: "POLISH", slot: null, level: null, index: 3, line: 0, option: "추가 피해 %", grade: "HIGH" };
+  const swapped = editsFor(readTry(tryParam(polish)), NO_EDITS);
+  assert.deepEqual([swapped?.polish, swapped?.polishOption], [{ "3:0": "HIGH" }, { "3:0": "추가 피해 %" }]);
+  const none = { ...polish, line: 2, option: "NONE", grade: null };
+  const dropped = editsFor(readTry(tryParam(none)), { ...NO_EDITS, polish: { "3:2": "MID" } });
+  assert.deepEqual([dropped?.polish, dropped?.polishOption], [{}, { "3:2": "NONE" }], "a NONE line keeps no grade");
+  // A change that cannot be sent as it is opens nothing: no grade on a named option, no line, a list row's
+  // line text (grade null), or a grade the request does not know.
+  assert.equal(editsFor({ ...polish, grade: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, line: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, option: "추가 피해 +2.60%", grade: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, grade: "유물" }, NO_EDITS), null);
+  assert.equal(readTry(JSON.stringify({ ...polish, grade: "<b>" }))?.grade, undefined);
+  assert.equal(readTry(JSON.stringify({ ...polish, option: "x".repeat(33) }))?.option, null);
   assert.equal(editsFor(null, NO_EDITS), null);
   assert.equal(readTry("{"), null);
   assert.equal(readTry(JSON.stringify({ slot: 1 })), null);
@@ -175,4 +190,38 @@ test("stages of one target group under their best stage, in the list's order (#2
   assert.deepEqual(groups[1].more.map((c) => c.id), ["g0-10"]);
   assert.deepEqual(groups[2].more, []);
   assert.deepEqual(groups[3].more, []);
+});
+test("a kind the web does not know yet reads 기타 everywhere and opens nothing (PM 총괄 11-15, api adds kinds first)", async () => {
+  const { kindLabel, UNKNOWN_KIND_LABEL } = await import("../lib/spec-up/model");
+  const { stepKindLabel, simulatorPath } = await import("../lib/spec-up/goal");
+  assert.equal(kindLabel("POLISH"), "연마");
+  assert.equal(kindLabel("NEW_KIND"), UNKNOWN_KIND_LABEL);
+  assert.equal(kindLabel("constructor"), UNKNOWN_KIND_LABEL);
+  assert.equal(stepKindLabel("NEW_KIND"), "기타 단계");
+  assert.equal(stepKindLabel("constructor"), "기타 단계");
+  // The list folds it under its reason with the 기타 label, not its code.
+  const { candidates } = fixture("character-spec-up.json").data;
+  const odd = { ...candidates.find((c: { status: string }) => c.status !== "OK"), id: "NEW_KIND:0", kind: "NEW_KIND" };
+  const { folded } = splitCandidates([...candidates, odd]);
+  const line = folded.find((f) => f.candidates.some((c) => c.id === "NEW_KIND:0"));
+  assert.ok(line?.kinds.includes(UNKNOWN_KIND_LABEL));
+  assert.ok(!folded.some((f) => f.kinds.includes("NEW_KIND")));
+  // No simulator edit for it, and a path step of that kind is skipped, not sent.
+  const change = { kind: "NEW_KIND", slot: 0, index: 0, level: 1, refine: null, quality: null, name: "x" };
+  assert.equal(editsFor(change, NO_EDITS), null);
+  const step = { kind: "NEW_KIND", change, changes: [change] } as unknown as Parameters<typeof simulatorPath>[0][number];
+  assert.deepEqual(simulatorPath([step]), { changes: [], skipped: 1 });
+});
+
+test("연마 rows with a combat-power gain carry one fixed basis line; without one, or another kind, none (PM 총괄 11-15)", async () => {
+  const { polishBasis, POLISH_BASIS } = await import("../lib/spec-up/model");
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 12.5 }), POLISH_BASIS);
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 0 }), POLISH_BASIS);
+  // The api flag off: no ΔCP on 연마 rows, so the line stays hidden.
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: null }), null);
+  assert.equal(polishBasis({ kind: "GEM_LEVEL", deltaCombatPower: 30 }), null);
+  // 계산 검증's wording (11-15 14:05): flat-value lines dropped; in the already-both-상 case the flat line is replaced.
+  assert.match(POLISH_BASIS, /^점수에 쓰는 연마 효과 두 줄을 이 후보의 등급으로 바꾼 장신구로 셈해요\./);
+  assert.match(POLISH_BASIS, /고정값 공격력·무기 공격력 줄은 빼고/);
+  assert.match(POLISH_BASIS, /고정값 줄을 이 후보의 고정값 줄로 바꿔/);
 });

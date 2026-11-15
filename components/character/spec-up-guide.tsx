@@ -501,7 +501,13 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                       const sub = j > 0;
                       const collapsed = sub && !open;
                       // The simulator is combat power: no link for a supporter, nor where it is off.
-                      const tryable = simulator && !supporter && editsFor(c.change, NO_EDITS, gearType) != null && c.change;
+                      // Not for a 연마 row: it changes several lines and `change` is only one (the path opens the whole step).
+                      const tryable =
+                        simulator &&
+                        !supporter &&
+                        c.kind !== "POLISH" &&
+                        editsFor(c.change, NO_EDITS, gearType) != null &&
+                        c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding

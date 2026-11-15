@@ -105,6 +105,27 @@ test("saved inputs round-trip and drop malformed entries", () => {
   assert.equal(parseSaved(JSON.stringify({ edits: [] , savedAt: "x" })), null);
 });
 
+test("a 연마 step's other option (api #951) is saved, read back, and dropped when the line is another one", () => {
+  const edits: Edits = { ...NO_EDITS, polish: { "3:0": "HIGH" }, polishOption: { "3:0": "적에게 주는 피해 %", "3:1": "NONE" } };
+  const text = serializeSaved(edits, new Date("2026-11-15T06:00:00Z"), {
+    ...identity(),
+    polish: [...identity().polish, { index: 3, line: 1, item: "테스트 목걸이", option: "공격력" }],
+  });
+  const saved = parseSaved(text)!;
+  assert.deepEqual(saved.edits.polishOption, edits.polishOption);
+  assert.ok(!isEmpty(saved.edits));
+  // Line 1 is gone from the character now: its option is left out and counted; line 0 stays.
+  const applied = applySaved(saved, identity());
+  assert.ok(!("legacy" in applied));
+  assert.deepEqual(applied.edits.polishOption, { "3:0": "적에게 주는 피해 %" });
+  assert.equal(applied.skipped, 1);
+  // An older save has no polishOption; a malformed one keeps only short strings.
+  assert.deepEqual(parseSaved(JSON.stringify({ savedAt: "x", edits: {} }))?.edits.polishOption, {});
+  const junk = parseSaved(JSON.stringify({ savedAt: "x", edits: { polishOption: { a: 1, b: "", c: "x".repeat(33), d: "NONE" } } }));
+  assert.deepEqual(junk?.edits.polishOption, { d: "NONE" });
+  assert.ok(!isEmpty({ ...NO_EDITS, polishOption: { "3:2": "NONE" } }), "a NONE line alone is an edit");
+});
+
 test("a saved input applies only to the gear it was aimed at (PM 총괄 10-12 01:54)", () => {
   const edits: Edits = {
     ...NO_EDITS,

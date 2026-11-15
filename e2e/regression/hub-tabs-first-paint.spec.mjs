@@ -1,4 +1,4 @@
-// 회귀(A7, #1534 CI 360 flaky: material-quote-box-categories): 허브 탭 줄(거래소·보석·장신구·재료 견적…)은
+// 회귀(A7, #1534 CI 360 flaky: material-quote-box-categories): 허브 탭 줄(품목 시세·재료 견적…)은
 // 첫 HTML이 나뉘어 와 탭 글자가 늦게 그려져도 누름 영역이 움직이지 않는다. 휴대폰의 누름 영역(hit-44,
 // 보이지 않는 ::after)은 탭 가운데에 놓이는데, 글자 없는 탭은 안쪽 여백(30x16)뿐이라 44px 영역이 왼쪽 7px·위
 // 14px에서 시작하다가 글자가 오면 왼쪽 2px·위 4px로 옮겨 갔다(시작점 5px 이동). 탭이 처음부터 40px 이상·한 줄
@@ -56,6 +56,8 @@ for (const path of ["/market/quote", "/market"])
       const nav = page.getByRole("navigation", { name: /화면$/ });
       await expect(nav.getByRole("link").first()).toBeVisible();
       const late = await labelsArriving(page);
-      expect(late.tabs).toBeGreaterThanOrEqual(4);
+      // 시세 has 품목 시세 · 재료 견적 (and 시세 알림 when its flag is on) since 보석 · 장신구 joined the
+      // category row (#1597, user 11-12).
+      expect(late.tabs).toBeGreaterThanOrEqual(2);
       expect(late.value, `늦게 온 글자가 민 것 (${late.moved})`).toBe(0);
     });

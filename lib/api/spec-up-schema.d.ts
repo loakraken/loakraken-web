@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * 스펙업 목표 경로(공식 호출 없음)
-         * @description 목표 전투력에 닿을 때까지 지금 상태에서 항목마다 다음 한 단계를 만들고, 효율 순(1만 골드당 전투력, 비용을 모르는 단계는 그 뒤에 Δ전투력 순)으로 가장 앞의 단계를 적용하기를 되풀이한 경로를 줍니다. 같은 항목을 여러 단계 올릴 수 있습니다. 모든 전투력은 전투력 시뮬레이터 결과입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음). 금액(cost.amount·cumulativeCost·totalCost)은 모두 골드입니다. 합계에 들어가는 값 가운데 모르는 것이 있으면 cumulativeCost와 totalCost는 null입니다(0으로 더하지 않음 — 같은 보석 칸의 다음 단계 비용을 알면 그 칸 값은 다음 단계 것으로 바뀌어 다시 값이 생길 수 있음). 보석 단계의 cost는 지금에서 그 레벨까지의 누적 비용(스펙업 목록의 같은 목표 후보 비용과 같은 식, 음수 없음)이고, 같은 칸을 이어서 올리면 cumulativeCost·totalCost에는 그 칸의 마지막 단계 누적만 들어갑니다(단계 비용을 더하지 않음). 단계마다 따로 구해 그 레벨 시세가 없으면 그 단계만 비용을 모릅니다. 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 최대 30단계, 계산 시간 상한이 있습니다. 같은 캐릭터 수집 시각·시세 시각·목표는 10분 동안 캐시합니다(시간 상한으로 멈춘 결과는 캐시하지 않음). 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. 503은 저장소 장애이고 Retry-After가 없으니 잠시 뒤 다시 요청합니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
+         * @description 목표 전투력에 닿을 때까지 지금 상태에서 항목마다 다음 한 단계를 만들고, 효율 순(1만 골드당 전투력, 비용을 모르는 단계는 그 뒤에 Δ전투력 순)으로 가장 앞의 단계를 적용하기를 되풀이한 경로를 줍니다. 같은 항목을 여러 단계 올릴 수 있습니다. 모든 전투력은 전투력 시뮬레이터 결과입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음). 금액(cost.amount·cumulativeCost·totalCost)은 모두 골드입니다. 합계에 들어가는 값 가운데 모르는 것이 있으면 cumulativeCost와 totalCost는 null입니다(0으로 더하지 않음 — 같은 보석 칸의 다음 단계 비용을 알면 그 칸 값은 다음 단계 것으로 바뀌어 다시 값이 생길 수 있음). 보석 단계의 cost는 지금에서 그 레벨까지의 누적 비용(스펙업 목록의 같은 목표 후보 비용과 같은 식, 음수 없음)이고, 같은 칸을 이어서 올리면 cumulativeCost·totalCost에는 그 칸의 마지막 단계 누적만 들어갑니다(단계 비용을 더하지 않음). 단계마다 따로 구해 그 레벨 시세가 없으면 그 단계만 비용을 모릅니다. 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 최대 30단계, 계산 시간 상한이 있습니다. 같은 캐릭터 수집 시각·시세 시각·목표는 10분 동안 캐시합니다(시간 상한으로 멈춘 결과는 캐시하지 않음). 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를, 계산이 몰리면 기다리지 않고 429 SPEC_UP_BUSY와 Retry-After(초)를 줍니다. 503은 저장소 장애이고 Retry-After가 없으니 잠시 뒤 다시 요청합니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["goal"];
         put?: never;
@@ -135,13 +135,10 @@ export interface components {
             total: number;
             /** @description 순위 후보(정렬·limit) 뒤에 나머지 후보 전체 */
             candidates: components["schemas"]["CandidateResponse"][];
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             krakenScore?: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             krakenRuleVersion?: string | null;
-            /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) */
             cooldownGemsIncluded?: boolean;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             krakenSortUnavailableReason?: string | null;
         };
         CandidateResponse: {
@@ -151,7 +148,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같다. POLISH(장신구 연마 교체)·ABILITY_STONE(어빌리티 스톤)·KARMA_LEVEL(깨달음 카르마)은 크라켄 점수를 낼 수 있으면 후보마다 한 줄(change null·전투력 UNSUPPORTED·deltaKrakenScore 있음)이고, 그럴 수 없으면 종류마다 한 줄 UNSUPPORTED 알림
+             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같다. POLISH(장신구 연마 교체)·ABILITY_STONE(어빌리티 스톤)·KARMA_LEVEL(깨달음 카르마)은 크라켄 점수를 낼 수 있으면 후보마다 한 줄(change null·전투력 UNSUPPORTED·deltaKrakenScore 있음)이고, 그럴 수 없으면 종류마다 한 줄 UNSUPPORTED 알림. 다만 연마 교체 줄 전투력 스위치가 켜지면 딜러 POLISH 줄은 Δ크라켄 점수와 같은 목표 장신구로, 스톤 줄 전투력 스위치가 켜지면 ABILITY_STONE 줄은 추천 순서와 같은 변경(STONE_ENGRAVING 둘)으로 전투력도 낸다(status OK, change는 그대로 null)
              * @example GEM_LEVEL
              */
             kind: string;
@@ -179,17 +176,11 @@ export interface components {
             reasonCode: string | null;
             reason: string | null;
             reasonDetail: string | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             emptySlot?: boolean | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             baseAttackPctFrom?: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             baseAttackPctTo?: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             deltaKrakenScore?: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             krakenScorePer100kGold?: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             gemType?: string | null;
         };
         ChangeResponse: {
@@ -200,8 +191,9 @@ export interface components {
             refine: number | null;
             quality: number | null;
             name: string | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             grade?: string | null;
+            line?: number | null;
+            option?: string | null;
         };
         CostResponse: {
             /**
@@ -329,7 +321,7 @@ export interface components {
             cumulativeCost: number | null;
             combatPowerPer10kGold: number | null;
             extraCost?: number | null;
-            /** @description 이 단계가 바꾸는 것 전부(전투력 시뮬레이터 changes[]와 같은 모양). 어빌리티 스톤 단계는 각인 두 개. change는 그 첫째와 같음. 없으면 change 하나 */
+            /** @description 이 단계의 시뮬레이터 변경 전부(전투력 시뮬레이터 요청의 changes[]와 같은 모양). 대부분 하나(= change)이고, 어빌리티 스톤은 각인 둘. 다시 잴 때는 단계마다 이 목록을 넣고 같은 칸(candidateId의 마지막 ':' 앞)은 마지막 단계의 목록만 남긴다 */
             changes?: components["schemas"]["ChangeResponse"][];
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
@@ -425,7 +417,6 @@ export interface components {
              */
             quantity: number;
             expectedSalePrice: number | null;
-            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             sellFeeGold?: number | null;
             listedCount: number | null;
             /**
@@ -487,7 +478,7 @@ export interface components {
             stopReasonCode: string;
             stopReason: string | null;
             totalCost: number | null;
-            /** @example spec-up-path-v1 */
+            /** @example spec-up-path-v4 */
             ruleVersion: string;
             /** @description 전투력을 낸 시뮬레이터 규칙 */
             simulatorRuleVersion: string;
@@ -629,7 +620,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            /** @description SPEC_UP_BUSY: 목표 경로 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -759,7 +750,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SPEC_UP_BUSY: 추천 순서 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) */
+            /** @description SPEC_UP_BUSY: 추천 순서 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

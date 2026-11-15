@@ -7,6 +7,15 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
+  defaultVariant,
+  openingVariant,
+  termsKey,
+  termsLabel,
+  addressParams,
+  parseRange,
+  rangeParam,
+  traded,
+  windowStart,
   goldText,
   unitPrice,
   updatedAgo,
@@ -44,15 +53,16 @@ test("board query is allow-listed and the page URL falls back to defaults", () =
   );
   for (const bad of ["", "tab=GEM", "tab=LIFE&tier=5", "tab=LIFE&sort=up", "tab=LIFE&page=11", "tab=LIFE&page=1.5"])
     assert.equal(boardSearchParams(new URLSearchParams(bad)), null, bad);
-  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null });
+  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null, grade: null });
   assert.deepEqual(readBoardQuery({ tab: "FOOD", sort: "fall", page: "3", tier: "9" }), {
     tab: "FOOD",
     tier: null,
     sort: "fall",
     page: 3,
     q: null,
+    grade: null,
   });
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null }), "tab=LIFE");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null, grade: null }), "tab=LIFE");
   assert.equal(parseItemId("66102006"), 66102006);
   assert.equal(parseItemId("0"), null);
   assert.equal(parseItemId("12a"), null);
@@ -72,7 +82,7 @@ test("name search (api #624): trimmed like the server, 1~20 allowed letters, kep
   assert.equal(boardSearchParams(new URLSearchParams("tab=LIFE&q=%3Cx%3E")), null);
   assert.deepEqual(readBoardQuery({ tab: "LIFE", q: " ㅇㅂㄷ " }).q, "ㅇㅂㄷ");
   assert.equal(readBoardQuery({ tab: "LIFE", q: "<x>" }).q, null);
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "high", page: 2, q: "파괴석" }), "tab=LIFE&sort=high&page=2&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "high", page: 2, q: "파괴석", grade: null }), "tab=LIFE&sort=high&page=2&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
 });
 test("change labels and gold text follow the board's units", () => {
   assert.deepEqual(changeLabel(1.14), { text: "▲1.1%", direction: "up" });
@@ -89,6 +99,29 @@ test("history charts use completed days, oldest first", () => {
   assert.equal(days.length, 7);
   assert.ok(days.every((day) => !day.partial));
   assert.ok(days[0].date < days.at(-1)!.date);
+});
+
+// codex #1595 P1: api #920 sends storedDays (and recordedSince) null when no stored record is read
+// (7d, 14d, a store that could not be read). Refusing that would be a 502 for every such chart.
+test("item history: the stored fields may be null, as api #920 sends them on 7d/14d", () => {
+  const body = fixture("market-item-history.json");
+  body.data.range = "14d";
+  for (const variant of body.data.variants) Object.assign(variant, { recordedSince: null, storedDays: null });
+  assert.equal(isItemHistoryEnvelope(body), true);
+  body.data.variants[0].storedDays = "3";
+  assert.equal(isItemHistoryEnvelope(body), false);
+});
+
+// codex #1595 P2: 7일 reads the 30-day answer; with sparse records the last 7 ROWS reached back weeks.
+test("history days stay inside the calendar window that ends on the base date", () => {
+  assert.equal(windowStart("2026-11-14", 7), "2026-11-08");
+  assert.equal(windowStart("2026-03-02", 7), "2026-02-24");
+  const row = (date: string, partial = false) => ({ date, averagePrice: 10, tradeCount: 1, partial });
+  const variant = { ...fixture("market-item-history.json").data.variants[0], days: [row("2026-11-14", true), row("2026-11-12"), row("2026-11-09"), row("2026-10-30"), row("2026-10-20")] };
+  assert.deepEqual(completedDays(variant, 7, "2026-11-14").map((d) => d.date), ["2026-11-09", "2026-11-12"]);
+  assert.equal(completedDays(variant, 30, "2026-11-14").length, 4);
+  // Without a base date (an api before ranges): the latest rows, as before.
+  assert.equal(completedDays(variant, 7).length, 4);
 });
 
 test("board and history requests validate input and pass through allow-listed errors", async () => {
@@ -136,4 +169,93 @@ test("market favourites toggle newest first and drop malformed entries", () => {
   assert.deepEqual(toggleFavorite(added, item), []);
   assert.deepEqual(parseFavorites(JSON.stringify([item, { itemId: -1 }, { ...item, tab: "GEM" }])).length, 1);
   assert.deepEqual(parseFavorites("oops"), []);
+});
+
+test("history range (api #920): only 7d·14d·30d·90d·365d go to the api, as ?range=; none = the old 14 days", async () => {
+  const seen: (string | null)[] = [];
+  const fetcher = (async (url: URL) => {
+    seen.push(url.searchParams.get("range"));
+    return Response.json(fixture("market-item-history.json"));
+  }) as unknown as typeof fetch;
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "90d")).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher })).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "999d")).ok, false);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "30d&x=1")).ok, false);
+  assert.deepEqual(seen, ["90d", null], "a range outside the list never reaches the api");
+});
+
+test("각인서 grade filter (user 11-12): 유물 · 전설 only, 각인서 only, kept in the URL", () => {
+  assert.equal(readBoardQuery({ tab: "ENGRAVING_BOOK", grade: "유물" }).grade, "유물");
+  assert.equal(readBoardQuery({ tab: "ENGRAVING_BOOK", grade: "고대" }).grade, null);
+  assert.equal(readBoardQuery({ tab: "LIFE", grade: "유물" }).grade, null, "another tab ignores it");
+  assert.equal(
+    boardQueryString({ tab: "ENGRAVING_BOOK", tier: null, sort: "default", page: 1, q: null, grade: "전설" }),
+    "tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4",
+  );
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=%EC%9C%A0%EB%AC%BC"))?.get("grade"), "유물");
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=x")), null);
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade="))?.toString(), "tab=ENGRAVING_BOOK");
+});
+
+// QA 11-15 (P2-2): a 각인서 answer has a '거래 1회' series with averagePrice 0 / tradeCount 0 on every day,
+// listed first; the chart opened on it and drew a 0G line.
+const day = (date: string, averagePrice: number, tradeCount: number) => ({ date, averagePrice, tradeCount, partial: false });
+const noTrades = {
+  name: "유물 원한 각인서",
+  tradeRemainCount: 1,
+  bundleCount: null,
+  days: [day("2026-11-14", 0, 0), day("2026-11-13", 0, 0)],
+};
+const tradedTerms = {
+  name: "유물 원한 각인서",
+  tradeRemainCount: 0,
+  bundleCount: null,
+  days: [day("2026-11-14", 99599, 1421), day("2026-11-13", 0, 0), day("2026-11-12", 97463.5, 1300)],
+};
+
+test("defaultVariant opens on the terms with the most trades, else the first with days", () => {
+  assert.equal(defaultVariant([noTrades, tradedTerms] as never), 1);
+  assert.equal(defaultVariant([tradedTerms, noTrades] as never), 0);
+  const empty = { ...noTrades, days: [] };
+  assert.equal(defaultVariant([empty, noTrades] as never), 1, "no trades anywhere: the first with any day");
+  assert.equal(defaultVariant([empty] as never), 0);
+  assert.equal(defaultVariant([] as never), 0);
+});
+
+test("a day without a trade is no record: never a 0G point", () => {
+  assert.equal(traded({ tradeCount: 0 }), false);
+  assert.equal(traded({ tradeCount: 1 }), true);
+  assert.deepEqual(completedDays(tradedTerms as never, 30).map((d) => d.date), ["2026-11-12", "2026-11-14"]);
+  assert.deepEqual(completedDays(noTrades as never, 30), []);
+});
+
+test("openingVariant opens the clicked row's terms when they trade, else the most traded", () => {
+  const row = { tradeRemainCount: 1, bundleCount: null };
+  const rowTerms = { ...noTrades, days: [day("2026-11-14", 99000, 3)] };
+  assert.equal(openingVariant([tradedTerms, rowTerms] as never, row), 1, "the row's own terms, though fewer trades");
+  assert.equal(openingVariant([noTrades, tradedTerms] as never, row), 1, "the row's terms never trade: the most traded");
+  assert.equal(openingVariant([noTrades, tradedTerms] as never, { tradeRemainCount: 5, bundleCount: 1 }), 1, "no such terms");
+  assert.equal(termsKey({ tradeRemainCount: null, bundleCount: 100 }), "-:100");
+  assert.equal(termsKey(noTrades), termsKey(row));
+});
+
+test("the address is read like the server reads it: a repeated name is a list, ignored (codex #1669 P3)", () => {
+  const params = addressParams(new URLSearchParams("tab=FOOD&tab=LIFE&item=7&q=%EA%B0%81"));
+  assert.deepEqual(params, { tab: ["FOOD", "LIFE"], item: "7", q: "각" });
+  // The server page gets the same record from Next: both sides fall back to the first tab.
+  assert.equal(readBoardQuery(params).tab, "REFINING");
+  assert.equal(readBoardQuery(addressParams(new URLSearchParams("tab=FOOD"))).tab, "FOOD");
+});
+
+test("chart range in the address: none for 30일, 1h · 7d · 14d · 90d · 365d, anything else 30일", () => {
+  for (const range of ["hour", 7, 14, 30, 90, 365] as const) assert.equal(parseRange(rangeParam(range) ?? undefined), range);
+  assert.equal(rangeParam(30), null);
+  assert.equal(rangeParam(90), "90d");
+  for (const odd of ["30d", "90", "2y", "", undefined, ["90d", "7d"]]) assert.equal(parseRange(odd), 30);
+});
+
+test("trade terms labels: trades left, else bundle, else stored history only", () => {
+  assert.equal(termsLabel({ tradeRemainCount: 0, bundleCount: 1 }), "거래 0회");
+  assert.equal(termsLabel({ tradeRemainCount: null, bundleCount: 10 }), "10개");
+  assert.equal(termsLabel({}), "지난 기록");
 });

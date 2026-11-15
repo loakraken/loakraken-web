@@ -21,7 +21,9 @@ type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: numbe
 const goalErrorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST", "SPEC_UP_GOAL_OUT_OF_RANGE"],
   404: ["SPEC_UP_DISABLED", "CHARACTER_NOT_CACHED"],
-  429: [],
+  // api #922: the goal shares the path's computing seats, so it can be busy too (code and
+  // Retry-After kept); any other 429 reads as the rate limit.
+  429: ["SPEC_UP_BUSY"],
   503: ["CHARACTER_STORAGE_UNAVAILABLE"],
 };
 

@@ -36,6 +36,7 @@ import {
 import { askLastNames, readLastNames, saveLastNames } from "@/lib/multi-search/last";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./multi-search.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const number = (value: number, digits = 2) => value.toLocaleString("ko-KR", { maximumFractionDigits: digits });
 const characterHref = (name: string) => `/character/${encodeURIComponent(name)}`;
@@ -524,8 +525,12 @@ export function MultiSearchView() {
               aria-describedby={`${ids.hint} ${ids.error}`}
             />
             {/* Always pressable: a full list says why in the message line. */}
-            <Button type="submit">
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+                Never give this Button `loading` (codex #1686): it then wraps its children in a span, the end mark is no
+                longer a direct child, and the button stays hidden for good. Show a pending state another way. */}
+            <Button type="submit" data-fp-whole="">
               비교하기
+              <FpEnd />
             </Button>
           </div>
           <p id={ids.hint} className={styles.hint}>
@@ -562,11 +567,13 @@ export function MultiSearchView() {
             </div>
           </>
         ) : (
-          <div className={styles.panel}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the empty state centres its lines, so the second arriving moved the first.
+          <div className={styles.panel} data-fp-whole="">
             <EmptyState
               title="비교할 캐릭터를 넣어 주세요"
               reason={`이름을 쉼표나 띄어쓰기로 나눠 한 번에 넣을 수 있어요. 최대 ${MULTI_SEARCH_LIMIT}명까지 비교해요.`}
             />
+            <FpEnd />
           </div>
         )}
       </main>

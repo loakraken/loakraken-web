@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -98,7 +99,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
         </section>
         {types.length > 1 && <RankingTypeTabs value="character" types={types} />}
 
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
+        <form data-fp-whole="" className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
           <span className={styles.segment} role="group" aria-label="기준">
             {(["COMBAT_POWER", "ITEM_LEVEL"] as const).map((m) => (
               <button key={m} type="button" aria-pressed={query.metric === m} onClick={() => filter({ metric: m })}>
@@ -161,6 +162,8 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
             />
           </label>
           <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         <RankPodium

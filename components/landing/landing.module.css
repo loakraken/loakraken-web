@@ -249,12 +249,22 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
      everything above it up by half its height (35px). 64px orb; one 16px line at 1.8; a 14px
      link at the page's 1.5 with 12px padding and a 1px border (47px). Taller content still grows. */
   grid-template-rows: 64px minmax(calc(16px * 1.8), auto) minmax(calc(14px * 1.5 + 26px), auto); }
-.routeState > canvas { margin: auto; }
+/* The orb's own 64×64 cell (the grid's first row): the live canvas, and until it can draw the
+   server-drawn still frame under it (#1632). Same size and place the bare canvas had. */
+.orbBox { position: relative; display: block; width: 64px; height: 64px; margin: auto; }
+.orbBox > canvas { position: relative; }
+.orbStill { position: absolute; inset: 0; display: block; }
+/* Each dot is a hair-long round-capped stroke (generated data, codex #1633 P3). */
+.orbStill path { fill: none; stroke: var(--orb-l); stroke-linecap: round; }
+:root:is([data-theme="dark"], [data-theme="dim"]) .orbStill path { stroke: var(--orb-d); }
 .routeState h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 600; letter-spacing: -1px; overflow-wrap: anywhere; }
 .routeState p { max-width: 500px; margin: auto; font-size: 16px; line-height: 1.8; word-break: keep-all; color: var(--muted-foreground); }
 .routeLinks { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; }
 .routeLinks a { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 14px; border: 1px solid var(--input); border-radius: 28px; color: var(--foreground); text-decoration: none; }
 .routeLinks a:last-child { background: var(--primary); color: var(--primary-foreground); border-color: var(--ring); }
+/* The label and its size copy (data-fp-label) share one cell. */
+.routeLinks a[data-fp-label] { display: inline-grid; place-items: center; }
+.routeLinks a[data-fp-label] > span { grid-area: 1 / 1; }
 .routeLinks a:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
 @keyframes hero-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes nudge { 0%, 70%, 100% { transform: translateY(0); } 85% { transform: translateY(4px); } }

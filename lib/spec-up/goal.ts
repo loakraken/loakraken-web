@@ -22,7 +22,7 @@ const STEP_KIND_LABEL: Record<string, string> = {
   // 완갑 steps (api #809) and 스톤 steps (api #812, ABILITY_STONE from the list's labels).
   ARM_GUARD: "완갑",
 };
-export const stepKindLabel = (kind: string) => STEP_KIND_LABEL[kind] ?? "기타 단계";
+export const stepKindLabel = (kind: string) => (Object.hasOwn(STEP_KIND_LABEL, kind) ? STEP_KIND_LABEL[kind] : "기타 단계");
 
 /** Stop codes the screen words itself; any other code shows the backend's stopReason. */
 export const PATH_STOPS = ["REACHED", "ALREADY_REACHED", "NO_CANDIDATE", "STEP_LIMIT", "TIME_LIMIT"] as const;
@@ -87,8 +87,23 @@ export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes
     // engravings, `changes`; `change` is only its first). The whole step goes
     // in or none of it: half a stone would be a stone that does not exist.
     const all = (step.changes?.length ? step.changes : [step.change]) as SpecUpChange[];
-    if (all.every(takes)) changes.push(...all);
-    else skipped += 1;
+    if (!all.every(takes)) {
+      skipped += 1;
+      continue;
+    }
+    // 연마 steps (api #951) merge per line, the later step winning (PM 총괄 11-15, review P1 #1700): a later
+    // step's change for a line replaces that line, in its place (path order kept), and a line the later step
+    // does not name keeps the earlier one's. Right whether a step lists every line that differs from the worn
+    // accessory plus reset lines back to it (the form #951 sends, PM 총괄 11-15) or only what it changes
+    // from the step before. A reset line (the worn option and grade) reads as the worn line in the simulator.
+    for (const change of all) {
+      const at =
+        change.kind === "POLISH"
+          ? changes.findIndex((c) => c.kind === "POLISH" && c.index === change.index && c.line === change.line)
+          : -1;
+      if (at < 0) changes.push(change);
+      else changes[at] = change;
+    }
   }
   // In path order: the simulator applies them one after another, so a later
   // value for the same slot (보석 9 → 10, the same engraving again) wins.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { CSPProvider } from "@base-ui/react/csp-provider";
+import { NonceProvider } from "@/components/site/nonce";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
@@ -85,11 +86,13 @@ export default async function RootLayout({ children }: Readonly<{
         {/* Base UI's own inline scripts (the tab indicator placed before
             hydration) take the nonce from here. */}
         <CSPProvider nonce={nonce}>
-          <ThemeKeeper />
-          <Providers>{children}</Providers>
-          <PerRoute>
-            <SiteLegal />
-          </PerRoute>
+          <NonceProvider nonce={nonce}>
+            <ThemeKeeper />
+            <Providers>{children}</Providers>
+            <PerRoute>
+              <SiteLegal />
+            </PerRoute>
+          </NonceProvider>
         </CSPProvider>
       </body>
     </html>

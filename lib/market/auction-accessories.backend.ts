@@ -7,6 +7,7 @@ import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
 import { lazyValidator } from "@/lib/api/lazy-validator";
 import { type AccessoryBoardEnvelope, type AccessoryListingsEnvelope, type AccessoryFilter, type Options, type AccessoryPick } from "./auction-accessories";
+import type { CellHistoryEnvelope } from "./cell-history";
 
 // `filter` (api #548, always null here) and a listing's `icon` (api #613) are
 // required in the contract, but a backend from before them answers without:
@@ -75,4 +76,34 @@ export function requestAccessoryListings(
     url.searchParams.set("page", String(pick.page));
   }
   return requestBackend(url, { ...options, isValid: isAccessoryListingsEnvelope, errorCodes });
+}
+
+// Cell history (api #920): the same cell as the board (grade·role·minQuality + slot·levels), no
+// official call; a storage failure is 503 MARKET_CACHE_UNAVAILABLE.
+const validateHistory = compile<CellHistoryEnvelope>("ApiResponseAuctionAccessoryCellHistoryResponse");
+
+export const isAccessoryHistoryEnvelope = (value: unknown): value is CellHistoryEnvelope =>
+  validateHistory(value) && value.code === "AUCTION_ACCESSORIES_SUCCESS";
+
+const historyCodes: Record<number, readonly string[]> = {
+  ...errorCodes,
+  503: [...(errorCodes[503] ?? []), "MARKET_CACHE_UNAVAILABLE"],
+};
+
+/** One accessory cell's lowest price by day for a range (7d·14d·30d·90d·365d). */
+export function requestAccessoryHistory(
+  filter: AccessoryFilter,
+  pick: Pick<AccessoryPick, "slot" | "levels">,
+  range: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<CellHistoryEnvelope>> {
+  const url = backendUrl(origin, "/api/v1/markets/auctions/accessories/history");
+  if (url) {
+    for (const [key, value] of filterParams(filter)) url.searchParams.set(key, value);
+    url.searchParams.set("slot", pick.slot);
+    url.searchParams.set("levels", pick.levels.join(","));
+    url.searchParams.set("range", range);
+  }
+  return requestBackend(url, { ...options, isValid: isAccessoryHistoryEnvelope, errorCodes: historyCodes });
 }

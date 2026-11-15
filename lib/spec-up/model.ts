@@ -3,12 +3,15 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ARM_GUARD_GRADES, isRefineOpen, type Edits } from "../combat-power/model";
+import { ARM_GUARD_GRADES, GRADES, isRefineOpen, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+
+const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
 type Schemas = components["schemas"];
 export type SpecUp = Schemas["SpecUpResponse"];
 export type Candidate = Schemas["CandidateResponse"];
 export type Cost = Schemas["CostResponse"];
+/** A polish step's `line` and `option` (api #951) are in the contract, optional until that api ships. */
 export type SpecUpChange = Schemas["ChangeResponse"];
 export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
@@ -63,7 +66,11 @@ export const specUpQuery = (
   includeCooldownGems: boolean | null = null,
 ) => ["spec-up", name, fetchedAt ?? null, sort, includeCooldownGems] as const;
 
-/** Kinds the screen names; a newer kind shows its own code. */
+/**
+ * Kinds the screen names. A kind the web does not know yet (the api adds kinds ahead of the web, PM 총괄 11-15)
+ * reads "기타", never its code: the list, the detail card and the folded reasons stay readable, and such a row
+ * opens nothing in the simulator (editsFor gives null).
+ */
 export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   GEM_LEVEL: "보석",
   GEM_LEVEL_ALL: "보석",
@@ -79,7 +86,22 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   KARMA_LEVEL: "카르마",
   ABILITY_STONE: "어빌리티 스톤",
 };
-export const kindLabel = (kind: string) => SPEC_UP_KIND_LABEL[kind] ?? kind;
+export const UNKNOWN_KIND_LABEL = "기타";
+
+/**
+ * 연마 rows with a combat-power gain (api spec-up.polish-cp, PM 총괄 11-15): the gain is for the accessory with its
+ * two scoring lines at this candidate's grades; a current flat-value 공격력 / 무기 공격력 line is dropped, except
+ * when the current two scoring lines are already both 상, where the flat line becomes this candidate's flat line.
+ * One fixed line in the row's detail card says so; it shows only when the row has a ΔCP, so it stays hidden while
+ * the api flag is off.
+ */
+// 계산 검증's sentence (11-15 14:05, against api #945), verbatim: do not reword. It wraps in the card.
+export const POLISH_BASIS =
+  "점수에 쓰는 연마 효과 두 줄을 이 후보의 등급으로 바꾼 장신구로 셈해요. 지금 붙은 고정값 공격력·무기 공격력 줄은 빼고 셈해요. 다만 지금 두 줄이 이미 모두 상이면, 고정값 줄을 이 후보의 고정값 줄로 바꿔 셈해요. 그 밖의 줄은 그대로예요.";
+export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPower">) =>
+  candidate.kind === "POLISH" && candidate.deltaCombatPower != null ? POLISH_BASIS : null;
+export const kindLabel = (kind: string) =>
+  Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
 /** The site reads a gem by its role (보석은 '10겁 8작', user 10-22): gemType → word. */
 const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" };
@@ -275,6 +297,24 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
       return change.level != null
         ? { ...base, armGuard: { ...base.armGuard, level: change.level, ...(change.grade ? { grade: change.grade } : {}) } }
         : null;
+    // 연마 (api #951): one line of the accessory a path step buys, its option and grade, or "NONE" (a line with
+    // no scoring option, no grade). Sent as it is, so opening the path gives the step's combat power. A change
+    // without a line, option or grade (a list row's, which names the line's text) opens nothing.
+    case "POLISH": {
+      if (change.index == null || change.line == null || !change.option || change.option.length > 32) return null;
+      const key = `${change.index}:${change.line}`;
+      if (change.option === POLISH_NONE) {
+        const polish = Object.fromEntries(Object.entries(base.polish).filter(([at]) => at !== key)) as Edits["polish"];
+        return { ...base, polish, polishOption: { ...base.polishOption, [key]: POLISH_NONE } };
+      }
+      return isGrade(change.grade)
+        ? {
+            ...base,
+            polish: { ...base.polish, [key]: change.grade },
+            polishOption: { ...base.polishOption, [key]: change.option },
+          }
+        : null;
+    }
     default:
       return null;
   }
@@ -336,6 +376,15 @@ function changeOf(value: unknown): SpecUpChange | null {
     // codex P1). From the address, so only the known grades are read.
     // Optional in the contract: only a change that has one carries it back.
     ...((ARM_GUARD_GRADES as readonly unknown[]).includes(v.grade) ? { grade: v.grade as string } : {}),
+    // 연마 step lines (api #951): the line, its option ("NONE" too) and LOW·MID·HIGH. Dropped, a path opened
+    // with the steps' 연마 left out and other numbers than the path.
+    ...(v.kind === "POLISH"
+      ? {
+          line: int("line"),
+          option: typeof v.option === "string" && v.option.length <= 32 ? v.option : null,
+          ...(isGrade(v.grade) ? { grade: v.grade } : {}),
+        }
+      : {}),
   };
 }
 

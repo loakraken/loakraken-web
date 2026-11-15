@@ -83,7 +83,7 @@ export interface components {
             kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD";
             /**
              * Format: int32
-             * @description 보석 slot(GEM_LEVEL)
+             * @description 보석 slot(GEM_LEVEL, 0~10). 보석이 없는 빈 칸이면 그 칸에 4티어 보석을 새로 끼우는 변화로 계산한다(before = 0)
              */
             slot?: number;
             /**
@@ -111,9 +111,9 @@ export interface components {
              * @description 품질(EQUIPMENT_QUALITY)
              */
             quality?: number;
-            /** @description 연마 옵션 이름(POLISH) */
+            /** @description 연마 옵션 이름(POLISH, options의 polishValues.options[].option). 같은 부위에 같은 이름의 %·고정값이 둘 다 있으면(귀걸이 공격력·무기 공격력) % 쪽은 끝에 " %"를 붙인다(예: "공격력 %"). "NONE"은 점수 옵션이 없는 줄(전투력 몫 0, grade 없음): 스펙업 추천 순서의 연마 단계가 사는 장신구에서 빠지는 줄(지금 고정값 줄)을 나타낸다. */
             option?: string;
-            /** @description LOW·MID·HIGH(POLISH·BRACELET_EFFECT), 코어 등급(ARK_GRID_CORE) */
+            /** @description LOW·MID·HIGH(POLISH·BRACELET_EFFECT, POLISH option NONE이면 없음), 코어 등급(ARK_GRID_CORE) */
             grade?: string;
             /** @description 팔찌 효과·각인·스톤 각인 이름 */
             name?: string;
@@ -257,9 +257,9 @@ export interface components {
             percent: boolean;
             /** @description 이 옵션이 붙는 부위(공식 연마 확률 정보: 목걸이·귀걸이·반지) */
             parts: string[];
-            low: (string | null) | null;
-            mid: (string | null) | null;
-            high: (string | null) | null;
+            low: string | null;
+            mid: string | null;
+            high: string | null;
         };
         BraceletOptionResponse: {
             /**

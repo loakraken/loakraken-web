@@ -86,12 +86,15 @@ export type Identity = {
 /** Every key an edit can use, mapped to what it names on this character. */
 export function targetsOf(identity: Identity): Required<Targets> {
   const gear = Object.fromEntries(identity.gear.map((g) => [String(g.index), `${g.type}|${g.name}`]));
+  const polish = Object.fromEntries(identity.polish.map((p) => [`${p.index}:${p.line}`, `${p.item}|${p.option}`]));
   return {
     gems: Object.fromEntries(identity.gems.map((g) => [String(g.slot), g.name])),
     refine: gear,
     quality: gear,
     advanced: gear,
-    polish: Object.fromEntries(identity.polish.map((p) => [`${p.index}:${p.line}`, `${p.item}|${p.option}`])),
+    polish,
+    // A 연마 step's other option for the line (api #951) is aimed at the same line worn.
+    polishOption: polish,
     bracelet: Object.fromEntries(identity.bracelet.map((b) => [String(b.line), b.name])),
     braceletName: Object.fromEntries(identity.bracelet.map((b) => [String(b.line), b.name])),
     armGuard: identity.armGuard ? { level: identity.armGuard.name, grade: identity.armGuard.name } : {},
@@ -108,6 +111,7 @@ const GROUPS = [
   "quality",
   "advanced",
   "polish",
+  "polishOption",
   "bracelet",
   "braceletName",
   "engraving",
@@ -186,6 +190,14 @@ export function parseSaved(text: string | null): Saved | null {
     quality: numbers("quality"),
     advanced: numbers("advanced"),
     polish: grades("polish") as Edits["polish"],
+    // An older save has none; a value too long for the request (32) is left out.
+    polishOption: isRecord(source.polishOption)
+      ? Object.fromEntries(
+          Object.entries(source.polishOption).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0 && entry[1].length <= 32,
+          ),
+        )
+      : {},
     bracelet: grades("bracelet") as Edits["bracelet"],
     engraving: numbers("engraving"),
     stone: numbers("stone"),

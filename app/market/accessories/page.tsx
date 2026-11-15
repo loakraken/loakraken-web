@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { AccessoryBoardView } from "@/components/market/accessory-board";
 import { parseAccessoryFilter, parseAccessoryPick } from "@/lib/market/auction-accessories";
-import { getAccessoryBoard } from "@/lib/market/server";
+import { getAccessoryBoard, getMarketTabs } from "@/lib/market/server";
 import { isAccessorySearchEnabled } from "@/lib/tools/flags";
 
 export const metadata: Metadata = {
@@ -24,11 +24,14 @@ export default async function AccessoriesPage({
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value);
   const filter = parseAccessoryFilter(params);
   // A slow backend gives up after 1s; the client then fetches into the held room (CLS).
-  const board = await getAccessoryBoard(filter, AbortSignal.timeout(1_000));
+  // The category row reads the market tab list: it comes too, so the row matches /market at once.
+  const deadline = AbortSignal.timeout(1_000);
+  const [board, tabs] = await Promise.all([getAccessoryBoard(filter, deadline), getMarketTabs(deadline)]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
   if (board.ok) client.setQueryData(["accessory-board", filter], board.envelope, { updatedAt: fetchedAt });
+  if (tabs.ok) client.setQueryData(["market", "tabs"], tabs.envelope, { updatedAt: fetchedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
       <AccessoryBoardView

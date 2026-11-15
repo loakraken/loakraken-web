@@ -11,6 +11,7 @@ import { scheduleGroups, schedulePath, upcomingRounds } from "@/lib/home/schedul
 import { nextReset } from "@/lib/tools/homework";
 import { Rewards, ScheduleBoard, useCategoryNav, useSchedule } from "./schedule-board";
 import styles from "./schedule.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /** Today's next round per category; only while today's schedule is loaded. */
 function Upcoming({ renderedAt }: { renderedAt?: number }) {
@@ -37,8 +38,9 @@ function Upcoming({ renderedAt }: { renderedAt?: number }) {
               </span>
             </>
           );
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the card centres its three lines, so each later line moved the time up.
           return (
-            <li key={round.key}>
+            <li key={round.key} data-fp-whole="">
               {round.slug ? (
                 <a href={schedulePath(round.slug)} onClick={go(round.slug)}>
                   {body}
@@ -46,6 +48,7 @@ function Upcoming({ renderedAt }: { renderedAt?: number }) {
               ) : (
                 <div>{body}</div>
               )}
+              <FpEnd />
             </li>
           );
         })}
@@ -68,7 +71,8 @@ function WeekIslands({ renderedAt }: { renderedAt?: number }) {
     <section className={home.panel} aria-labelledby="week-islands-heading">
       <div className={home.panelHead}>
         <h2 id="week-islands-heading">이번 주 모험 섬</h2>
-        <span className={home.count}>골드 섬 {gold.size}일</span>
+        {/* One text node: a count split from its words drew first, and the words then pushed it left. */}
+        <span className={home.count}>{`골드 섬 ${gold.size}일`}</span>
       </div>
       <ol className={styles.week}>
         {data.weekly.map((day) => {

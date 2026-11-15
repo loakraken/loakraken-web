@@ -12,8 +12,10 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 const partsArriving = (list) =>
   list.evaluate(async (row) => {
     const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const tabs = [...row.querySelectorAll(":scope > [role=tab]")];
-    const labels = tabs.map((tab) => [...tab.childNodes]);
+    // Pill tabs, or the market's category row (codex #1597: a list of links, each in its li).
+    const tabs = [...row.querySelectorAll(":scope > [role=tab], :scope > li")];
+    const hosts = tabs.map((tab) => (tab.matches("li") ? tab.firstElementChild : tab));
+    const labels = hosts.map((host) => [...host.childNodes]);
     tabs.forEach((tab, i) => {
       labels[i].forEach((node) => node.remove());
       if (i > 0) tab.remove();
@@ -27,7 +29,7 @@ const partsArriving = (list) =>
         row.append(tab);
         await frame();
       }
-      tab.append(...labels[i]);
+      hosts[i].append(...labels[i]);
       await frame();
     }
     entries.push(...observer.takeRecords());
@@ -51,8 +53,13 @@ for (const [path, label] of [
     test(`@A7 ${width} ${path}: 이름보다 먼저 그려진 알약 탭이 이름이 와도 움직이지 않는다 @regression`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await gotoReady(page, path);
-      const list = label ? page.getByRole("tablist", { name: label }) : page.locator('[data-slot="pill-tabs"] [role=tablist]').first();
-      await expect(list.getByRole("tab").nth(1)).toBeVisible();
+      const list =
+        path === "/market"
+          ? page.getByRole("navigation", { name: label }).locator("ul")
+          : label
+            ? page.getByRole("tablist", { name: label })
+            : page.locator('[data-slot="pill-tabs"] [role=tablist]').first();
+      await expect(list.getByRole(path === "/market" ? "link" : "tab").nth(1)).toBeVisible();
       const late = await partsArriving(list);
       expect(late.value, `늦게 온 탭·이름이 민 것 (${late.moved})`).toBe(0);
     });

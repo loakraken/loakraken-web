@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { MedalStarBold } from "@/components/ui/icons";
@@ -17,7 +18,7 @@ function RollingValue({ text }: { text: string }) {
   return (
     <>
       <span className={styles.valueText} data-value-text="">{text}</span>
-      <span className={styles.rolling} aria-hidden="true">
+      <span className={styles.rolling} aria-hidden="true" data-fp-whole="">
         {Array.from(text).map((ch, i) =>
           /\d/.test(ch) ? (
             <span key={i} className={styles.digit} data-podium-digit="" style={{ ["--d" as string]: Number(ch), ["--i" as string]: i }}>
@@ -27,6 +28,8 @@ function RollingValue({ text }: { text: string }) {
             <span key={i} className={styles.digit} data-podium-digit="">{ch}</span>
           ),
         )}
+        {/* Last: drawn once every digit is here (one span per digit, centred). */}
+        <FpEnd />
       </span>
     </>
   );
@@ -148,8 +151,11 @@ export function RankPodium({
           className={styles.motion}
           onClick={toggleMotion}
           data-podium-motion-toggle=""
+          // Sized from its label at the start tag: right-anchored, a button drawn
+          // before its text widened leftwards when the text came (A7 sweep).
+          data-fp-label={still ? "시상대 효과 켜기" : "시상대 효과 멈춤"}
         >
-          {still ? "시상대 효과 켜기" : "시상대 효과 멈춤"}
+          <span className={styles.motionText}>{still ? "시상대 효과 켜기" : "시상대 효과 멈춤"}</span>
         </button>
         <ol className={styles.places} role="list">
           {top.map((entry, slot) => {
@@ -200,8 +206,8 @@ export function RankPodium({
                 <strong className={styles.value} data-podium-value="">
                   <RollingValue text={entry.value} />
                 </strong>
-                <div className={styles.block} data-podium-block="">
-                  <span className={styles.placeNumber}>{entry.rank}위</span>
+                <div className={styles.block} data-podium-block="" data-fp-label={`${entry.rank}위`}>
+                  <span className={styles.placeNumber}>{`${entry.rank}위`}</span>
                 </div>
                 <span className={styles.beam} aria-hidden="true" data-podium-beam="" />
               </li>

@@ -123,3 +123,44 @@
     transition: none;
   }
 }
+
+/* 등급 조합 after the listings (user 11-12): the picked slot's combinations, each one a press to pick it. */
+.combos {
+  margin-top: 24px;
+  min-width: 0;
+}
+.combos h2 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.comboPick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* 44px to tap on phones and touch screens (A36, codex #1601 P2-2): the button itself is that tall, so
+   the rows' tap areas never overlap (a centred hit-44 area would reach into the next row). */
+@media (max-width: 699px), (pointer: coarse) {
+  .comboPick {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+.comboPick small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.combos tr[aria-current] th,
+.combos tr[aria-current] td {
+  background: var(--muted);
+}

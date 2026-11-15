@@ -1386,3 +1386,17 @@
   white-space-collapse: preserve-breaks;
   pointer-events: none;
 }
+/* Drawn only once all of it has arrived (A7, /stats and rankings sweep): a
+   group whose parts size and place each other (a wrapping row of filters, a
+   number drawn one digit per span) stays unseen until its last child, the
+   end mark <FpEnd />, is in the page. Unseen boxes do not count as moving,
+   and nothing after the group has arrived yet, so the parts landing one by
+   one move nothing anyone sees. The finished group looks as before. */
+[data-fp-whole]:not(:has(> [data-fp-end])) {
+  visibility: hidden;
+}
+/* The end mark itself is never a box, whatever the group's own child rules say (a `> span { display: … }`
+   would otherwise draw it as an empty flex item with a gap). */
+[data-fp-end] {
+  display: none !important;
+}

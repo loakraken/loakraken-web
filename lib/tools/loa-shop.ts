@@ -41,6 +41,12 @@ export type ShopPackage = {
    * Wednesday's maintenance start, 06:00 KST. null while "별도 안내 시".
    */
   endsAt: string | null;
+  /**
+   * The KST date an open-ended package ("별도 안내 시") was missing from the
+   * official shop screen with no notice ending it: shown as "판매 여부 확인 안 됨",
+   * never as plainly on sale. Absent while the official sources show it on sale.
+   */
+  saleUnconfirmed?: string;
   /** Purchase limit, the notice's words. */
   limit: string;
   /** A bonus set every `every` purchases; `text` is the notice's words. */
@@ -244,6 +250,11 @@ export function checkShopData(data: ShopData): string[] {
     if (!p.items.length) problems.push(`${p.id}: no items`);
     for (const i of p.items) if (!Number.isInteger(i.qty) || i.qty <= 0) problems.push(`${p.id}: bad qty ${i.name}`);
     if (p.endsAt !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(p.endsAt)) problems.push(`${p.id}: bad endsAt`);
+    if (p.saleUnconfirmed !== undefined) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(p.saleUnconfirmed)) problems.push(`${p.id}: bad saleUnconfirmed`);
+      // Only an open-ended sale can be in doubt; a dated one simply ends.
+      if (p.endsAt !== null) problems.push(`${p.id}: saleUnconfirmed on a dated sale`);
+    }
   }
   return problems;
 }

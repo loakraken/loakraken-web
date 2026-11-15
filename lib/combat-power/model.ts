@@ -36,6 +36,8 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   "ARM_GUARD",
   // api #460: polish lines take the line's own option and value (무공 too).
   "POLISH",
+  // api #838: core grade and point (계산 검증 1,060/1,060), PM 총괄 11-15.
+  "ARK_GRID_CORE",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
@@ -46,6 +48,30 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
  * stay "준비 중" (PM 총괄 11-12).
  */
 export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+
+/**
+ * Ark passive trees the simulator takes, one by one: 도약 (api #842). 진화·깨달음
+ * come back UNSUPPORTED until their formula is confirmed, so they stay "준비 중".
+ */
+export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>(["도약"]);
+export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || OPEN_ARK_PASSIVE_TREES.has(tree);
+
+/**
+ * The in-game maximum of a tree's points, so the input cannot reach a combat
+ * power that cannot exist (the api takes 0~999; PM 총괄 11-15). 도약 70 = 팔찌
+ * 고대 +18, 전투 레벨 51 이상 +40, 카르마 랭크 +12. Source: official game guide
+ * '아크 패시브', https://m-lostark.game.onstove.com/GameGuide/Pages/아크%20패시브
+ * (최근수정일 2026-06-24), read by 레퍼런스 and 계산 검증 11-15.
+ */
+export const ARK_PASSIVE_TREE_MAX: Readonly<Record<string, number>> = { 도약: 70 };
+export const arkPassiveMax = (tree: string) => ARK_PASSIVE_TREE_MAX[tree] ?? ARK_PASSIVE_MAX;
+
+/**
+ * The 혼돈의 별 : 무기 core counts through weapon attack and the api does not
+ * compute it yet (api #838, WEAPON_CORE_REASON), so its row stays "준비 중".
+ */
+export const WEAPON_CORE = "혼돈의 별 코어 : 무기";
+export const isCoreOpen = (name: string) => isOpen("ARK_GRID_CORE") && !name.trim().startsWith(WEAPON_CORE);
 
 /** 전율 gear has no advanced refining (the backend's refine model reads the
  * same name: "전율 장비에는 상급 재련이 없습니다."). */
@@ -79,8 +105,14 @@ export type Edits = {
   quality: Record<number, number>;
   /** Advanced refining step per equipment index (search advancedRefineLevel, web #374). */
   advanced: Record<number, number>;
-  /** Polish grade per `${index}:${line}` (the option itself stays). */
+  /** Polish grade per `${index}:${line}` (the option stays, unless polishOption names another). */
   polish: Record<string, Grade>;
+  /**
+   * Another option for a polish line, per `${index}:${line}`, as the request's option ("추가 피해 %", a % option
+   * ending in " %"), or POLISH_NONE for a line with no scoring option. Only a spec-up 연마 step sets it: the
+   * step buys another accessory, so its lines change option, not only grade (api #951).
+   */
+  polishOption: Record<string, string>;
   /** Bracelet grade per line. */
   bracelet: Record<number, Grade>;
   /** Bracelet option family per line (options.braceletOptions name, "없음" removes it; backend #332). */
@@ -99,6 +131,7 @@ export const NO_EDITS: Edits = {
   quality: {},
   advanced: {},
   polish: {},
+  polishOption: {},
   bracelet: {},
   braceletName: {},
   engraving: {},
@@ -108,6 +141,38 @@ export const NO_EDITS: Edits = {
   armGuard: {},
 };
 
+/** The POLISH option of a line with no scoring option (0 combat power, no grade; api #951). */
+export const POLISH_NONE = "NONE";
+/** How such a line reads on screen, the api's own words for it: never the raw code. */
+export const POLISH_NONE_TEXT = "점수 옵션 없는 줄";
+
+/**
+ * A polish option as the screen names it: the request's " %" mark dropped ("추가 피해 %" → "추가 피해"),
+ * and POLISH_NONE in words.
+ */
+export const polishOptionText = (option: string) =>
+  option === POLISH_NONE ? POLISH_NONE_TEXT : option.replace(/\s*%$/, "");
+
+/**
+ * The table value of a polish option the line changes to (a 연마 step's new accessory, api #951), e.g.
+ * "추가 피해 %" HIGH → "+2.60%". The request option says % or flat by its " %"; null when not in the table.
+ */
+export function polishSwapValue(
+  values: PolishValues | undefined,
+  option: string,
+  grade: string,
+  part?: string | null,
+): string | null {
+  const percent = /\s%$/.test(option);
+  const name = option.replace(/\s*%$/, "");
+  // The row for this accessory's part when it is known (목걸이·귀걸이·반지 each list their own options).
+  const row = values?.options.find(
+    (item) => item.option === name && item.percent === percent && (!part || item.parts.includes(part)),
+  );
+  if (!row) return null;
+  return (grade === "LOW" ? row.low : grade === "MID" ? row.mid : grade === "HIGH" ? row.high : null) ?? null;
+}
+
 export const GRADES = ["LOW", "MID", "HIGH"] as const;
 export type Grade = (typeof GRADES)[number];
 /** Official tooltip colours map to 하·중·상 (backend PolishEffectResponse). */
@@ -116,12 +181,13 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 export type Current = {
   gems: { slot: number; level: number }[];
   gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
-  polish?: { index: number; line: number; option: string; grade: Grade | null }[];
+  /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
+  polish?: { index: number; line: number; option: string; grade: Grade | null; value?: string; part?: string | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
-  cores?: { slotIndex: number; grade: string; point: number }[];
+  cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
   armGuard?: { level: number; grade: string } | null;
 };
 
@@ -183,6 +249,28 @@ export function refineEdit(
 }
 
 /**
+ * The other option a polish line is set to (a spec-up 연마 step, api #951), or null when it keeps the worn
+ * one. Not while POLISH is locked (the card cannot show or undo it). A line set back to its worn option (a
+ * later step's reset line on the same accessory, api #951) is the worn line: its grade, if another, is an
+ * ordinary grade edit. Without the worn value the % mark cannot be told, so the option stays as given.
+ */
+export function polishSwapOf(
+  edits: Edits,
+  line: { index: number; line: number; option: string; value?: string },
+): string | null {
+  const option = edits.polishOption[`${line.index}:${line.line}`];
+  if (option == null || !isOpen("POLISH")) return null;
+  if (line.value != null && option === (line.value.includes("%") ? `${line.option} %` : line.option)) return null;
+  return option;
+}
+
+/** A polish line back to the one worn: its other option and grade go (one 이전 step). */
+export function wornPolish(edits: Edits, key: string): Edits {
+  const drop = <T,>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([at]) => at !== key));
+  return { ...edits, polish: drop(edits.polish) as Edits["polish"], polishOption: drop(edits.polishOption) };
+}
+
+/**
  * Only real differences become changes, in a fixed order (gems, gear, then the
  * rest in screen order), so
  * the same edits always send the same body and hit the same cache entry.
@@ -208,9 +296,17 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (advanced != null && item.advanced != null && advanced !== item.advanced)
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
-  for (const line of current.polish ?? []) {
-    const grade = edits.polish[`${line.index}:${line.line}`];
-    if (grade && grade !== line.grade)
+  // Nothing for polish while the card is locked: it cannot show or undo an edit (review P3 #1700).
+  for (const line of isOpen("POLISH") ? (current.polish ?? []) : []) {
+    const key = `${line.index}:${line.line}`;
+    const grade = edits.polish[key];
+    const option = polishSwapOf(edits, line);
+    // A line with no scoring option has no grade (api #951).
+    if (option === POLISH_NONE) changes.push({ kind: "POLISH", index: line.index, line: line.line, option });
+    else if (option != null) {
+      const to = grade ?? line.grade;
+      if (to) changes.push({ kind: "POLISH", index: line.index, line: line.line, option, grade: to });
+    } else if (grade && grade !== line.grade)
       changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
   }
   for (const line of current.bracelet ?? []) {
@@ -230,12 +326,14 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (level != null && level !== item.level)
       changes.push({ kind: "STONE_ENGRAVING", name: item.name, level });
   }
-  for (const item of current.arkPassive ?? []) {
+  // Nothing for a row the screen keeps locked: it cannot show or undo an edit.
+  for (const item of (current.arkPassive ?? []).filter((item) => isArkPassiveOpen(item.tree))) {
     const points = edits.arkPassive[item.tree];
-    if (points != null && points !== item.points)
+    // Over the in-game maximum (an old saved input, say): not sent.
+    if (points != null && points !== item.points && points <= arkPassiveMax(item.tree))
       changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
   }
-  for (const item of current.cores ?? []) {
+  for (const item of (current.cores ?? []).filter((item) => isCoreOpen(item.name ?? ""))) {
     const edit = edits.core[item.slotIndex];
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
       changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });

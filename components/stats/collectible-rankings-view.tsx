@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -94,7 +95,7 @@ export function CollectibleRankingsView({
         </section>
         <RankingTypeTabs value="collectibles" types={types} />
 
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="수집품 랭킹 조건">
+        <form data-fp-whole="" className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="수집품 랭킹 조건">
           <span className={styles.segment} role="group" aria-label="단위">
             {COLLECTIBLE_UNITS.map((item) => (
               <button
@@ -125,6 +126,8 @@ export function CollectibleRankingsView({
               items={COLLECTIBLE_DAYS.map((d) => ({ value: d, label: `${d}일` }))}
             />
           </label>
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         <RankPodium

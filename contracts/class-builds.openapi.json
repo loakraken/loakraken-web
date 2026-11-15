@@ -840,6 +840,10 @@
           "braceletStats": {
             "$ref": "#/components/schemas/ClassBuildBraceletSection",
             "description": "팔찌에 그 전투 특성 줄이 있는 캐릭터 수(여러 특성에 셈, 합이 100%를 넘음)"
+          },
+          "details": {
+            "$ref": "#/components/schemas/ClassBuildDetails",
+            "description": "코어 이름·스킬 상세를 저장한 표본으로만 센 항목(그 표본 30명 미만이면 칸이 비어 있음)"
           }
         },
         "required": [
@@ -1883,6 +1887,190 @@
           "observedAt",
           "rank",
           "serverName"
+        ]
+      },
+      "ClassBuildDetails": {
+        "type": "object",
+        "description": "장비 요약 v2(코어 이름·스킬 상세 저장) 표본으로만 센 항목. status가 COLLECTING이면(v2 표본 30명 미만) 목록이 모두 비어 있고 detailedSamples·coverage만 의미가 있습니다",
+        "properties": {
+          "detailedSamples": {
+            "type": "integer",
+            "format": "int64",
+            "description": "표본 가운데 코어 이름·스킬 상세가 있는 캐릭터 수",
+            "example": 412
+          },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "detailedSamples / 표본 %, 소수 둘째 자리. 분모 표본은 장비 요약이 있는 캐릭터(직업 각인 필터·고정 조건 적용)로 meta.population과 같은 수이고, 장비 요약이 없는 캐릭터까지 센 classPopulation이 아님. 표본이 0이면 null",
+                "example": 63.2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "detailedSamples 30 이상이면 READY",
+            "enum": [
+              "COLLECTING",
+              "READY"
+            ]
+          },
+          "arkGridCores": {
+            "type": "array",
+            "description": "질서·혼돈 × 해·달·별 6칸(이 순서). COLLECTING이면 빈 목록",
+            "items": {
+              "$ref": "#/components/schemas/ClassBuildCoreSection"
+            }
+          },
+          "skills": {
+            "$ref": "#/components/schemas/ClassBuildNameSection",
+            "description": "스킬별 채용(레벨 2 이상) 캐릭터 수(여러 스킬에 셈)"
+          },
+          "skillDetails": {
+            "type": "array",
+            "description": "skills.cells에 든 스킬마다 트라이포드·룬 분포(skills.cells 순서)",
+            "items": {
+              "$ref": "#/components/schemas/ClassBuildSkillDetail"
+            }
+          }
+        },
+        "required": [
+          "arkGridCores",
+          "coverage",
+          "detailedSamples",
+          "skillDetails",
+          "skills",
+          "status"
+        ]
+      },
+      "ClassBuildCoreSection": {
+        "type": "object",
+        "description": "코어 한 칸. cells.name은 코어 이름, known은 그 칸 코어 이름을 읽은 캐릭터 수",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "질서",
+              "혼돈"
+            ]
+          },
+          "position": {
+            "type": "string",
+            "enum": [
+              "해",
+              "달",
+              "별"
+            ]
+          },
+          "known": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hidden": {
+            "$ref": "#/components/schemas/ClassBuildHidden"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClassBuildNameCell"
+            }
+          }
+        },
+        "required": [
+          "cells",
+          "hidden",
+          "kind",
+          "known",
+          "position"
+        ]
+      },
+      "ClassBuildSkillDetail": {
+        "type": "object",
+        "description": "users: 그 스킬을 레벨 2 이상 올린 캐릭터 수(트라이포드·룬의 분모)",
+        "properties": {
+          "skill": {
+            "type": "string"
+          },
+          "users": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tripods": {
+            "$ref": "#/components/schemas/ClassBuildTripodSection",
+            "description": "선택한 트라이포드(한 캐릭터가 단계마다 하나씩 여러 칸에 듦)"
+          },
+          "runes": {
+            "$ref": "#/components/schemas/ClassBuildNameSection",
+            "description": "룬 이름별 인원. 룬을 안 낀 사용자는 분모(known)에만 듦"
+          }
+        },
+        "required": [
+          "runes",
+          "skill",
+          "tripods",
+          "users"
+        ]
+      },
+      "ClassBuildTripodSection": {
+        "type": "object",
+        "properties": {
+          "known": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hidden": {
+            "$ref": "#/components/schemas/ClassBuildHidden"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClassBuildTripodCell"
+            }
+          }
+        },
+        "required": [
+          "cells",
+          "hidden",
+          "known"
+        ]
+      },
+      "ClassBuildTripodCell": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "트라이포드 단계(1~3)",
+                "example": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "share": {
+            "type": "number",
+            "description": "known 대비 %, 소수 둘째 자리"
+          }
+        },
+        "required": [
+          "count",
+          "name",
+          "share",
+          "tier"
         ]
       }
     }

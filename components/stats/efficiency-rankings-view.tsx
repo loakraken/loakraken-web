@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -121,7 +122,7 @@ export function EfficiencyRankingsView({
         </section>
         {types.length > 1 && <RankingTypeTabs value={kind} types={types} />}
 
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
+        <form data-fp-whole="" className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
           <label htmlFor={ids.server}>
             서버
             <Select
@@ -166,6 +167,8 @@ export function EfficiencyRankingsView({
             />
           </label>
           <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         <RankPodium
@@ -211,6 +214,9 @@ export function EfficiencyRankingsView({
               <p className={styles.muted}>조건에 맞는 캐릭터가 없어요. 조건을 조금 넓혀 볼까요?</p>
             </BotNote>
           ) : (
+            // Drawn once whole (data-fp-whole): a row drawn before its later cells
+            // moved its rank mark when they came (1280, rows on the first screen).
+            <div data-fp-whole="">
             <DataTable
               label={`${meta.value} 랭킹 ${query.page}쪽`}
               className={styles.table}
@@ -259,6 +265,8 @@ export function EfficiencyRankingsView({
                 ))}
               </tbody>
             </DataTable>
+            <FpEnd />
+            </div>
           )}
 
         </div>

@@ -154,6 +154,11 @@ export interface components {
              */
             sampleStatus: "COLLECTING" | "READY";
             coverage: components["schemas"]["StatsCoverageResponse"];
+            /**
+             * @description population을 세는 단위: CHARACTER(캐릭터), ROSTER(원정대), GUILD(길드). 문자열이며 값이 늘 수 있음
+             * @example CHARACTER
+             */
+            populationUnit?: string;
         };
         /** @description 정규화한 조건(기본값 포함) */
         StatsConditionsResponse: {
@@ -281,6 +286,23 @@ export interface components {
             rosters: number;
             /** @enum {string} */
             sampleStatus: "COLLECTING" | "READY";
+            /**
+             * Format: int64
+             * @description 딜러 수(직업 행과 같은 판정)
+             */
+            dealers?: number;
+            /**
+             * Format: int64
+             * @description 서포터 수
+             */
+            supports?: number;
+            /**
+             * Format: int64
+             * @description 역할을 판정하지 못한 수
+             */
+            unknownRole?: number;
+            itemLevelMean?: number | null;
+            combatPower?: components["schemas"]["StatsPercentilesResponse"] | null;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseStatsDistributionResponse: {
@@ -305,6 +327,7 @@ export interface components {
             /** @description 관측값이 있는 구간만(오름차순). 빈 구간은 생략합니다 */
             bins: components["schemas"]["StatsBinResponse"][];
             percentileOf: components["schemas"]["StatsPercentileOfResponse"] | null;
+            topPercentCutoffs?: components["schemas"]["StatsTopPercentCutoffResponse"][] | null;
         };
         /** @description 구간 [from, to) */
         StatsBinResponse: {
@@ -347,6 +370,20 @@ export interface components {
              * @description Role not observed
              */
             unknownRole: number;
+        };
+        StatsTopPercentCutoffResponse: {
+            /**
+             * Format: int32
+             * @description 상위 몇 %인지(1·5·10·25·50·75)
+             */
+            topPercent: number;
+            /**
+             * Format: int64
+             * @description 기준 순위(내림차순)
+             */
+            rank: number;
+            /** @description 그 순위의 값 */
+            value: number;
         };
     };
     responses: never;

@@ -688,6 +688,16 @@
               "minLength": 0
             },
             "example": "파괴석"
+          },
+          {
+            "name": "grade",
+            "in": "query",
+            "required": false,
+            "description": "등급으로 거름(공식 등급 이름, 예: 유물·전설). q와 같이 탭 전체에서 거른 뒤 정렬·페이지. 생략하면 거르지 않음.",
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
           }
         ],
         "responses": {
@@ -792,6 +802,22 @@
               "format": "int64",
               "exclusiveMinimum": 0,
               "maximum": 999999999
+            }
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "description": "기간(api #920). 생략 = 14d = 지금과 같은 응답. 30d 이상은 저장한 완료일과 공식 14일을 합침(같은 날은 공식 값).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "14d",
+                "30d",
+                "90d",
+                "365d"
+              ]
             }
           }
         ],
@@ -1579,6 +1605,18 @@
                 "type": "null"
               }
             ]
+          },
+          "tradeRemainCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "가격을 쓴 상품의 공식 TradeRemainCount(구매 후 거래 가능 횟수, 0이면 산 뒤 거래 불가). 일반 상품·가격을 쓰지 않은 줄은 null. 같은 상품이 여러 줄이면 선택한 가격 기준으로 가장 싸게 사는 줄의 값입니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2055,6 +2093,17 @@
             "items": {
               "$ref": "#/components/schemas/MarketBoardItemResponse"
             }
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "적용한 등급 필터(생략하면 null). 이 필드가 없으면 등급 필터 전 api."
           }
         },
         "required": [
@@ -2181,6 +2230,42 @@
           "historyAvailable": {
             "type": "boolean",
             "description": "이력 캐시로 changeWeek·spark7을 채웠는지"
+          },
+          "tradesYesterday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "최근 완료일(volumeDate) 하루 거래량. 거래량을 아직 모으지 못했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trades7d": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "최근 완료일 최대 7일 거래량 합. 거래량을 아직 모으지 못했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "volumeDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "tradesYesterday의 날짜(KST, 가장 최근 완료일). 거래량이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2263,6 +2348,10 @@
             "items": {
               "$ref": "#/components/schemas/MarketItemVariantResponse"
             }
+          },
+          "range": {
+            "type": "string",
+            "description": "적용한 기간 문자열(api #920, 늘 돌려줌). 이 필드가 없으면 기간 조회 전 api."
           }
         },
         "required": [
@@ -2317,6 +2406,30 @@
           },
           "summary": {
             "$ref": "#/components/schemas/MarketItemSummaryResponse"
+          },
+          "recordedSince": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "이 변형의 저장 첫 날짜(api #920). 저장 행이 없으면 null."
+          },
+          "storedDays": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "범위 안 저장 완료일 수(api #920). 저장 기록을 읽지 않은 답(7d·14d, 저장소를 못 읽은 경우)은 null."
           }
         },
         "required": [

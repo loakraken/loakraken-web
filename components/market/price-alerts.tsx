@@ -28,6 +28,7 @@ import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./price-alerts.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const gold = (value: number | null | undefined) =>
   value == null ? "매물 없음" : `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
@@ -358,7 +359,9 @@ function AddCondition({
   return (
     <section className={styles.add} aria-labelledby="alerts-add">
       <h2 id="alerts-add">알림 추가</h2>
-      <form onSubmit={submit} className={styles.form}>
+      {/* Drawn once whole (data-fp-whole, A7 rest sweep): the condition and button columns are auto tracks, so
+          each part arriving re-measured the row and slid the fields before it (1280). */}
+      <form onSubmit={submit} className={styles.form} data-fp-whole="">
         <div className={styles.field}>
           <label htmlFor={ids.item}>품목</label>
           {items && items.length > 0 ? (
@@ -422,6 +425,7 @@ function AddCondition({
         >
           알림 추가
         </button>
+        <FpEnd />
       </form>
       <p className={styles.message} role="status">
         {error ?? (own ? (full ? alertErrorText("ALERT_TOO_MANY_CONDITIONS") : " ") : "알림을 켠 뒤 추가할 수 있어요.")}

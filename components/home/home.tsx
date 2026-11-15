@@ -172,7 +172,7 @@ function MarketSummary() {
     queryKey: ["home-market"],
     queryFn: ({ signal }) =>
       fetchMarketBoard(
-        { tab: "REFINING", tier: null, sort: "default", page: 1, q: null },
+        { tab: "REFINING", tier: null, sort: "default", page: 1, q: null, grade: null },
         signal,
       ),
     staleTime: 5 * 60_000,

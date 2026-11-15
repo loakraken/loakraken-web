@@ -63,12 +63,12 @@ test("시세: 품목 추이 차트는 기간·품목을 바꿀 때마다 다시 
   const detail = page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
   await drawsThenRests(detail);
   // 1시간 swaps the day chart out (this item has no minute prices, so a note
-  // stands there); 14일 brings a new day chart in; 7일 swaps it for another.
+  // stands there); 30일 brings a new day chart in; 7일 swaps it for another.
   const ranges = detail.getByRole("group", { name: "기간" });
   await ranges.getByRole("button", { name: "1시간" }).click();
   await expect(detail.getByText("분 단위로 확인하지 않아요")).toBeVisible();
-  await drawsAgain(detail, "1시간에서 14일로 돌아옴", () => ranges.getByRole("button", { name: "14일" }).click());
-  await drawsAgain(detail, "14일에서 7일", () => ranges.getByRole("button", { name: "7일" }).click());
+  await drawsAgain(detail, "1시간에서 30일로 돌아옴", () => ranges.getByRole("button", { name: "30일" }).click());
+  await drawsAgain(detail, "30일에서 7일", () => ranges.getByRole("button", { name: "7일" }).click());
   const name = await detail.getAttribute("aria-label");
   await drawsAgain(detail, "다른 품목", async () => {
     await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();

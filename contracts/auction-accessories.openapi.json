@@ -269,6 +269,109 @@
           }
         }
       }
+    },
+    "/api/v1/markets/auctions/accessories/history": {
+      "get": {
+        "summary": "T4 장신구 칸 기간 시세(api #920)",
+        "parameters": [
+          {
+            "name": "grade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ANCIENT",
+                "RELIC"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEALER",
+                "SUPPORT"
+              ]
+            }
+          },
+          {
+            "name": "slot",
+            "in": "query",
+            "description": "NECKLACE, EARRING, RING",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NECKLACE",
+                "EARRING",
+                "RING"
+              ]
+            }
+          },
+          {
+            "name": "levels",
+            "in": "query",
+            "description": "옵션 순서대로 LOW·MID·HIGH를 쉼표로",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "LOW",
+                  "MID",
+                  "HIGH"
+                ]
+              },
+              "maxItems": 2,
+              "minItems": 1
+            }
+          },
+          {
+            "name": "minQuality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 90,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "description": "기간: 7d, 14d(기본), 30d, 90d, 365d",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "14d",
+                "30d",
+                "90d",
+                "365d"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuctionAccessoryCellHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -809,6 +912,107 @@
           "skill",
           "skillName"
         ]
+      },
+      "AuctionCellHistoryResponse": {
+        "type": "object",
+        "description": "경매장 칸 하나의 기간 시세(api #920). 값은 그날 마지막으로 관측한 즉시 구매 최저가(공식 일평균 아님)이고, 누군가 그 칸을 본 날만 행이 있습니다.",
+        "required": [
+          "ruleVersion",
+          "range",
+          "recordedSince",
+          "storedDays",
+          "days"
+        ],
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "example": "auction-board-v1"
+          },
+          "range": {
+            "type": "string",
+            "description": "적용한 기간(7d·14d·30d·90d·365d)"
+          },
+          "recordedSince": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "이 칸을 처음 저장한 날짜. 없으면 null"
+          },
+          "storedDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "기간 안 저장 일수"
+          },
+          "days": {
+            "type": "array",
+            "description": "최신순. 저장이 없는 날은 행 없음",
+            "items": {
+              "$ref": "#/components/schemas/AuctionCellDayResponse"
+            }
+          }
+        }
+      },
+      "AuctionCellDayResponse": {
+        "type": "object",
+        "description": "api #920: 그날 마지막 관측(LOAKraken 관측, 공식 일평균 아님).",
+        "required": [
+          "date",
+          "minBuyPrice",
+          "totalCount",
+          "observedAt",
+          "partial"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "minBuyPrice": {
+            "type": "integer",
+            "format": "int64",
+            "description": "그날 마지막 관측 즉시 구매 최저가"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "그 관측의 매물 수(공식 TotalCount)"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "그 관측 시각(UTC)"
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "오늘(한국 날짜)이면 true: 하루가 끝나지 않아 값이 바뀔 수 있음"
+          }
+        }
+      },
+      "ApiResponseAuctionAccessoryCellHistoryResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "AUCTION_ACCESSORIES_SUCCESS"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuctionCellHistoryResponse"
+          }
+        }
       }
     }
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useEffect, useId, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Select } from "@/components/ui/select";
@@ -66,7 +67,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
   }
 
   return (
-    <form className={styles.statsBar} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
+    <form data-fp-whole="" className={styles.statsBar} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
       <div className={styles.barRow}>
         <span className={styles.field} data-field="server">
           <label htmlFor={ids.server}>서버</label>
@@ -158,6 +159,8 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
         </label>
       </div>
       <SampleLine query={query} inverted={inverted} />
+      {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+      <FpEnd />
     </form>
   );
 }

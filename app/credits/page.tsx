@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import styles from "@/components/legal/legal.module.css";
 import { ADAPTED, ASSETS, LIBRARIES, type Credit } from "@/lib/credits";
 import { OFFICIAL_API_URL } from "@/lib/legal";
+import { FpEnd } from "@/components/ui/fp-end";
 
 export const metadata: Metadata = {
   title: "오픈 소스 라이선스",
@@ -22,7 +23,9 @@ function Out({ href, children }: { href: string; children: React.ReactNode }) {
 
 function CreditTable({ caption, rows }: { caption: string; rows: readonly Credit[] }) {
   return (
-    <div className={styles.tableWrap}>
+    // Drawn once whole (data-fp-whole, A7 rest sweep): an auto-layout table re-measured its columns as each later
+    // row arrived, so the rows already drawn moved.
+    <div className={styles.tableWrap} data-fp-whole="">
       <table>
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -58,6 +61,7 @@ function CreditTable({ caption, rows }: { caption: string; rows: readonly Credit
           ))}
         </tbody>
       </table>
+      <FpEnd />
     </div>
   );
 }

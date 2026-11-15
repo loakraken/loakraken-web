@@ -181,6 +181,9 @@
   position: absolute;
   inset: -12px -4px;
 }
+/* The label and its size copy (data-fp-label) share one cell. */
+.podium .motion[data-fp-label] { display: inline-grid; place-items: center; }
+.podium .motionText { grid-area: 1 / 1; }
 .podium .motion:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 @media (hover: hover) and (pointer: fine) {
   .podium .motion:hover { color: var(--foreground); }
@@ -336,6 +339,16 @@
   padding: 0 10px;
   border-radius: 999px;
   background: var(--medal);
+}
+/* The rank and its size copy (data-fp-label, the block's own ::before) share
+   one cell and one face: the copy takes the number's type, so the block has its
+   final width before the number arrives. */
+.podium .block::before,
+.podium .placeNumber {
+  grid-area: 1 / 1;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
 }
 .podium .placeNumber {
   color: var(--on-medal);

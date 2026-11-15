@@ -40,6 +40,23 @@ export function ChartPlaceholder({ children, busy = false }: { children: ReactNo
   );
 }
 
+/**
+ * A chart period button's width from its label length, not from the drawn text: the site font
+ * (display: optional) can land after the first layout, and a text-sized row moved 187 → 224px
+ * (P1, 11-14). Goes with the .fixedRanges row (centred, never wraps).
+ */
+export const rangeWidth = (label: string) => ({ inlineSize: `calc(${label.length}em + 12px)` });
+
+/**
+ * The period row's own width from its labels, so it is final before any button is drawn: a first HTML cut after the
+ * row's start tag drew it 92px wide (padding only) and it grew to 230px as the buttons came (header-late-part @1280,
+ * #1649 CI). Each button is rangeWidth, or the 44px tap width where the row's CSS sets --range-min; plus the row's
+ * 2px gaps and 3px padding. The row has the buttons' 12px font, so 1em is the same here (.fixedRanges).
+ */
+export const rangeRowWidth = (labels: readonly string[]) => ({
+  minInlineSize: `calc(${labels.map((label) => `max(${label.length}em + 12px, var(--range-min, 0px))`).join(" + ")} + ${(labels.length - 1) * 2 + 6}px)`,
+});
+
 /** One reading on the chart: a day, or a minute (K35). */
 export type ChartPoint = {
   key: string;
@@ -61,6 +78,8 @@ export const dayPoints = (days: DailyStat[]): ChartPoint[] =>
     volume: d.tradeCount,
     axis: short(d.date),
     detail: `${d.date} · 거래량 ${d.tradeCount.toLocaleString("ko-KR")}`,
+    // The day itself, so a chart byDate leaves a day with no record empty (api #920 keeps no row for it).
+    t: Date.parse(`${d.date}T00:00:00Z`),
   }));
 
 /** Minutes with a sell price only; a minute without listings has no point. */
@@ -105,11 +124,18 @@ export function periodChange(points: readonly { value: number }[]) {
 export function MarketChart({
   points: days,
   span,
+  byDate = false,
   label = "일 평균 거래가와 거래량. 화살표 키로 날짜를 이동할 수 있어요.",
 }: {
   points: ChartPoint[];
   /** The time window [from, to] in ms when points carry time. */
   span?: [number, number];
+  /**
+   * Days placed by their date between the first and the last (not evenly by
+   * index): a day with no record is a gap, never squeezed out (stored ranges,
+   * api #920). The axis ends keep the day labels.
+   */
+  byDate?: boolean;
   label?: string;
 }) {
   const id = useId();
@@ -132,9 +158,13 @@ export function MarketChart({
     const plotW = W - PAD.left - PAD.right;
     const step = days.length > 1 ? plotW / (days.length - 1) : 0;
     const timed = span != null && days.every((d) => d.t != null);
+    const dated = !timed && byDate && days.length > 1 && days.every((d) => d.t != null);
+    const frame: [number, number] | null = timed ? span! : dated ? [days[0].t!, days.at(-1)!.t!] : null;
+    // Days a full day apart are the even case (the curve); a missing day is a gap.
+    const gaps = dated && days.some((d, i) => i > 0 && d.t! - days[i - 1].t! > 86_400_000);
     const x = (i: number) =>
-      timed
-        ? PAD.left + ((days[i].t! - span![0]) / (span![1] - span![0] || 1)) * plotW
+      frame
+        ? PAD.left + ((days[i].t! - frame[0]) / (frame[1] - frame[0] || 1)) * plotW
         : PAD.left + (days.length > 1 ? i * step : plotW / 2);
     const y = (v: number) =>
       PAD.top + PRICE_H - ((v - v0) / (v1 - v0 || 1)) * PRICE_H;
@@ -144,10 +174,24 @@ export function MarketChart({
     const top = y(Math.max(...prices));
     const bottom = y(Math.min(...prices));
     // By time the readings are not evenly apart: straight segments between
-    // them, not the even curve.
-    const curved = timed
+    // them, not the even curve. By date, a missing day breaks the line (codex
+    // #1595 P2: a line across the gap reads as days we have); a day alone
+    // between two gaps has no segment, so it gets its own 8px marker (#1628).
+    const breaks = (i: number) => dated && i > 0 && days[i].t! - days[i - 1].t! > 86_400_000;
+    const alone = (i: number) => (i === 0 || breaks(i)) && (i === days.length - 1 || breaks(i + 1));
+    const lone = gaps ? days.flatMap((_, i) => (alone(i) ? [i] : [])) : [];
+    const curved = timed || gaps
       ? days.length > 1
-        ? { d: days.map((d, i) => `${i ? "L" : "M"}${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`).join(" ") }
+        ? {
+            d: days
+              .map((d, i) => {
+                const at = `${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`;
+                // A lone day keeps its hair-long stroke (the path stays drawn); the marker sits on it.
+                if (i && !breaks(i)) return `L${at}`;
+                return alone(i) ? `M${at} h0.01` : `M${at}`;
+              })
+              .join(" "),
+          }
         : null
       : days.length > 1
         ? curve(prices, plotW, top + bottom, top)
@@ -155,8 +199,8 @@ export function MarketChart({
     const barW = Math.max(3, Math.min(18, (step || plotW) * 0.55));
     const volumeTop = PAD.top + PRICE_H + GAP;
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
-    return { ticks, x, y, curved, barW, volumeTop, bar, timed };
-  }, [days, W, span]);
+    return { ticks, x, y, curved, barW, volumeTop, bar, timed, lone };
+  }, [days, W, span, byDate]);
   // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← →.
   const { active, svgProps } = useChartScrub({
     count: days.length,
@@ -164,7 +208,7 @@ export function MarketChart({
     viewWidth: W,
   });
   if (!days.length) return null;
-  const { ticks, x, y, curved, barW, volumeTop, bar, timed } = geometry;
+  const { ticks, x, y, curved, barW, volumeTop, bar, timed, lone } = geometry;
   const last = days.length - 1;
   const shown = active ?? last;
   const priceWidth = Math.max(...days.map((d) => fmt(d.value).length + 1));
@@ -243,6 +287,11 @@ export function MarketChart({
           {timed &&
             days.length <= 20 &&
             days.map((d, i) => <circle key={d.key} cx={x(i)} cy={y(d.value)} r={2.5} className={styles.reading} />)}
+          {/* By date, a day between two gaps: an 8px marker in the line's colour with a 2px ring of the
+            page (dataviz marker spec), not a dot as thin as the line. */}
+          {lone.map((i) => (
+            <circle key={days[i].key} cx={x(i)} cy={y(days[i].value)} r={5} className={styles.lone} data-lone="" />
+          ))}
           <text x={PAD.left} y={H - 4} className={styles.tick}>
             {timed && span ? minuteLabel(new Date(span[0]).toISOString()) : days[0].axis}
           </text>

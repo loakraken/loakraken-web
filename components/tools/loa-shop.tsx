@@ -32,6 +32,7 @@ import quote from "./material-quote.module.css";
 import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
 const RATE_KEY = "loakraken.loa-shop.rate";
@@ -187,8 +188,10 @@ function PackageCard({
     <section className={styles.card} aria-labelledby={headingId}>
       <div className={styles.cardHead}>
         <h3 id={headingId}>{pkg.name}</h3>
-        <p className={styles.price}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the price sits at the right end, so its unit arriving moved it left. */}
+        <p className={styles.price} data-fp-whole="">
           {count(value.priceRoyal)} <small>로열 크리스탈</small>
+          <FpEnd />
         </p>
       </div>
       <p className={styles.plan}>
@@ -202,7 +205,10 @@ function PackageCard({
           <dd>
             {pkg.period}
             {/* Held from the first paint: the date comes from the client clock. */}
-            <span className={styles.ended}>{ended ? " · 판매 기간이 지났어요" : ""}</span>
+            {/* saleUnconfirmed: missing from the official shop screen with no end notice, so not claimed as on sale. */}
+            <span className={styles.ended}>
+              {ended ? " · 판매 기간이 지났어요" : pkg.saleUnconfirmed ? ` · 판매 여부 확인 안 됨(${pkg.saleUnconfirmed} 공식 상점 화면에 없음)` : ""}
+            </span>
           </dd>
         </div>
         <div>
@@ -412,7 +418,10 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                 판매 중인 패키지
               </h2>
               <p className={styles.small}>
-                공식 상점 공지 기준 · 확인 {SHOP_DATA.checkedAt}. {SHOP_DATA.unknown.join(" · ")}은 {UNKNOWN}이에요.
+                {/* The unknown sentence only while there is something unknown (an empty list read "… 은 미확인이에요."). */}
+                {`공식 상점 공지 기준 · 확인 ${SHOP_DATA.checkedAt}.${
+                  SHOP_DATA.unknown.length ? ` ${SHOP_DATA.unknown.join(" · ")}은 ${UNKNOWN}이에요.` : ""
+                }`}
               </p>
               {/* Here, in the wide column: in the narrow settings column the
                   row did not fit and turned into a list after the fonts came,

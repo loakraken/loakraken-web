@@ -6,8 +6,8 @@
  * append the rest back in page order, and report what moved. `rootSelector` is "selector|text it contains"
  * (or null for the page); `countIn` limits what counts to the root's parts matching that selector.
  */
-export const cutEverywhere = (page, rootSelector, countIn = null) =>
-  page.evaluate(async ([rootSelector, countIn]) => {
+export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml = true } = {}) =>
+  page.evaluate(async ([rootSelector, countIn, serverHtml]) => {
     const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const box = (r) => `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}`;
     const label = (n) => {
@@ -16,6 +16,32 @@ export const cutEverywhere = (page, rootSelector, countIn = null) =>
       if (n.nodeType !== 1) return n.nodeName;
       return `${n.tagName.toLowerCase()} '${(n.textContent || "").trim().slice(0, 14)}'`;
     };
+    // The cuts run on a copy of the page, never on the nodes React holds: React may commit during the probe
+    // (a late hydration, a query answer, a clock tick), and on moved nodes that broke ('removeChild … not a
+    // child', React #418 hydration mismatch — CI flakes of the market and loading sweeps). First wait until
+    // React has claimed <body> (its first hydration pass is done), then put a deep copy of <body> in its place;
+    // React's later updates land on the untouched original, which comes back when the probe ends.
+    const claimed = () => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$"));
+    // At most 5 s, well under the 8 s the loading-screen mock ('로딩긴') answers in: a page that never hydrates
+    // fails as "page not hydrated" while the screen it was meant to cut is still there (codex #1622 P3).
+    for (let tries = 0; !claimed() && tries < 100; tries++) await new Promise((resolve) => setTimeout(resolve, 50));
+    if (!claimed()) return { probed: 0, value: 0, moved: ["page not hydrated"] };
+    const live = document.body;
+    const copy = live.cloneNode(true);
+    document.documentElement.replaceChild(copy, live);
+    try {
+      // Each picture decodes or gives up after 2 s: a lazy picture below the screen never decodes and must
+      // not hold the probe (codex #1622 P2).
+      const settle = (img) =>
+        Promise.race([img.decode().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 2000))]);
+      await Promise.all([...copy.querySelectorAll("img")].map(settle));
+      await frame();
+      return await probe();
+    } finally {
+      document.documentElement.replaceChild(live, document.body);
+    }
+
+    async function probe() {
     const root = rootSelector
       ? [...document.querySelectorAll(rootSelector.split("|")[0])].find((el) => el.textContent.includes(rootSelector.split("|")[1]))
       : document.body;
@@ -33,7 +59,9 @@ export const cutEverywhere = (page, rootSelector, countIn = null) =>
       n.nodeType === 3
         ? `#text|${n.parentElement?.tagName}|${n.parentElement?.getAttribute("class") ?? ""}|${n.textContent.trim()}`
         : `${n.tagName}|${n.getAttribute("class") ?? ""}|${(n.textContent || "").trim().slice(0, 60)}`;
-    const server = new DOMParser().parseFromString(await (await fetch(location.href)).text(), "text/html");
+    // serverHtml false: every node counts (a screen that is gone by the time its address answers again,
+    // such as a loading screen, cannot be compared with a second fetch of the page).
+    const server = new DOMParser().parseFromString(serverHtml ? await (await fetch(location.href)).text() : "", "text/html");
     const known = new Set();
     const serverWalker = server.createTreeWalker(server.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
     for (let n = serverWalker.nextNode(); n; n = serverWalker.nextNode()) known.add(sign(n));
@@ -41,7 +69,7 @@ export const cutEverywhere = (page, rootSelector, countIn = null) =>
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       if (n.nodeType === 3 && !n.textContent.trim()) continue;
-      if (!known.has(sign(n))) continue;
+      if (serverHtml && !known.has(sign(n))) continue;
       const el = n.nodeType === 1 ? n : n.parentElement;
       if (!el || el.closest("svg,script,style,canvas")) continue;
       const r = el.getBoundingClientRect();
@@ -96,4 +124,5 @@ export const cutEverywhere = (page, rootSelector, countIn = null) =>
       }
     }
     return { probed: nodes.length, value: +value.toFixed(7), moved };
-  }, [rootSelector, countIn]);
+    }
+  }, [rootSelector, countIn, serverHtml]);

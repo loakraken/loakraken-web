@@ -5,5 +5,6 @@ export async function GET(
   { params }: { params: Promise<{ itemId: string }> },
 ) {
   const { itemId } = await params;
-  return toResponse(await getItemHistory(itemId, request.signal));
+  const range = new URL(request.url).searchParams.get("range");
+  return toResponse(await getItemHistory(itemId, request.signal, undefined, range));
 }

@@ -110,6 +110,8 @@ export interface components {
             goldIslandDays: components["schemas"]["HomeGoldDayResponse"][];
             /** @description 이번 주 날짜별 모험 섬 */
             weekly: components["schemas"]["HomeWeeklyDayResponse"][];
+            /** @description 이번 주 날짜별(coveredFrom … coveredTo, KST, 날짜순) 카오스게이트·필드 보스 회차가 있는지. 요청 날짜와 상관없이 같은 값, 일정이 없으면 빈 목록 */
+            weekKinds?: components["schemas"]["HomeWeekKindsResponse"][];
         };
         HomeIslandResponse: {
             name: string;
@@ -121,6 +123,7 @@ export interface components {
             /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
             rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
+            location?: string | null;
         };
         HomeRewardGroupResponse: {
             minItemLevel: number | null;
@@ -142,6 +145,7 @@ export interface components {
             /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
             rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
+            location?: string | null;
         };
         HomeOtherResponse: {
             /** @description 공식 범주 이름(섬, 항해, 로웬, 태초의 섬 등) */
@@ -153,6 +157,7 @@ export interface components {
             /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
             rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
+            location?: string | null;
         };
         HomeGoldDayResponse: {
             /** Format: date */
@@ -267,6 +272,17 @@ export interface components {
             publishedAt: string;
             /** @description 공식 원문 링크(lostark.game.onstove.com만 허용) */
             url: string;
+        };
+        HomeWeekKindsResponse: {
+            /**
+             * Format: date
+             * @description 날짜(KST)
+             */
+            date: string;
+            /** @description 그 날 시작 시각이 있는 카오스게이트가 있다 */
+            chaosGate: boolean;
+            /** @description 그 날 시작 시각이 있는 필드 보스가 있다 */
+            fieldBoss: boolean;
         };
     };
     responses: never;

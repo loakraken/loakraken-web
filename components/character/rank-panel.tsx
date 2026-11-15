@@ -22,6 +22,7 @@ import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
 import { BasisInfo } from "@/components/stats/basis-note";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /**
  * Ranked scopes as boxes; scopes still short of the sample minimum do not get
@@ -52,7 +53,9 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                 <>
                   <strong>{cell.rank}</strong>
                   <small>{cell.total}</small>
-                  <span className={styles.top}>
+                  {/* Drawn once whole (A7 character sweep 2): the badge grew from its padding to its label's height,
+                      and the line it sits on moved with it. */}
+                  <span className={styles.top} data-fp-whole="">
                     {/* Its own unshrinking piece: in a narrow box the badge then
                         goes to the next line instead of past the box (A37). */}
                     <span className={styles.share}>{cell.top ?? "-"}</span>
@@ -67,6 +70,7 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                         </TooltipContent>
                       </Tooltip>
                     )}
+                    <FpEnd />
                   </span>
                   {/* Every cell keeps these two lines, so cells with and without a
                       next tier stand alike (A7): the words, then the number on

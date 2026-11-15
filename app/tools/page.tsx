@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, Setting } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
+import { FpEnd } from "@/components/ui/fp-end";
 import { TOOLS, visibleTools } from "@/lib/tools/catalog";
 import { isAccessorySearchEnabled, isCombatPowerEnabled, isCritSpeedEnabled, isHellRewardEnabled } from "@/lib/tools/flags";
 import quote from "@/components/tools/material-quote.module.css";
@@ -57,9 +58,12 @@ export default async function ToolsPage() {
                     .map((tool) => (
                       <li key={tool.href}>
                         <Link href={tool.href} className={styles.card}>
-                          <span>
+                          {/* Drawn once whole (data-fp-whole, A7 rest sweep): the text is centred in the card, so the description
+                              arriving under the name moved the name up. */}
+                          <span data-fp-whole="">
                             <strong>{tool.label}</strong>
                             <small>{tool.description}</small>
+                            <FpEnd />
                           </span>
                           <ChevronRight size={16} aria-hidden="true" />
                         </Link>

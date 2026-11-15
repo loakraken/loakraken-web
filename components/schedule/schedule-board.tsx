@@ -41,6 +41,7 @@ import {
   type ScheduleCategory,
 } from "@/lib/home/schedule";
 import { Countdown, useNow } from "@/components/home/clock";
+import { FpEnd } from "@/components/ui/fp-end";
 import styles from "@/components/home/home.module.css";
 import expand from "@/components/site/expand.module.css";
 import own from "./schedule.module.css";
@@ -99,12 +100,14 @@ export function useCategoryNav() {
 export function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
   if (!kinds.length) return null;
   return (
-    <span className={styles.rewards}>
+    // Drawn once whole (data-fp-whole, A7 rest sweep): each kind's word arriving grew the chips at the row's end.
+    <span className={styles.rewards} data-fp-whole="">
       {kinds.map((kind) => (
         <i key={kind} data-kind={kind}>
           {rewardLabel(kind)}
         </i>
       ))}
+      <FpEnd />
     </span>
   );
 }
@@ -336,7 +339,9 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          <span className={styles.next} data-state={status.state}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
+          // line in a phone's own font.
+          <span className={styles.next} data-state={status.state} data-fp-whole="">
             {status.state === "done" && "오늘 일정 종료"}
             {status.state === "done" && status.next && " · "}
             {status.next && (
@@ -346,6 +351,7 @@ function Section({
                 {status.state !== "upcoming" && " 후"}
               </>
             )}
+            <FpEnd />
           </span>
         )}
         {status?.state === "done" && onShowTomorrow && (
@@ -357,7 +363,9 @@ function Section({
       </header>
       <ul className={styles.rows}>
         {byTimeThenLevel(items).map((item) => (
-          <li key={`${"category" in item ? item.category : ""}${item.name}`}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): in a phone's own font the name and level wrapped to
+          // two lines when the reward kinds and times came in after them, and the row grew (#1618 follow-on).
+          <li key={`${"category" in item ? item.category : ""}${item.name}`} data-fp-whole="">
             <RowIcon src={item.icon} />
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
@@ -376,6 +384,7 @@ function Section({
               gold={gold}
             />
             {withPlaces && item.places && <small className={own.placeLine}>지역 {item.places.length}곳</small>}
+            <FpEnd />
           </li>
         ))}
       </ul>
@@ -486,7 +495,9 @@ export function ScheduleBoard({
         {/* The tools sit at the right end, so the rightmost (the toggle) comes
             first in the page and the legend joins on its left (row-reverse): a
             later part never pushes one already drawn (A7, home sweep). */}
-        <span className={`${styles.headTools} ${styles.headToolsReverse}`}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): on /schedule the tools keep their own width, so the legend joining moved the
+            toggle (320, 360: 26 → 85px). */}
+        <span className={`${styles.headTools} ${styles.headToolsReverse}`} data-fp-whole="">
           <button
             type="button"
             className={styles.toggle}
@@ -499,6 +510,7 @@ export function ScheduleBoard({
           <span className={styles.legend} data-fp-label="골드 섬">
             <i data-kind="GOLD" /><span className={styles.legendText}>골드 섬</span>
           </span>
+          <FpEnd />
         </span>
       </div>
       {page && (
@@ -540,7 +552,8 @@ export function ScheduleBoard({
         </div>
       )}
       {page && (
-        <nav className={own.chips} aria-label="일정 분류">
+        // Drawn once whole (data-fp-whole, A7 rest sweep): the chips wrap, so a later one changed the lines (320).
+        <nav className={own.chips} aria-label="일정 분류" data-fp-whole="">
           <a
             href={schedulePath(null)}
             aria-current={shownCategory === null ? "page" : undefined}
@@ -558,6 +571,7 @@ export function ScheduleBoard({
               {item.label}
             </a>
           ))}
+          <FpEnd />
         </nav>
       )}
       {query.isPending ? (

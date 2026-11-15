@@ -29,7 +29,6 @@ import {
   postSimulation,
 } from "@/lib/combat-power/client";
 import {
-  ARK_PASSIVE_MAX,
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
   ROLE_REASONS,
@@ -41,9 +40,17 @@ import {
   KIND_LABEL,
   braceletName,
   gradeWithValue,
+  arkPassiveMax,
+  isArkPassiveOpen,
+  isCoreOpen,
   isOpen,
   isRefineOpen,
   polishValue,
+  polishOptionText,
+  polishSwapOf,
+  polishSwapValue,
+  wornPolish,
+  POLISH_NONE,
   refineEdit,
   type Grade,
   NO_EDITS,
@@ -72,6 +79,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
 import quote from "./material-quote.module.css";
 import styles from "./combat-power.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const power = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -138,6 +146,7 @@ function currentOf(data: Character) {
       index,
       line,
       item: item.name ?? item.type ?? "",
+      part: item.type ?? null,
       option: effect.name,
       value: effect.value,
       grade: isGrade(effect.grade) ? effect.grade : null,
@@ -444,6 +453,46 @@ function Editors({
         <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
+            // A spec-up 연마 step (api #951) puts another accessory in: the line names its new option, the one worn
+            // now under it, and a line with no scoring option has no grade to pick (never the raw "NONE").
+            const swap = polishSwapOf(edits, line);
+            if (swap != null)
+              return (
+                <li key={key}>
+                  <span className={styles.rowName}>
+                    {polishOptionText(swap)}
+                    <small className={styles.rowSub}>
+                      {`${line.item} · 지금 ${line.option} ${line.value} `}
+                      {/* Back to the worn line, this line only (review P3 #1700); 이전 undoes it. */}
+                      <button
+                        type="button"
+                        className={styles.link}
+                        aria-label={`${line.item} 연마 ${line.line + 1} 지금 줄로 되돌리기`}
+                        onClick={() => setEdits((prev) => wornPolish(prev, key))}
+                      >
+                        되돌리기
+                      </button>
+                    </small>
+                  </span>
+                  {swap === POLISH_NONE ? (
+                    <span className={styles.locked}>등급 없음</span>
+                  ) : (
+                    <Choice
+                      label={`${line.item} ${polishOptionText(swap)} 등급`}
+                      value={edits.polish[key] ?? line.grade ?? ""}
+                      // Not the line worn: every grade is a change, and there is no empty pick.
+                      original=""
+                      values={options.polishGrades.map((grade) => ({
+                        value: grade,
+                        label: gradeWithValue(grade, polishSwapValue(options.polishValues, swap, grade, line.part)),
+                      }))}
+                      onChange={(grade) =>
+                        setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
+                      }
+                    />
+                  )}
+                </li>
+              );
             return (
               <li key={key}>
                 <span className={styles.rowName}>
@@ -558,17 +607,25 @@ function Editors({
       )}
 
       {current.arkPassive.length > 0 && (
-        <Card id="cp-ark-passive" title="아크 패시브" locked={!isOpen("ARK_PASSIVE_POINT")}>
+        <Card
+          id="cp-ark-passive"
+          title="아크 패시브"
+          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree))}
+        >
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
               <span className={styles.rowName}>{item.tree}</span>
-              <span className={styles.rowFrom}>{item.points}P</span>
-              {isOpen("ARK_PASSIVE_POINT") && (
+              {!isArkPassiveOpen(item.tree) ? (
+                <Locked caption="포인트" value={`${item.points}P`} />
+              ) : (
+                <span className={styles.rowFrom}>{item.points}P</span>
+              )}
+              {isArkPassiveOpen(item.tree) && (
                 <PointField
                   label={`아크 패시브 ${item.tree} 포인트`}
                   value={edits.arkPassive[item.tree] ?? item.points}
                   original={item.points}
-                  max={ARK_PASSIVE_MAX}
+                  max={arkPassiveMax(item.tree)}
                   onChange={(points) =>
                     setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
                   }
@@ -580,7 +637,7 @@ function Editors({
       )}
 
       {current.cores.length > 0 && (
-        <Card id="cp-cores" title="아크 그리드 코어" locked={!isOpen("ARK_GRID_CORE")}>
+        <Card id="cp-cores" title="아크 그리드 코어" locked={!current.cores.some((item) => isCoreOpen(item.name))}>
           {current.cores.map((item) => {
             const edit = edits.core[item.slotIndex] ?? { grade: item.grade, point: item.point };
             const set = (next: Partial<typeof edit>) =>
@@ -588,7 +645,7 @@ function Editors({
             return (
               <li key={item.slotIndex}>
                 <span className={styles.rowName}>{item.name}</span>
-                {!isOpen("ARK_GRID_CORE") ? (
+                {!isCoreOpen(item.name) ? (
                   <Locked caption={item.grade} value={`${item.point}P`} />
                 ) : (
                   <>
@@ -616,8 +673,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련을 바꿀 수 있어요. 방어구 재련·아크 패시브·아크
-        그리드는 계산식을 확인하는 대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요.
+        방어구 재련·상급 재련·아크 패시브 진화와 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );
@@ -719,11 +776,12 @@ function ResultBand({
 function polishText(text: string | null, from: string | null, values: PolishValues | undefined) {
   const match = text?.match(/^(.*) (LOW|MID|HIGH)$/);
   if (!match) return gradeText(text);
+  // A 연마 step's option keeps the request's " %" mark ("추가 피해 % HIGH", api #951): shown without it.
   const [, option, grade] = match;
   // from is "옵션 +1.60%": the accessory's current value decides if the table fits.
   const current = from?.startsWith(`${option} `) ? from.slice(option.length + 1) : null;
   const value = current ? polishValue(values, option, { value: current, grade: null }, grade) : null;
-  return `${option} ${gradeWithValue(grade, value)}`;
+  return `${polishOptionText(option)} ${gradeWithValue(grade, value)}`;
 }
 
 function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
@@ -1113,10 +1171,13 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
               <button
                 type="submit"
                 className={quote.secondaryPill}
+                // Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+                data-fp-whole=""
                 aria-disabled={busy || waiting || undefined}
                 aria-busy={busy || undefined}
               >
                 {retryLabel(limit.seconds, "불러오기")}
+                <FpEnd />
               </button>
               {touched && error && <p className={quote.inputError}>{error}</p>}
             </form>

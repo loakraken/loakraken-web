@@ -227,7 +227,7 @@
           "slot": {
             "type": "integer",
             "format": "int32",
-            "description": "보석 slot(GEM_LEVEL)"
+            "description": "보석 slot(GEM_LEVEL, 0~10). 보석이 없는 빈 칸이면 그 칸에 4티어 보석을 새로 끼우는 변화로 계산한다(before = 0)"
           },
           "index": {
             "type": "integer",
@@ -256,13 +256,13 @@
           },
           "option": {
             "type": "string",
-            "description": "연마 옵션 이름(POLISH)",
+            "description": "연마 옵션 이름(POLISH, options의 polishValues.options[].option). 같은 부위에 같은 이름의 %·고정값이 둘 다 있으면(귀걸이 공격력·무기 공격력) % 쪽은 끝에 \" %\"를 붙인다(예: \"공격력 %\"). \"NONE\"은 점수 옵션이 없는 줄(전투력 몫 0, grade 없음): 스펙업 추천 순서의 연마 단계가 사는 장신구에서 빠지는 줄(지금 고정값 줄)을 나타낸다.",
             "maxLength": 32,
             "minLength": 0
           },
           "grade": {
             "type": "string",
-            "description": "LOW·MID·HIGH(POLISH·BRACELET_EFFECT), 코어 등급(ARK_GRID_CORE)",
+            "description": "LOW·MID·HIGH(POLISH·BRACELET_EFFECT, POLISH option NONE이면 없음), 코어 등급(ARK_GRID_CORE)",
             "maxLength": 8,
             "minLength": 0
           },
@@ -711,16 +711,9 @@
           "low": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "하",
-                    "example": "+0.70%"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "string",
+                "description": "하",
+                "example": "+0.70%"
               },
               {
                 "type": "null"
@@ -730,16 +723,9 @@
           "mid": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "중",
-                    "example": "+1.60%"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "string",
+                "description": "중",
+                "example": "+1.60%"
               },
               {
                 "type": "null"
@@ -749,16 +735,9 @@
           "high": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "상",
-                    "example": "+2.60%"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "string",
+                "description": "상",
+                "example": "+2.60%"
               },
               {
                 "type": "null"

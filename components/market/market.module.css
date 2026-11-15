@@ -97,11 +97,38 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* The chart's period buttons: their width is set by label length (market-board), the same in every
+   font; the label is centred and never wraps. */
+.fixedRanges button {
+  padding: 0;
+  white-space: nowrap;
+}
+/* The row is sized from its labels too (rangeRowWidth): its em is the buttons' 12px, and on a phone or a touch
+   screen each button is at least 44px wide (the hit-44 rule below), so the row reserves that as well. */
+.fixedRanges {
+  --range-min: 0px;
+  font-size: 12px;
+  /* …and one button tall (28px, .ranges button) plus its 3px padding, so the row with no button yet is not a
+     6px line that the title centres against (it grew 6 → 34px and moved 14px up). */
+  min-block-size: calc(28px + 2 * 3px);
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .fixedRanges {
+    --range-min: 44px;
+  }
+}
 .sorts button[aria-pressed="true"],
 .tiers button[aria-pressed="true"],
 .ranges button[aria-pressed="true"] {
   background: var(--ink);
   color: var(--background);
+}
+/* A kept pick this range has no record of (market-board): shown as the choice, with nothing to press. */
+.ranges button[aria-disabled="true"] {
+  cursor: default;
+}
+.ranges button[aria-disabled="true"]:active {
+  transform: none;
 }
 .rows {
   display: grid;
@@ -617,6 +644,18 @@
 .detail > .ranges {
   margin-top: 8px;
 }
+/* Five ranges (api #920) do not fit beside the title on a phone: they take
+   their own row under it, so the period change's width ('30일 ▲3.2%',
+   '3개월 …') never re-wraps them when a range is picked (A7). */
+@media (max-width: 699px) {
+  .trendHead {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .trendHead > .ranges {
+    flex: 1 0 100%;
+  }
+}
 .chart {
   margin-top: 10px;
   padding: 10px 10px 6px;
@@ -659,6 +698,13 @@
 /* By minute (K35): each reading of a sparse item, small and solid on the line. */
 .reading {
   fill: currentColor;
+}
+/* A day alone between two gaps (by date): 8px across in the line's colour, ringed 2px by the
+   chart's own surface (r 5 − half the 2px ring = 4). */
+.lone {
+  fill: currentColor;
+  stroke: var(--background);
+  stroke-width: 2;
 }
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
@@ -742,6 +788,27 @@
 }
 .daily small {
   font-size: 11px;
+}
+/* A phone's day table fits the widest values we allow (price 9,999,999.99G, volume 99,999,999; PM cap) on one line
+   with room to spare (codex #1645/#1654: the volume column ran 2px past the panel at 320 in CI's fonts). The outer
+   cells meet the panel's own padding, so they drop theirs and the gaps narrow; at 360 and below the price and volume
+   step one size down. The date (13px) still sets each row's height, so rows (and the 7일 skeleton) keep theirs. */
+@media (max-width: 420px) {
+  .daily th,
+  .daily td {
+    padding-inline: 3px;
+  }
+  .daily tr > :first-child {
+    padding-inline-start: 0;
+  }
+  .daily tr > :last-child {
+    padding-inline-end: 0;
+  }
+}
+@media (max-width: 360px) {
+  .daily td {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -854,10 +921,41 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.dailyPending {
-  height: 502px;
-  margin-top: 12px;
+/* A day's cells stay on one line (#1634): a wrapped price or today's label made a row taller than the
+   skeleton's rows at 320/360. */
+.daily th,
+.daily td {
+  white-space: nowrap;
+}
+/* 7일 (#1634): the table and an unseen 7-row copy of it share one cell, so a sparse week keeps the
+   7-row place. Both sit at the top of the cell (a stretched table would space its rows out). */
+.dailyHold {
+  display: grid;
+}
+.dailyHold > * {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+.dailySizer {
+  visibility: hidden;
+}
+/* A week with no day (codex #1635, PM): the message fills the 7-row place, like the chart's own empty box. */
+.dailyHold > .dailyEmpty {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 0;
+  padding: 0 12px;
   border-radius: 12px;
+  background: var(--background);
+  color: var(--slate);
+  font-size: 13px;
+  text-align: center;
+}
+/* The 7-day table's place while it loads (#1630): the real table's rows, tinted like the block below. */
+.dailySkeleton tbody td,
+.dailySkeleton tbody th {
   background: color-mix(in oklab, var(--secondary) 50%, transparent);
 }
 .detailPending {
@@ -869,4 +967,26 @@
   .detailPending {
     min-height: 1128px;
   }
+}
+/* 최저가 추이 on the gem and accessory boards (api #920): the same head and
+   chart as the item trend, its own block above the listings. */
+.cellTrend {
+  margin: 20px 0 8px;
+  min-width: 0;
+}
+.cellTrend .trendHead {
+  margin-top: 0;
+}
+/* Beside the title (700px+), the row is the period buttons' height (28 + 3 + 3) from its start tag, so
+   the title, centred in it, stays put when the buttons arrive (A7, market boards sweep). On a phone the
+   buttons take their own row under the title. */
+@media (min-width: 700px) {
+  .cellTrend .trendHead {
+    min-height: 34px;
+  }
+}
+.cellCaption {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
 }

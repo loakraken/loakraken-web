@@ -9,10 +9,10 @@ import {
   requestQuote,
 } from "./upstream";
 import { type GemPick } from "./auction-gems";
-import { requestGemBoard, requestGemListings, requestGemSkills } from "./auction-gems.backend";
+import { requestGemBoard, requestGemHistory, requestGemListings, requestGemSkills } from "./auction-gems.backend";
 import { requestItemMinutes } from "./minutes.backend";
 import { type AccessoryFilter, type AccessoryPick } from "./auction-accessories";
-import { requestAccessoryBoard, requestAccessoryListings } from "./auction-accessories.backend";
+import { requestAccessoryBoard, requestAccessoryHistory, requestAccessoryListings } from "./auction-accessories.backend";
 
 const origin = () => process.env.LOAKRAKEN_API_ORIGIN;
 
@@ -32,8 +32,8 @@ export const getMarketTabs = (signal?: AbortSignal, timeoutMs?: number) =>
   requestTabs(origin(), { signal, timeoutMs });
 export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal, timeoutMs?: number) =>
   requestBoard(query, origin(), { signal, timeoutMs });
-export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number) =>
-  requestItemHistory(itemId, origin(), { signal, timeoutMs });
+export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number, range?: string | null) =>
+  requestItemHistory(itemId, origin(), { signal, timeoutMs }, range);
 export const getItemMinutes = (itemId: number, signal?: AbortSignal) =>
   requestItemMinutes(itemId, origin(), { signal });
 
@@ -42,10 +42,14 @@ export const getGemBoard = (signal?: AbortSignal, timeoutMs?: number) =>
 export const getGemListings = (pick: GemPick, signal?: AbortSignal) =>
   requestGemListings(pick, origin(), { signal });
 export const getGemSkills = (signal?: AbortSignal) => requestGemSkills(origin(), { signal });
+export const getGemHistory = (pick: GemPick, range: string, signal?: AbortSignal) =>
+  requestGemHistory(pick, range, origin(), { signal });
 
 export const getAccessoryBoard = (filter: AccessoryFilter, signal?: AbortSignal, timeoutMs?: number) =>
   requestAccessoryBoard(filter, origin(), { signal, timeoutMs });
 export const getAccessoryListings = (filter: AccessoryFilter, pick: AccessoryPick, signal?: AbortSignal) =>
   requestAccessoryListings(filter, pick, origin(), { signal });
+export const getAccessoryHistory = (filter: AccessoryFilter, pick: AccessoryPick, range: string, signal?: AbortSignal) =>
+  requestAccessoryHistory(filter, pick, range, origin(), { signal });
 
 export { toResponse } from "../api/respond";

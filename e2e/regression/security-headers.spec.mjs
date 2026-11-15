@@ -99,7 +99,7 @@ test("CSP 위반 0건: 나중에 불러오는 검색 창과 화면 사이 이동
   await expect(page.getByRole("combobox", { name: "캐릭터 이름" })).toBeFocused();
   await page.keyboard.press("Escape");
   // A client-side move keeps the same document and policy.
-  await page.getByRole("link", { name: "보석", exact: true }).first().click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "보석", exact: true }).click();
   await expect(page).toHaveURL(/\/market\/gems/);
   await page.waitForTimeout(800);
   expect(await page.evaluate(() => window.__csp)).toEqual([]);
