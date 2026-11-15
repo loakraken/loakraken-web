@@ -256,7 +256,9 @@ function PartRow({
       <div className={styles.partHead}>
         <strong id={id}>{part.label}</strong>
         <span>{!state.enabled ? "제외" : up > 0 ? `+${up}단계` : "유지"}</span>
-        <label className={styles.include}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the label ends the head row, so its words
+            arriving after the box grew it leftwards. */}
+        <label className={styles.include} data-fp-whole="">
           <input
             type="checkbox"
             checked={state.enabled}
@@ -265,6 +267,7 @@ function PartRow({
             }
           />
           계산에 포함
+          <FpEnd />
         </label>
       </div>
       <fieldset
