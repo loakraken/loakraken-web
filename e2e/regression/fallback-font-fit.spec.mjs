@@ -31,16 +31,38 @@ for (const width of [320, 360])
     for (const path of ROUTES) {
       await gotoReady(page, path);
       // The site font really is absent (a served file would hide what this guards).
-      expect(await page.evaluate(() => [...document.fonts].some((f) => f.status === "loaded" && /kraken/i.test(f.family))), path).toBe(false);
+      // (Only the site font's own family; the tuned fallback faces may load, that is what is measured.)
+      expect(
+        await page.evaluate(() => [...document.fonts].some((f) => f.status === "loaded" && f.family.replace(/["']/g, "") === "kraken")),
+        path,
+      ).toBe(false);
       const found = await page.evaluate(() => {
         const out = [];
         if (document.documentElement.scrollWidth > innerWidth + 1) out.push(`가로 스크롤 ${document.documentElement.scrollWidth}>${innerWidth}`);
+        // Drawn text past the element's own box (not scrollWidth: a hit-44 ::after or other absolute
+        // decoration would count there without any text moving).
         for (const el of document.querySelectorAll("main th, main td, main button, main summary, main dd, main [class*=Badge]")) {
           const cs = getComputedStyle(el);
           if (cs.display === "none" || cs.visibility === "hidden" || el.closest("[hidden],[aria-hidden=true]")) continue;
-          if (el.clientWidth <= 2 || /(auto|scroll)/.test(cs.overflowX)) continue;
-          if (el.scrollWidth > el.clientWidth + 1)
-            out.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().replace(/\s+/g, " ").slice(0, 20)}" ${el.scrollWidth}>${el.clientWidth}`);
+          if (/(auto|scroll)/.test(cs.overflowX)) continue;
+          const box = el.getBoundingClientRect();
+          if (box.width <= 2) continue;
+          let over = 0;
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            if (!n.textContent.trim()) continue;
+            const ps = getComputedStyle(n.parentElement);
+            if (ps.display === "none" || ps.visibility === "hidden" || /(absolute|fixed)/.test(ps.position)) continue;
+            if (n.parentElement.closest(".sr-only,[class*=sr-only],[class*=_sr]")) continue;
+            const range = document.createRange();
+            range.selectNodeContents(n);
+            for (const r of range.getClientRects())
+              if (r.width > 0) over = Math.max(over, box.left - r.left, r.right - box.right);
+          }
+          // Text cut by an ellipsis is past its box too (scrollWidth there is the clipped text).
+          const cut = cs.textOverflow === "ellipsis" && el.scrollWidth > el.clientWidth + 1;
+          if (over > 1 || cut)
+            out.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().replace(/\s+/g, " ").slice(0, 20)}" ${cut ? "말줄임" : `${over.toFixed(1)}px`}`);
         }
         return out;
       });
