@@ -363,9 +363,10 @@ jobs:
   webkit:
     needs: [changes, build]
     name: e2e webkit
-    # 필수 검사다. 건너뛰는 때는 초안 PR과 changes가 'e2e 경로 변경 없음'이라 한 때뿐이다. changes나 build가 실패하면
-    # 건너뛰지 않고 돌아 실패한다(건너뛴 필수 검사는 통과로 쳐서, 실패를 건너뜀으로 숨기면 안 된다).
-    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true') }}
+    # 필수 검사다. 건너뛰는 때는 초안 PR과 changes가 'e2e 경로 변경 없음'이라 한 때뿐이다. changes나 build가 실패하거나
+    # 실행이 취소되면 건너뛰지 않고 돌아 실패한다(건너뛴 필수 검사는 통과로 쳐서, 실패·취소를 건너뜀으로 숨기면 안 된다).
+    # 그래서 !cancelled()가 아니라 always()다: 취소된 실행에서도 이 job은 떠서 아래 첫 단계에서 실패한다.
+    if: ${{ always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -373,9 +374,11 @@ jobs:
       E2E_WEBKIT: "1"
     steps:
       - name: Require changes and build
-        if: needs.changes.result != 'success' || needs.build.result != 'success'
+        # always(): 취소된 실행에서도 이 단계는 돈다(기본 조건 success()는 취소 때 거짓이라 단계가 모두 건너뛰어지고
+        # job이 통과로 끝날 수 있다).
+        if: always() && (cancelled() || needs.changes.result != 'success' || needs.build.result != 'success')
         run: |
-          echo "::error title=e2e webkit::changes=${{ needs.changes.result }} build=${{ needs.build.result }} — 앞 job이 실패해 WebKit 검사를 돌릴 수 없습니다."
+          echo "::error title=e2e webkit::changes=${{ needs.changes.result }} build=${{ needs.build.result }} — 앞 job이 실패했거나 실행이 취소돼 WebKit 검사를 돌리지 않았습니다."
           exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
