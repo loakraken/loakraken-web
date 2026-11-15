@@ -14,6 +14,13 @@
   padding: 0;
   list-style: none;
 }
+/* Each tab's item lays its tab out as a flex item, not on a line (A7 rest sweep): pages with a larger body
+   line (/about 27px, /contact and the documents 24px) gave a list item a line box, and a tab cut right after
+   its start tag (no label yet, so its baseline is its bottom edge) sat on that line with the strut's descent
+   under it: the menu was 44px tall until the labels came, then 36px. */
+.tabs > li {
+  display: flex;
+}
 .tab {
   display: inline-flex;
   align-items: center;
