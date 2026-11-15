@@ -270,11 +270,16 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     }
   });
 
-  test("계산 자리가 차면(SPEC_UP_BUSY) 안내와 남은 초, 그동안 다시 누를 수 없음", async ({ page }) => {
+  test("계산 자리가 계속 차면(SPEC_UP_BUSY) 세 번 더 물은 뒤 안내와 남은 초, 그동안 다시 누를 수 없음", async ({ page }) => {
+    test.slow();
+    let asked = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && asked++);
     await page.goto(characterPath("스펙순서몰림", "specup"));
     // In the 추천 순서 area: Next's own (empty) route announcer is a role=alert on
-    // every page (CI 11-03: strict mode found it next to this one).
-    await expect(page.getByRole("region", { name: "추천 순서" }).getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요");
+    // every page (CI 11-03: strict mode found it next to this one). After the web's own retries
+    // (three, each after the 2 s Retry-After; api #989).
+    await expect(page.getByRole("region", { name: "추천 순서" }).getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요", { timeout: 15_000 });
+    expect(asked, "처음 + 다시 물음 3번").toBe(4);
     const again = page.getByRole("button", { name: /뒤 다시 계산$/ });
     await expect(again).toHaveAttribute("aria-disabled", "true");
     await expect(page.getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });

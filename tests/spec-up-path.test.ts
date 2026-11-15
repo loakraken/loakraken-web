@@ -187,3 +187,19 @@ test("SPEC_UP_PATH: on/off override, hidden only on production, and never withou
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_PATH: "off" }), false);
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_GUIDE: "off", SPEC_UP_PATH: "on" }), false);
 });
+
+test("computing seat busy (api #989): asked again after Retry-After, three times, only for SPEC_UP_BUSY", async () => {
+  const { SpecUpQueryError, SEAT_RETRIES, seatRetry, seatRetryDelay } = await import("../lib/spec-up/client");
+  const busy = new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 + 2_000 });
+  assert.equal(SEAT_RETRIES, 3);
+  assert.deepEqual([0, 1, 2, 3].map((n) => seatRetry(n, busy)), [true, true, true, false]);
+  // Other failures are shown as they come: the rate limit, a timeout, a plain error.
+  assert.equal(seatRetry(0, new SpecUpQueryError({ code: "RATE_LIMITED", status: 429, retryAt: 12_000 })), false);
+  assert.equal(seatRetry(0, new SpecUpQueryError({ code: "LOST_ARK_API_ERROR", status: 502 })), false);
+  assert.equal(seatRetry(0, new Error("x")), false);
+  // The wait is the Retry-After, held to 0.5–5 s; none given reads as 1 s.
+  assert.equal(seatRetryDelay(0, busy, 10_000), 2_000);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 + 60_000 }), 10_000), 5_000);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 }), 10_000), 500);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429 }), 10_000), 1_000);
+});

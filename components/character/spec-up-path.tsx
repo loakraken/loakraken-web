@@ -13,7 +13,7 @@ import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { positionOf } from "@/lib/character/detail";
 import type { Character } from "@/lib/character/model";
-import { SpecUpQueryError, fetchSpecUpPath } from "@/lib/spec-up/client";
+import { SpecUpQueryError, fetchSpecUpPath, seatRetry, seatRetryDelay } from "@/lib/spec-up/client";
 import { simulatorPath, stepKindLabel } from "@/lib/spec-up/goal";
 import {
   PATH_FIRST_ROWS,
@@ -130,7 +130,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
     staleTime: 600_000,
     // Another rule keeps the shown order until the new one arrives (A7).
     placeholderData: keepPreviousData,
-    retry: false,
+    // Another rule while the last one is still computing: this client's seat is taken (api #989), asked again.
+    retry: seatRetry,
+    retryDelay: seatRetryDelay,
     refetchOnWindowFocus: false,
     // PM 총괄 11-02: asked only while this chip is shown, one at a time (the query
     // dedupes), and not again within the backend's cache window.

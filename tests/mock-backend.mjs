@@ -13,7 +13,7 @@ const read = (name) =>
   );
 const counts = {};
 // Client addresses that already had their one busy goal answer (api #922, spec-up-goal-retry spec).
-const goalBusyOnce = new Set();
+const goalBusyOnce = new Map();
 const rankAsks = new Map();
 /** BYOK: last four characters of the X-LK-User-Key each character read carried. */
 const userKeys = {};
@@ -947,7 +947,8 @@ createServer(async (req, res) => {
     const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
-    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "5" });
+    // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
+    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
     // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
     // '점수순서서폿' answers sort=KRAKEN with the api's own supporter answer (#969 test, combat power null),
     // '점수순서딜러' with the sample in its 크라켄 점수 (combat power kept). Every other name: switch off.
@@ -1058,14 +1059,15 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
-    // api #922: every computing seat taken. The target 12451.5 is busy once per client address (the
-    // spec-up-goal-retry spec gives each run its own), then answers as usual.
-    // 12452.5 waits 3 s instead (long enough to press during the countdown).
+    // api #922/#989: no computing seat. Per client address (the spec-up-goal-retry spec gives each run its
+    // own): 12451.5 is busy once (the web's own retry gets the answer), 12452.5 four times with a 2 s wait
+    // (more than the web retries, so the notice and its countdown show), then each answers as usual.
     const client = req.headers["x-forwarded-for"];
-    const busyFor = { 12451.5: "1", 12452.5: "3" }[target];
-    if (busyFor && client && !goalBusyOnce.has(`${client}|${target}`)) {
-      goalBusyOnce.add(`${client}|${target}`);
-      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busyFor });
+    const busy = { 12451.5: [1, "1"], 12452.5: [4, "2"] }[target];
+    const key = `${client}|${target}`;
+    if (busy && client && (goalBusyOnce.get(key) ?? 0) < busy[0]) {
+      goalBusyOnce.set(key, (goalBusyOnce.get(key) ?? 0) + 1);
+      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busy[1] });
     }
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).
