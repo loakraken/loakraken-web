@@ -484,7 +484,8 @@ function Detail({
           })}
         </div>
       </div>
-      {data && data.variants.length + (missingPick ? 1 : 0) > 1 && (
+      {/* The kept pick keeps the row even where this range lists no terms at all (codex #1675 P3). */}
+      {data && (missingPick || data.variants.length > 1) && (
         <div className={styles.ranges} role="group" aria-label="거래 조건">
           {data.variants.map((v, i) => (
             <button
@@ -496,9 +497,10 @@ function Detail({
               {termsLabel(v)}
             </button>
           ))}
-          {/* The kept pick, last: still pressed, so the row and the choice stay as they were. */}
+          {/* The kept pick, last: still the choice (pressed), and nothing to press here — this range has no record
+              of it (aria-disabled: still focusable and announced, codex #1675 P3). */}
           {missingPick && (
-            <button type="button" aria-pressed="true">
+            <button type="button" aria-pressed="true" aria-disabled="true">
               {terms!.label}
             </button>
           )}

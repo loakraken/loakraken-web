@@ -123,6 +123,13 @@
   background: var(--ink);
   color: var(--background);
 }
+/* A kept pick this range has no record of (market-board): shown as the choice, with nothing to press. */
+.ranges button[aria-disabled="true"] {
+  cursor: default;
+}
+.ranges button[aria-disabled="true"]:active {
+  transform: none;
+}
 .rows {
   display: grid;
   margin-top: 10px;

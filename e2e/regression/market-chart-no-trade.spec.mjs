@@ -110,6 +110,10 @@ test("연 거래 조건은 기간을 바꿔도 그대로다(기간마다 거래 
   await expect(terms.getByRole("button")).toHaveCount(2);
   const opened = (await terms.locator('button[aria-pressed="true"]').textContent()).trim();
   expect(opened, "열린 조건은 품목 자신의 조건").not.toBe("거래 99회");
+  // Each range's own answer, by its own order (codex #1675 P2: while 3개월 · 1년 load, the 30-day answer stands in
+  // with the same terms, so a pressed check alone passed even if the longer answers never came).
+  const order = { "7일": [opened, "거래 99회"], "30일": [opened, "거래 99회"], "3개월": ["거래 99회", opened], "1년": ["거래 99회", opened] };
+  const landed = (range, label) => expect(terms.getByRole("button"), `${label}: ${range}의 답`).toHaveText(order[range]);
   // Every ordered pair: from each range to each other one.
   for (const from of RANGES)
     for (const to of RANGES) {
@@ -117,12 +121,14 @@ test("연 거래 조건은 기간을 바꿔도 그대로다(기간마다 거래 
       await ranges.getByRole("button", { name: from }).click();
       await ranges.getByRole("button", { name: to }).click();
       await expect(ranges.getByRole("button", { name: to })).toHaveAttribute("aria-pressed", "true");
+      await landed(to, `${from} → ${to}`);
       await expect(terms.getByRole("button", { name: opened, exact: true }), `${from} → ${to}`).toHaveAttribute("aria-pressed", "true");
     }
   // A press picks other terms, and they stay too.
   await terms.getByRole("button", { name: "거래 99회" }).click();
   for (const range of ["3개월", "7일", "1년", "30일"]) {
     await ranges.getByRole("button", { name: range }).click();
+    await landed(range, "고른 뒤");
     await expect(terms.getByRole("button", { name: "거래 99회" }), range).toHaveAttribute("aria-pressed", "true");
   }
 });
@@ -130,13 +136,16 @@ test("연 거래 조건은 기간을 바꿔도 그대로다(기간마다 거래 
 for (const width of [320, 360, 1280])
   test(`${width}: 고른 '지난 기록'은 그 조건이 없는 기간에서도 고른 채로, 그 기간엔 기록이 없다고만 쓴다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    // 3개월 · 1년 also list terms only in stored history ('지난 기록', traded); the 30-day answer (30일, 7일) does not.
+    // 3개월 also lists terms only in stored history ('지난 기록', traded); the 30-day answer (30일, 7일) does not, and
+    // 1년 lists no terms at all.
     await page.route(HISTORY, async (route) => {
       const response = await route.fetch();
       const body = await response.json();
       const [official] = body.envelope.data.variants;
-      if (!route.request().url().includes("range=30d"))
+      const url = route.request().url();
+      if (url.includes("range=90d"))
         body.envelope.data.variants = [official, { ...official, tradeRemainCount: null, bundleCount: null }];
+      if (url.includes("range=365d")) body.envelope.data.variants = [];
       await route.fulfill({ response, json: body });
     });
     await watchShifts(page);
@@ -154,15 +163,25 @@ for (const width of [320, 360, 1280])
       // The pick stays (the row keeps its two buttons), and this range says it has no record of it, once.
       await expect(terms.getByRole("button"), range).toHaveCount(2);
       await expect(terms.getByRole("button", { name: "지난 기록" }), range).toHaveAttribute("aria-pressed", "true");
+      // Still the choice, with nothing to press here (codex #1675 P3).
+      await expect(terms.getByRole("button", { name: "지난 기록" }), range).toHaveAttribute("aria-disabled", "true");
       await expect(detail.getByText("이 기간에는 이 조건의 기록이 없어요. 3개월을 고르면 볼 수 있어요.", { exact: true }), range).toBeVisible();
       await expect(detail.getByText(/기록이 없어요/), `${range}: 안내는 한 번`).toHaveCount(1);
       await expect(detail.getByRole("img", { name: CHART })).toHaveCount(0);
       await expect(detail.locator(REAL_ROWS)).toHaveCount(0);
       expect(moved.all, `${range} 흔들림 (${moved.moved})`).toBe(0);
     }
-    // A range that lists it again shows it again.
+    // A range whose answer lists no terms at all keeps the row with the pick (codex #1675 P3). One button, the kept
+    // pick: only 1년's own answer shows that (3개월's answer, standing in while it loads, lists two).
     await ranges.getByRole("button", { name: "1년" }).click();
+    await expect(terms.getByRole("button")).toHaveCount(1);
+    await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-disabled", "true");
+    await expect(detail.getByText(/기록이 없어요/)).toHaveCount(1);
+    // A range that lists it again shows it again.
+    await ranges.getByRole("button", { name: "3개월" }).click();
+    await expect(terms.getByRole("button")).toHaveCount(2);
     await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
+    await expect(terms.getByRole("button", { name: "지난 기록" })).not.toHaveAttribute("aria-disabled", "true");
     await expect(detail.getByRole("img", { name: CHART })).toBeVisible();
     await expect(detail.getByText(/기록이 없어요/)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
