@@ -905,14 +905,14 @@ function MarketContent({
               )}
             </div>
             <section className={styles.board} aria-labelledby="board-heading">
-              <div className={styles.boardHead}>
+              {/* Drawn once whole (data-fp-whole, A7 rest sweep): the heading is centred against the sort
+                  pill, and the count and the pill arriving after the name moved it down 6px (1280). */}
+              <div className={styles.boardHead} data-fp-whole="">
                 {/* Drawn anew per kind: its text changes in place otherwise and
                     counts as moving (A7). */}
-                {/* Drawn once whole (data-fp-whole, A7 rest sweep): the count arriving after the name re-set the line's baseline. */}
-                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`} data-fp-whole="">
+                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`}>
                   {`${data?.tabLabel ?? currentTab?.label ?? "시세"} 시세 `}
                   {data && <small>{`${data.totalItems}종`}</small>}
-                  <FpEnd />
                 </h2>
                 <div className={styles.sorts} role="group" aria-label="정렬">
                   {SORTS.map((s) => (
@@ -926,6 +926,7 @@ function MarketContent({
                     </button>
                   ))}
                 </div>
+                <FpEnd />
               </div>
               {/* Searches the open tab; tab, tier and sort stay and apply to
                   the results, a new search starts at page 1 (#1115). */}
