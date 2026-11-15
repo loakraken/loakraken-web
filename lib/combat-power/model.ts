@@ -270,7 +270,8 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (advanced != null && item.advanced != null && advanced !== item.advanced)
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
-  for (const line of current.polish ?? []) {
+  // Nothing for polish while the card is locked: it cannot show or undo an edit (review P3 #1700).
+  for (const line of isOpen("POLISH") ? (current.polish ?? []) : []) {
     const key = `${line.index}:${line.line}`;
     const grade = edits.polish[key];
     const option = polishSwapOf(edits, line);

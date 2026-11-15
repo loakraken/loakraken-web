@@ -80,7 +80,7 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
 export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes: SpecUpChange[]; skipped: number } {
   const takes = (change: SpecUpChange) =>
     (isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") && editsFor(change, NO_EDITS, gearType) != null;
-  let changes: SpecUpChange[] = [];
+  const changes: SpecUpChange[] = [];
   let skipped = 0;
   for (const step of steps) {
     // A step may change more than one thing (api #812: a stone step sets two
@@ -91,15 +91,19 @@ export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes
       skipped += 1;
       continue;
     }
-    // A 연마 step buys another accessory for its slot (api #951): it replaces an earlier step's one there whole,
-    // not line by line (a line the later one keeps as worn must not keep the earlier one's option). The api
-    // replays the path the same way, the last step per slot.
-    // In the earlier one's place, so the list keeps path order (review P3 #1700; the total is the same).
-    const bought = new Set(all.flatMap((change) => (change.kind === "POLISH" ? [change.index] : [])));
-    const replaced = (change: SpecUpChange) => change.kind === "POLISH" && bought.has(change.index);
-    const at = changes.findIndex(replaced);
-    if (at < 0) changes.push(...all);
-    else changes = [...changes.slice(0, at).filter((c) => !replaced(c)), ...all, ...changes.slice(at).filter((c) => !replaced(c))];
+    // 연마 steps (api #951) merge per line, the later step winning (PM 총괄 11-15, review P1 #1700): a later
+    // step's change for a line replaces that line, in its place (path order kept), and a line the later step
+    // does not name keeps the earlier one's. Right whether a step lists every line that differs from the worn
+    // accessory plus reset lines back to it (the form #951 sends, PM 총괄 11-15) or only what it changes
+    // from the step before. A reset line (the worn option and grade) reads as the worn line in the simulator.
+    for (const change of all) {
+      const at =
+        change.kind === "POLISH"
+          ? changes.findIndex((c) => c.kind === "POLISH" && c.index === change.index && c.line === change.line)
+          : -1;
+      if (at < 0) changes.push(change);
+      else changes[at] = change;
+    }
   }
   // In path order: the simulator applies them one after another, so a later
   // value for the same slot (보석 9 → 10, the same engraving again) wins.
