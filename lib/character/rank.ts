@@ -142,9 +142,14 @@ export function bannerRank(data: CharacterRank) {
     /** The metric's name, shown apart so a narrow banner can leave it out (the number line above says it). */
     label: "전투력",
     value,
-    /** The rank and the share apart, so up to 360px the badge can leave out "상위" (PM 총괄 11-16). */
+    /** The rank and the share apart, so a narrow badge can put the share on its own line (PM 총괄 11-16). */
     rank: cell.rank,
     share: cell.top?.replace(/^상위 /, "") ?? null,
+    /**
+     * A rank of 6+ digits: the one-line badge does not fit a phone's banner column below 400px even in the site
+     * font (sweep 11-16: past the row up to 384px), so it takes two lines there. Up to 5 digits it always fits.
+     */
+    long: (cell.rank.match(/\d/g)?.length ?? 0) >= 6,
     text: `전투력 ${value}`,
     note: `${conditionsText(data)} ${cell.total} 순위예요. 공식 순위가 아니에요.`,
   };

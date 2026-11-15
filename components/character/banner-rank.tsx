@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRank } from "@/lib/character/client";
 import { bannerRank } from "@/lib/character/rank";
@@ -12,6 +13,13 @@ import styles from "./character.module.css";
  * numbers. Same query as the 순위 panel (one request). The line is there from
  * the first HTML, empty until the rank arrives or when there is none, so the
  * banner never moves (A6). Never called an official rank.
+ *
+ * Length rule (PM 총괄 11-16): up to 5 digits the badge is one full line at every width. A 6+ digit rank does
+ * not fit one line below 400px, so there it takes two (tier and rank, then 상위 and the share). The row's
+ * height is fixed by the first render: two lines only when the rank is already known to be long (the server's
+ * answer in the first HTML). A long rank arriving later, into a one-line row, keeps that row and leaves 상위
+ * out of the drawn text below 400px (it stays in the accessible name), so nothing moves. The name is the
+ * badge's own text plus a hidden sentence, so it starts with what is shown (WCAG 2.5.3).
  */
 export function BannerRank({ name }: { name: string }) {
   const query = useQuery({
@@ -20,25 +28,30 @@ export function BannerRank({ name }: { name: string }) {
     staleTime: 5 * 60_000,
   });
   const rank = query.data ? bannerRank(query.data.data) : null;
+  // Read once: the row keeps the height it was first drawn with.
+  const [twoLines] = useState(() => rank?.long === true);
+  const late = rank?.long === true && !twoLines;
   return (
-    <p className={styles.bannerRank}>
+    <p className={twoLines ? `${styles.bannerRank} ${styles.bannerRankTwo}` : styles.bannerRank}>
       {rank ? (
         <Tooltip>
-          <TooltipTrigger className={styles.bannerRankBadge} aria-label={`${rank.text}. ${rank.note}`}>
-            {rank.tier && <b>{rank.tier}</b>}
-            {/* On a phone the label is left out so the badge stays left of the
-                render (A37); the name above and the aria-label still say it. */}
-            <span className={styles.bannerRankLabel}>{rank.label}</span>
-            {rank.rank}
-            {rank.share && (
-              <>
-                {" · "}
-                {/* Left out up to 399px: with a wider system face (the site font missed its
-                    load window) the full badge ran past the row up to 381px (A37, PM 11-16). */}
-                <span className={styles.bannerRankTopWord}>상위 </span>
-                {rank.share}
-              </>
-            )}
+          <TooltipTrigger className={late ? `${styles.bannerRankBadge} ${styles.bannerRankShort}` : styles.bannerRankBadge}>
+            <span className={styles.bannerRankText}>
+              {rank.tier && <b>{rank.tier}</b>}{" "}
+              {/* On a phone the label is left out so the badge stays left of the
+                  render (A37); the name above and the hidden sentence still say it. */}
+              <span className={styles.bannerRankLabel}>{rank.label} </span>
+              {rank.rank}
+              {rank.share && (
+                <>
+                  <span className={styles.bannerRankSep}> ·</span>
+                  <br className={styles.bannerRankBreak} />{" "}
+                  <span className={styles.bannerRankTopWord}>상위 </span>
+                  {rank.share}
+                </>
+              )}
+            </span>
+            <span className="sr-only">{`, ${rank.label} 순위. ${rank.note}`}</span>
           </TooltipTrigger>
           <TooltipContent>{rank.note}</TooltipContent>
         </Tooltip>

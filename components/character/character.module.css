@@ -763,13 +763,42 @@
     padding: 0 4px;
   }
 }
-/* Up to 399px the badge says "4,120위 · 22.6%" (the aria-label keeps 상위): with
-   a wider system face — the site font is display:optional, so a visit that misses
-   its load window keeps the system face — the full badge ran past the row up to
-   381px (sweep 320–400 under a wide face, first fit 382); 399 leaves ~11px for a
-   face wider still (A37, PM 총괄 · PM-프론트 11-16). */
+/* The badge's words are one run of text, so its accessible name reads as shown. The
+   tier keeps a little more room than a space, as the old flex gap gave it. */
+.bannerRankText b {
+  margin-inline-end: 2px;
+}
+.bannerRankBreak {
+  display: none;
+}
+/* Length rule (PM 총괄 11-16; sweep 320–400): up to 5 digits the full badge fits at every width
+   (site font and the matched fallback, 8px+ to spare at 320). A 6+ digit rank ran past the row up
+   to 384px even in the site font, so below 400px it takes two lines: tier and rank, then 상위 and
+   the share. The row is two lines tall only when the first render already knew the rank was long
+   (banner-rank.tsx); one that arrives later keeps its one-line row and leaves 상위 out of the drawn
+   text (the short form fits the site font and the matched fallback, 9px+ to spare). */
 @media (max-width: 399px) {
-  .bannerRankTopWord {
+  .bannerRankTwo {
+    height: 40px;
+  }
+  .bannerRankTwo .bannerRankBadge {
+    height: 40px;
+    padding-block: 4px;
+    border-radius: 12px;
+    line-height: 16px;
+  }
+  .bannerRankTwo .bannerRankSep {
     display: none;
+  }
+  .bannerRankTwo .bannerRankBreak {
+    display: inline;
+  }
+  .bannerRankShort .bannerRankTopWord {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }

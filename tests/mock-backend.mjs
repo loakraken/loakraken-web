@@ -1685,7 +1685,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음" || who === "순위긴범위") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (who === "순위늦음" || who === "순위긴범위" || who === "순위큰수늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1716,9 +1716,10 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
-    ] : who === "순위큰수" ? [
+    ] : who === "순위큰수" || who === "순위큰수늦음" ? [
       // The widest banner badge in practice (PM 11-16): a 6-digit rank, a 2-letter tier and a two-decimal
       // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
+      // 순위큰수늦음: the same, after the page's 1s wait (the late path keeps a one-line row).
       entry("COMBAT_POWER", "ALL", null, 123456, 247000),
     ] : who === "순위긴범위" ? [
       // The longest real server + class pair, late like 순위늦음: the
