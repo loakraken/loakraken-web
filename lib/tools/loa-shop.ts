@@ -1,3 +1,4 @@
+// 시험용(병합 안 함)
 // 로아샵 효율 (checklist L45): an in-game shop package's contents valued at
 // today's market prices, against its price in royal crystals. Formula
 // confirmed by calc verification (2026-10-12):
