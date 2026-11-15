@@ -38,6 +38,7 @@ import {
 import quote from "./material-quote.module.css";
 import { goldText as count, signedGold as signed } from "@/lib/tools/format";
 import styles from "./more-reward.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /** "방금 기준" · "3분 전 기준" from the newest price reading. */
 const agoText = (now: number, iso: string) => {
@@ -375,8 +376,9 @@ export function MoreRewardTool() {
                     client-only), and placed earlier it pushed the words after it
                     onto the next line (PM-프론트 #556, 360 CLS 0.0017). */}
                 {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
-                <a href="#value-heading" className="hit-44">
+                <a href="#value-heading" className="hit-44" data-fp-whole="">
                   값 매기기 바꾸기
+                  <FpEnd />
                 </a>
                 {observedAt && now != null && (
                   <>
@@ -395,7 +397,9 @@ export function MoreRewardTool() {
                 {switching ? "이 기준으로 다시 불러오고 있어요…" : ""}
               </p>
               <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
-                <table role="table" className={styles.table}>
+                {/* Drawn once whole (data-fp-whole, A7 rest sweep): a raid's name cell spans its difficulty rows and is centred,
+                    so each later row moved the name down. */}
+                <table role="table" className={styles.table} data-fp-whole="">
                   <caption className={styles.sr}>레이드·난이도·관문별 더보기 이득</caption>
                   {/* Explicit roles: on a phone the table is laid out as cards (display:
                   block), which can drop table semantics; the roles keep them. */}
@@ -444,6 +448,7 @@ export function MoreRewardTool() {
                       />
                     ))}
                   </tbody>
+                  <FpEnd />
                 </table>
               </div>
               </div>

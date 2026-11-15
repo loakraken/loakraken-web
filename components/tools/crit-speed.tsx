@@ -39,6 +39,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "./crit-speed.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -836,10 +837,13 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
               <button
                 type="submit"
                 className={quote.secondaryPill}
+                // Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+                data-fp-whole=""
                 aria-disabled={busy || waiting || undefined}
                 aria-busy={busy || undefined}
               >
                 {retryLabel(limit.seconds, "계산하기")}
+                <FpEnd />
               </button>
               {touched && error && (
                 <p className={quote.inputError}>{error}</p>

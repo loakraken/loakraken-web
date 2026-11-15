@@ -3,7 +3,7 @@
 // 글자 노드 직후에서 문서를 자르고, 나머지를 페이지 순서대로 되돌려도 아무 상자도 움직이지 않는다. 시세의 줄 목록도 같다.
 // 고친 것: 히어로 제목·설명·봇 문구, 머리글 로고·검색 단축키, 일정 카드 머리(제목·범례·토글)와 요일 단추, 시세 줄(가격 칸·
 // 줄 높이·이름·가격 두 줄) — 시작 태그만으로 끝 크기(data-fp-label 크기용 글자, min-height, 고정 칸).
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { cutEverywhere } from "../support/first-paint.mjs";
 
 
@@ -53,6 +53,10 @@ for (const width of [320, 360])
     expect(h.height).toBeLessThan(30);
     expect(t.height).toBeLessThan(32);
     expect(l.height).toBeLessThan(20);
+    // The parts are nowrap: in the system face they must still fit the card (codex #1678 P3).
+    const head = await card.locator("div:has(> #schedule-heading)").evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+    expect(head.scroll, "머리 줄이 카드 안에").toBeLessThanOrEqual(head.client);
+    await expectNoHorizontalOverflow(page);
     const cut = await cutEverywhere(page, "section#schedule|");
     expect(cut.probed, cut.moved.join(" / ")).toBeGreaterThan(10);
     expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.join("\n")}`).toBe(0);

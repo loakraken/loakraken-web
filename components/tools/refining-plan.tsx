@@ -63,6 +63,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -211,10 +212,13 @@ function CharacterLoader({
         <button
           type="submit"
           className={quote.secondaryPill}
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+          data-fp-whole=""
           aria-disabled={load.isPending || loadLimit.seconds > 0 || undefined}
           aria-busy={load.isPending || undefined}
         >
           {load.isPending ? "불러오는 중…" : retryLabel(loadLimit.seconds, "장비 불러오기")}
+          <FpEnd />
         </button>
       </form>
       {touched && error && <p className={quote.inputError}>{error}</p>}
