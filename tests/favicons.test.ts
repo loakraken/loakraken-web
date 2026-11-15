@@ -27,7 +27,7 @@ function assertTileWithMark({ size, rgba }: Raster, label: string) {
   assert.ok(share > 0.08 && share < 0.5, `${label}: the mark covers ${(share * 100).toFixed(1)}% of the tile`);
 }
 
-test("favicon.ico: 16 / 32 / 48 entries, 32-bit BMP, an opaque tile with the mark", () => {
+test("favicon.ico: 48 / 32 / 16 entries (48 first: Next labels the link from it), 32-bit BMP, an opaque tile with the mark", () => {
   const ico = readFileSync(app("favicon.ico"));
   assert.equal(ico.readUInt16LE(0), 0);
   assert.equal(ico.readUInt16LE(2), 1, "type 1 = icon");
@@ -55,7 +55,7 @@ test("favicon.ico: 16 / 32 / 48 entries, 32-bit BMP, an opaque tile with the mar
     assertTileWithMark({ size, rgba }, `favicon.ico ${size}`);
     sizes.push(size);
   }
-  assert.deepEqual(sizes, [16, 32, 48]);
+  assert.deepEqual(sizes, [48, 32, 16]);
 });
 
 /** A non-interlaced 8-bit RGB / RGBA PNG, decoded (the five scanline filters undone). */
