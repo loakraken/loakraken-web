@@ -187,3 +187,44 @@ test("360 시세·도구 묶음 탭: 고른 탭이 첫 그림부터 보인다(�
     await context.close();
   }
 });
+
+// 넓은 글꼴(자간 0.12em, 서버 HTML에 넣어 첫 그림부터): 줄이 더 넘쳐도, 넘친 줄마다 › 가 있고, 페이지가 들어오는 동안
+// 아무것도 움직이지 않으며, 화면은 가로로 넘치지 않는다.
+const WIDE = "<style>body{letter-spacing:.12em!important}</style>";
+for (const width of [1280, 360])
+  test(`${width} 넓은 글꼴: 넘친 줄마다 ›, 흔들림 0, 화면 가로 넘침 없음 @regression`, async ({ page }) => {
+    test.slow();
+    await page.setViewportSize({ width, height: 900 });
+    await page.route("**/*", async (route) => {
+      if (route.request().resourceType() !== "document") return route.fallback();
+      const response = await route.fetch();
+      await route.fulfill({ response, body: (await response.text()).replace("</head>", `${WIDE}</head>`) });
+    });
+    // The log starts anew with each page.
+    await watchShifts(page);
+    for (const path of ["/market", "/market/quote", "/tools/raid-rewards", "/stats", "/rankings", "/character/%EC%83%81%EC%84%B8"]) {
+      await gotoReady(page, path);
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(400);
+      const rows = await page.locator("[data-overflow-row]").evaluateAll((boxes) =>
+        boxes
+          .filter((box) => box.getBoundingClientRect().width > 0)
+          .map((box) => {
+            const el = box.firstElementChild;
+            const shown = (name) => {
+              const button = box.querySelector(`:scope > button[aria-label="${name}"]`);
+              return getComputedStyle(button).display !== "none";
+            };
+            return {
+              row: (box.getAttribute("aria-label") || el.getAttribute("aria-label") || el.textContent).trim().slice(0, 20),
+              hidden: el.scrollWidth > el.clientWidth + 1 && el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+              next: shown("다음 항목"),
+            };
+          }),
+      );
+      for (const r of rows) expect(r.next, `${path} ${r.row}: 끝 너머 항목 ${r.hidden ? "있음" : "없음"}`).toBe(r.hidden);
+      const { all, moved } = await shiftsSince(page);
+      expect(all, `${path} 흔들림 (${moved})`).toBe(0);
+      await expectNoHorizontalOverflow(page);
+    }
+  });
