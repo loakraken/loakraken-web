@@ -124,6 +124,11 @@ test("api overlay (api #941) decides when it is true or false; null and absent f
   const base = avatar("상의 아바타", "기본 상의", true, false);
   const notMarked = avatar("상의 아바타", "표시 없는 상의", false, false);
   assert.equal(isOverlay(notMarked, [base, notMarked]), false);
+  // The mark wins over the type's words too (codex #1682): a type naming 덧입기 with overlay false is the base.
+  const namedOverlay = avatar("상의 덧입기 아바타", "이름만 덧입기", false, false);
+  assert.equal(isOverlay(namedOverlay, [base, namedOverlay]), false);
+  // With no mark (null / older api) the type's words still count, as before.
+  assert.equal(isOverlay(avatar("상의 덧입기 아바타", "표시 모름", false, null), [base]), true);
 
   // null (tooltip unreadable) and absent (an api before #941): the pairing rule, as before.
   for (const flag of [null, undefined]) {

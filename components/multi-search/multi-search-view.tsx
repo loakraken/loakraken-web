@@ -525,7 +525,9 @@ export function MultiSearchView() {
               aria-describedby={`${ids.hint} ${ids.error}`}
             />
             {/* Always pressable: a full list says why in the message line. */}
-            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards. */}
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+                Never give this Button `loading` (codex #1686): it then wraps its children in a span, the end mark is no
+                longer a direct child, and the button stays hidden for good. Show a pending state another way. */}
             <Button type="submit" data-fp-whole="">
               비교하기
               <FpEnd />
