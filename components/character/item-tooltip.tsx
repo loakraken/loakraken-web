@@ -625,12 +625,13 @@ type Avatar = Character["avatars"][number];
 
 /**
  * The avatar card (sheet v2.1 §2c): name, icon row (grade and type, 장착중),
- * the 덧입기 note (its effects do not apply), then the base effect. Bound/trade,
- * tendencies and sources come when the backend sends the tooltip lines.
+ * the 덧입기 note, then the base effect. Bound/trade, tendencies and sources
+ * come when the backend sends the tooltip lines.
  * `overlay`: worn in a 덧입기 slot, as the avatar list placed it (isOverlay
- * needs every avatar worn, not this one alone).
+ * needs every avatar worn, not this one alone). `applies`: whether its effects
+ * count, by the same rule as the 아바타 효과 total (avatarEffectApplies).
  */
-export function AvatarCard({ avatar, overlay }: { avatar: Avatar; overlay: boolean }) {
+export function AvatarCard({ avatar, overlay, applies }: { avatar: Avatar; overlay: boolean; applies: boolean }) {
   return (
     <ItemDetail
       grade={itemGrade(avatar.grade)}
@@ -641,9 +642,14 @@ export function AvatarCard({ avatar, overlay }: { avatar: Avatar; overlay: boole
       lines={[[avatar.grade, avatar.type ?? "아바타"].filter(Boolean).join(" ")]}
       aside="장착중"
     >
-      {/* Where it is worn, nothing more: whether a 덧입기 avatar's abilities count is not settled
-          (the user's in-game sample fits main stats from both layers; PM 총괄 11-13). */}
-      {overlay && <ItemLine tone="muted">덧입기 칸에 착용 중</ItemLine>}
+      {/* The official tooltip of a 덧입기 avatar says its abilities are not applied ("아래 능력들이 적용되지 않는
+          상태입니다.(덧입기 슬롯에 착용 중)"), and the 아바타 효과 total leaves them out (QA v0.3.13 RC P0-1, web #1708;
+          PM 총괄 11-15). The line says so only where the total does. */}
+      {overlay && (
+        <ItemLine tone="muted">
+          {applies ? "덧입기 칸에 착용 중" : "덧입기 칸에 착용 중이라 능력치가 적용되지 않아요."}
+        </ItemLine>
+      )}
       {avatar.effects.length > 0 && (
         <ItemDetailSection label="기본 효과">
           {avatar.effects.map((effect, i) => (
