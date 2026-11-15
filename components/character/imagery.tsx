@@ -11,6 +11,7 @@ import {
 import { ThinkingOrb } from "thinking-orbs";
 import { COLLECTIBLE_SPRITE, COLLECTIBLE_SPRITE_SIZE, collectibleSpriteIcon } from "@/lib/character/collectible-sprite";
 import { useLandingMotion } from "@/components/landing/motion";
+import { ORB_COLORS } from "@/components/landing/orb-colors";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
 import { bannerBackdrop, cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
 import { CharacterPortrait } from "./portrait";
@@ -357,16 +358,17 @@ export function CharacterBanner({
                   state="searching"
                   size={64}
                   theme="light"
-                  color="#0066cc"
+                  color={ORB_COLORS.light}
                   paused={!enabled}
                 />
               </span>
+              {/* The loading orb's tints (ORB_COLORS: the link blue per theme), one source for every orb. */}
               <span className={styles.orbDark}>
                 <ThinkingOrb
                   state="searching"
                   size={64}
                   theme="dark"
-                  color="#8ab8ff"
+                  color={ORB_COLORS.dark}
                   paused={!enabled}
                 />
               </span>

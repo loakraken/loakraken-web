@@ -28,3 +28,26 @@ test("orb still data: every dot inside the 64px box, colours for both themes", (
   }
   assert.equal(dots, 204);
 });
+
+// codex #1655 P3: every orb takes its tint from ORB_COLORS (directly or through orbColor), so a tint change
+// reaches each one; a literal colour on an orb would be missed.
+test("every ThinkingOrb takes its colour from ORB_COLORS", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  const files = (dir: string): string[] =>
+    readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? files(join(dir, entry.name)) : entry.name.endsWith(".tsx") ? [join(dir, entry.name)] : [],
+    );
+  let orbs = 0;
+  for (const file of [...files("components"), ...files("app")]) {
+    const source = readFileSync(join(root, file), "utf8");
+    for (const [tag] of source.matchAll(/<ThinkingOrb\b[^>]*>/g)) {
+      orbs++;
+      const color = /\bcolor=\{([^}]*)\}|\bcolor="([^"]*)"/.exec(tag);
+      assert.ok(color, `${file}: an orb without a colour`);
+      assert.match(color[1] ?? color[2], /^(ORB_COLORS\.(light|dark)|orbColor\(\w+\))$/, `${file}: ${tag.slice(0, 80)}`);
+    }
+  }
+  assert.ok(orbs >= 4, `found ${orbs} orbs`);
+});
