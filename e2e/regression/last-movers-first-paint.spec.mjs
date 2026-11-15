@@ -5,6 +5,13 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 import { cutEverywhere } from "../support/first-paint.mjs";
 
+// /schedule reads the clock: the mock lists today's rounds (its date is the real KST day), and the upcoming
+// cards are the rounds after the browser's now. Late at night none are left (after 23:00 on odd dates, 23:50 on
+// even ones), so the browser clock is pinned to 10:00 KST on the mock's own date, as hide-past does (codex #1692
+// P2). The cut copies the settled page, so the server having drawn with the real time does not matter here.
+const kstToday = () => new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10);
+const MORNING = () => Date.parse(`${kstToday()}T10:00:00+09:00`);
+
 const CASES = [
   ["/about", 320, (page) => page.getByRole("link", { name: /캐릭터 화면 미리보기/ })],
   ["/about", 1280, (page) => page.getByRole("button", { name: "화면 테마" })],
@@ -17,6 +24,7 @@ for (const [path, width, gated] of CASES)
   test(`@A7 ${width} ${path}: 첫 HTML이 어디서 끊겨도 화면이 움직이지 않는다 @regression`, async ({ page }) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width, height: 900 });
+    if (path === "/schedule") await page.clock.setFixedTime(MORNING());
     await gotoReady(page, path);
     await page.evaluate(() => document.fonts.ready);
     // The gated part is drawn once its end mark is in (a lost mark would keep it hidden and pass the cut).
