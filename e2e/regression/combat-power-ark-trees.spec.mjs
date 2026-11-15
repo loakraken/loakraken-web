@@ -5,7 +5,9 @@
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 const simulate = (r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST";
-const OVER = "최대 101 · 지금이나 바꾼 값이 100을 넘으면 계산식을 확인하고 있어 계산하지 않아요";
+// The two notes over 100 (ux-copy 11-16): a typed value, and a character already over 100 (any change).
+const TYPED_OVER = "최대 101 · 100을 넘는 값은 아직 계산하지 않아요";
+const NOW_OVER = "최대 101 · 지금 값이 100을 넘어 바꿔도 아직 계산하지 않아요";
 const open = (page, name) => gotoReady(page, `/tools/combat-power?character=${encodeURIComponent(name)}`);
 const field = (page, tree) =>
   page.getByRole("region", { name: "아크 패시브", exact: true }).getByRole("textbox", { name: `아크 패시브 ${tree} 포인트`, exact: true });
@@ -48,8 +50,8 @@ for (const width of [320, 1280]) {
     await enlightenment.fill("101");
     await enlightenment.blur();
     await at101;
-    await expect(enlightenment).toHaveAccessibleDescription(OVER);
-    await expect(page.getByText(OVER, { exact: true })).toBeVisible();
+    await expect(enlightenment).toHaveAccessibleDescription(TYPED_OVER);
+    await expect(page.getByText(TYPED_OVER, { exact: true })).toBeVisible();
     await expect(row(page, "깨달음")).toContainText("계산 준비 중");
     await expect(row(page, "깨달음")).toContainText("깨달음 포인트 100 초과의 전투력 계산식을 아직 확인하고 있어 계산하지 않았습니다.");
     await expect(row(page, "깨달음")).not.toContainText(/[+-]\d/);
@@ -61,12 +63,12 @@ test("지금 깨달음이 101이면 처음부터 칸 옆에 말하고, 낮춰도
   await open(page, "전투력깨달음101");
   const enlightenment = field(page, "깨달음");
   await expect(enlightenment).toHaveValue("101");
-  await expect(enlightenment).toHaveAccessibleDescription(OVER);
+  await expect(enlightenment).toHaveAccessibleDescription(NOW_OVER);
   const at90 = page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":90'));
   await enlightenment.fill("90");
   await enlightenment.blur();
   await at90;
-  await expect(enlightenment).toHaveAccessibleDescription(OVER);
+  await expect(enlightenment).toHaveAccessibleDescription(NOW_OVER);
   await expect(row(page, "깨달음")).toContainText("101 → 90");
   await expect(row(page, "깨달음")).toContainText("계산 준비 중");
 });

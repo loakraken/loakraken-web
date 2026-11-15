@@ -82,8 +82,9 @@ export const ENLIGHTENMENT_COMPUTED_MAX = 100;
 export function arkPassiveNote(tree: string, now: number, next: number): string | undefined {
   if (!(tree in ARK_PASSIVE_TREE_MAX)) return undefined;
   const max = `최대 ${arkPassiveMax(tree)}`;
-  if (tree === "깨달음" && Math.max(now, next) > ENLIGHTENMENT_COMPUTED_MAX)
-    return `${max} · 지금이나 바꾼 값이 ${ENLIGHTENMENT_COMPUTED_MAX}을 넘으면 계산식을 확인하고 있어 계산하지 않아요`;
+  // Most characters are at 101 now (계산 검증 11-15): for them even a lower value is not computed, so that case says so.
+  if (tree === "깨달음" && now > ENLIGHTENMENT_COMPUTED_MAX) return `${max} · 지금 값이 100을 넘어 바꿔도 아직 계산하지 않아요`;
+  if (tree === "깨달음" && next > ENLIGHTENMENT_COMPUTED_MAX) return `${max} · 100을 넘는 값은 아직 계산하지 않아요`;
   return max;
 }
 export const arkPassiveMax = (tree: string) => ARK_PASSIVE_TREE_MAX[tree] ?? ARK_PASSIVE_MAX;

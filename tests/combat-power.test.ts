@@ -355,12 +355,16 @@ test("ark passive opens 도약 (api #842), 진화 and 깨달음 (api #965), each
 });
 
 test("the note beside a tree's field: its maximum, and 깨달음 over 100 (now or typed) is said not computed (api #965)", () => {
-  const over = "최대 101 · 지금이나 바꾼 값이 100을 넘으면 계산식을 확인하고 있어 계산하지 않아요";
   assert.equal(arkPassiveNote("도약", 60, 60), "최대 70");
   assert.equal(arkPassiveNote("진화", 120, 140), "최대 140");
   assert.equal(arkPassiveNote("깨달음", 95, 100), "최대 101", "computed at 100 or less");
-  assert.equal(arkPassiveNote("깨달음", 95, 101), over, "typed 101");
-  assert.equal(arkPassiveNote("깨달음", 101, 90), over, "now 101: the api does not compute a change either way");
+  assert.equal(arkPassiveNote("깨달음", 95, 101), "최대 101 · 100을 넘는 값은 아직 계산하지 않아요", "typed 101");
+  for (const next of [101, 90])
+    assert.equal(
+      arkPassiveNote("깨달음", 101, next),
+      "최대 101 · 지금 값이 100을 넘어 바꿔도 아직 계산하지 않아요",
+      "now 101: the api does not compute a change either way",
+    );
   assert.equal(arkPassiveNote("모르는 트리", 1, 2), undefined);
 });
 
