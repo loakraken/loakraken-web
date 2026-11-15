@@ -13,13 +13,17 @@ import {
   SORTS,
   BOOK_GRADES,
   boardQueryString,
+  addressParams,
   parseItemId,
+  parseRange,
+  rangeParam,
   readBoardQuery,
   changeLabel,
   changeWithAmount,
   completedDays,
   openingVariant,
   termsKey,
+  termsLabel,
   traded,
   windowStart,
   goldText,
@@ -242,22 +246,27 @@ function Detail({
   tier,
   tab,
   outside,
+  picked,
+  onRange,
 }: {
   item: BoardItem;
   tier: number | null;
   tab: FavoriteItem["tab"];
   outside?: boolean;
+  /** The range picked for this item (the board keeps it in the address). */
+  picked: ChartRange;
+  onRange: (range: ChartRange) => void;
 }) {
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
   // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
   // Days (user 11-12, api #920): 7일 · 30일 · 3개월 · 1년; it opens on 30일.
-  const [picked, setRange] = useState<ChartRange>(30);
   // The trade terms shown, by identity (termsKey): decided once per item from its first answer — the clicked
   // row's terms when they trade, else the most traded (QA 11-15) — and kept across ranges, whose answers list
-  // their terms in their own order (codex #1671). A press picks other terms.
-  const [terms, setTerms] = useState<string | null>(null);
+  // their terms in their own order (codex #1671). A press picks other terms (`seen`: the range they were picked
+  // in, which lists them).
+  const [terms, setTerms] = useState<{ key: string; label: string; seen: DayRange | null } | null>(null);
   // Whether the api answers ranges: the 30-day answer (always read) echoes its range.
   const base = useQuery({
     queryKey: historyKey(item.itemId, "30d"),
@@ -293,11 +302,17 @@ function Detail({
   const placeholderRange: DayRange =
     shownAnswer == null || historyRange(settled) === shownAnswer ? settled : shownAnswer === "365d" ? 365 : shownAnswer === "90d" ? 90 : 30;
   const view: ChartRange = range === "hour" ? "hour" : ready ? range : placeholderRange;
-  if (terms == null && data?.variants.length) setTerms(termsKey(data.variants[openingVariant(data.variants, item)]));
-  // Terms a range does not list (stored-only ones): that answer's own opening terms.
-  const listed = data ? data.variants.findIndex((v) => termsKey(v) === terms) : -1;
-  const variantIndex = listed !== -1 ? listed : data ? openingVariant(data.variants, item) : 0;
-  const variant = data?.variants[variantIndex];
+  if (terms == null && data?.variants.length) {
+    const opening = data.variants[openingVariant(data.variants, item)];
+    setTerms({ key: termsKey(opening), label: termsLabel(opening), seen: null });
+  }
+  const listed = data ? data.variants.findIndex((v) => termsKey(v) === terms?.key) : -1;
+  // Terms the user picked that this range does not list (stored-only ones, 30일+) stay picked: this range says
+  // it has no record of them, and the pick comes back with a range that lists them (codex #1671 P3). The
+  // opening terms, not a pick, give way to this answer's own.
+  const missingPick = !!data && listed === -1 && terms?.seen != null;
+  const variantIndex = listed !== -1 ? listed : missingPick ? -1 : data ? openingVariant(data.variants, item) : 0;
+  const variant = variantIndex === -1 ? undefined : data?.variants[variantIndex];
   // Terms with days on record but no trade in them: say so, never a 0G line or 0G rows.
   const neverTraded = !!variant?.days.length && !variant.days.some(traded);
   const otherTraded = !!data?.variants.some((v, i) => i !== variantIndex && v.days.some(traded));
@@ -348,7 +363,10 @@ function Detail({
   const emptyTable = !!data && !history.isPending && tableRows.length === 0;
   const emptyWeek = range === 7 && emptyTable;
   // What is missing, then the next step (ux-copy): other terms that trade, or 30일 for older days.
-  const emptyNote = neverTraded
+  const emptyNote = missingPick
+    ? // Back to where the pick has records (ux-copy): the range it was picked in.
+      `이 기간에는 이 조건의 기록이 없어요. ${RANGE_LABEL[terms!.seen!]}을 고르면 볼 수 있어요.`
+    : neverTraded
     ? `이 조건으로는 거래된 기록이 없어요.${otherTraded ? " 다른 거래 조건을 골라 보세요." : ""}`
     : range === 7
       ? `최근 7일 동안 거래 기록이 없어요.${variant?.days.some(traded) ? " 30일을 고르면 지난 기록을 볼 수 있어요." : ""}`
@@ -457,7 +475,7 @@ function Detail({
                 key={value}
                 type="button"
                 aria-pressed={range === value}
-                onClick={() => setRange(value)}
+                onClick={() => onRange(value)}
                 style={rangeWidth(label)}
               >
                 {label}
@@ -466,23 +484,26 @@ function Detail({
           })}
         </div>
       </div>
-      {data && data.variants.length > 1 && (
+      {/* The kept pick keeps the row even where this range lists no terms at all (codex #1675 P3). */}
+      {data && (missingPick || data.variants.length > 1) && (
         <div className={styles.ranges} role="group" aria-label="거래 조건">
           {data.variants.map((v, i) => (
             <button
               key={i}
               type="button"
               aria-pressed={variantIndex === i}
-              onClick={() => setTerms(termsKey(v))}
+              onClick={() => setTerms({ key: termsKey(v), label: termsLabel(v), seen: view === "hour" ? settled : view })}
             >
-              {v.tradeRemainCount != null
-                ? `거래 ${v.tradeRemainCount}회`
-                : v.bundleCount != null
-                  ? `${v.bundleCount}개`
-                  : // Only in stored history (api #920, 30일+): no trade terms today, so not "1개".
-                    "지난 기록"}
+              {termsLabel(v)}
             </button>
           ))}
+          {/* The kept pick, last: still the choice (pressed), and nothing to press here — this range has no record
+              of it (aria-disabled: still focusable and announced, codex #1675 P3). */}
+          {missingPick && (
+            <button type="button" aria-pressed="true" aria-disabled="true">
+              {terms!.label}
+            </button>
+          )}
         </div>
       )}
       {range === "hour" ? (
@@ -554,7 +575,9 @@ function Detail({
         </div>
       ) : (
         <>
-          {history.isPending && <div className={styles.dailyPending} aria-hidden="true" />}
+          {/* The 14-row table's own skeleton: exactly the table's height (codex #1671 P3: a fixed 502px block
+              was 0.4px off the 502.4px table). */}
+          {history.isPending && <PendingTable rows={14} />}
           {dailyTable}
         </>
       )}
@@ -662,14 +685,19 @@ function MarketContent({
   const searchParams = useSearchParams();
   const address = searchParams.toString();
   const fromAddress = () => {
-    const params = Object.fromEntries(searchParams);
-    return {
-      query: readBoardQuery(params),
-      item: typeof params.item === "string" ? parseItemId(params.item) : null,
-    };
+    const params = addressParams(searchParams);
+    const item = typeof params.item === "string" ? parseItemId(params.item) : null;
+    const range = parseRange(params.range);
+    return { query: readBoardQuery(params), item, chart: range === 30 ? null : { item, range } };
   };
   const [query, setQuery] = useState(() => (address ? fromAddress().query : initial));
   const [selected, setSelected] = useState<number | null>(() => (address ? fromAddress().item : initialItem));
+  // The chart range picked for an item (null item: the item shown, for an address without one). In the address
+  // too, so Back from another page — which mounts the board anew — keeps it (codex #1669 P3). Another item opens
+  // on 30일, as it always did.
+  const [chart, setChart] = useState<{ item: number | null; range: ChartRange } | null>(() =>
+    address ? fromAddress().chart : null,
+  );
   // The board's own writes still on their way: Next updates useSearchParams later, inside a transition
   // (codex #1669 P1: marking the new address as known at once made the next render re-read the OLD one and
   // flash the previous board). An arriving address equal to the newest of them is the board's own (already
@@ -700,6 +728,7 @@ function MarketContent({
       const next = fromAddress();
       setQuery(next.query);
       setSelected(next.item);
+      setChart(next.chart);
       setSearchKey((key) => key + 1);
     }
   }
@@ -763,6 +792,8 @@ function MarketContent({
           changeWeek: null,
         } as BoardItem)
       : items[0]);
+  const chartRange: ChartRange =
+    active && chart && (chart.item == null || chart.item === active.itemId) ? chart.range : 30;
   const pages = data ? Math.min(10, Math.ceil(data.totalItems / data.pageSize)) : 1;
   const failure = failureOf(board.error) ?? failureOf(tabs.error);
 
@@ -777,16 +808,23 @@ function MarketContent({
     const merged = { ...query, ...next };
     setQuery(merged);
     setSelected(item);
+    setChart(null);
     const params = new URLSearchParams(boardQueryString(merged));
     if (item != null) params.set("item", String(item));
     follow(params);
   }
-  function choose(item: BoardItem) {
-    setSelected(item.itemId);
+  // The item's chart range, written next to the item (a range always names its item in the address).
+  function show(itemId: number, range: ChartRange) {
+    setSelected(itemId);
+    setChart(range === 30 ? null : { item: itemId, range });
     const params = new URLSearchParams(boardQueryString(query));
-    params.set("item", String(item.itemId));
+    params.set("item", String(itemId));
+    const value = rangeParam(range);
+    if (value) params.set("range", value);
     follow(params);
   }
+  // Another item opens on 30일; the open one keeps its range.
+  const choose = (item: BoardItem) => show(item.itemId, item.itemId === active?.itemId ? chartRange : 30);
 
   return (
     <div className={quote.page}>
@@ -850,6 +888,8 @@ function MarketContent({
                   tier={favorite ? favorite.tier : tier}
                   tab={favorite ? favorite.tab : query.tab}
                   outside={!!favorite}
+                  picked={chartRange}
+                  onRange={(range) => show(active.itemId, range)}
                 />
               ) : !data && !failure ? (
                 // Board still loading: hold the detail panel height (it sits above

@@ -140,6 +140,20 @@ export function parseItemId(value: string): number | null {
   return id > 0 ? id : null;
 }
 
+/**
+ * The address's parameters as the server page reads them (codex #1669 P3): a repeated name is a list, which
+ * readBoardQuery ignores like the server does (`?tab=FOOD&tab=LIFE` is the first tab on both sides, so the
+ * client never shows a board the server did not prefetch).
+ */
+export function addressParams(params: URLSearchParams): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  for (const key of new Set(params.keys())) {
+    const values = params.getAll(key);
+    out[key] = values.length === 1 ? values[0] : values;
+  }
+  return out;
+}
+
 /** Board query from the page URL, falling back to the first tab and defaults. */
 export function readBoardQuery(params: {
   tab?: string | string[];
@@ -204,6 +218,15 @@ export const OLD_RANGES = ["hour", 7, 14] as const satisfies readonly ChartRange
 export type HistoryRange = "30d" | "90d" | "365d";
 /** The history answer a day range reads: 7 and 30 (and the old 14) come from one 30-day answer. */
 export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "90d" : range === 365 ? "365d" : "30d");
+/**
+ * The chart range in the address (codex #1669 P3: a remount — Back from another page — reset it to 30일):
+ * `range=1h|7d|14d|90d|365d`, none for the opening 30일. Anything else reads as 30일.
+ */
+const RANGE_PARAMS: Record<string, ChartRange> = { "1h": "hour", "7d": 7, "14d": 14, "90d": 90, "365d": 365 };
+export const parseRange = (value: string | string[] | undefined): ChartRange =>
+  typeof value === "string" && Object.hasOwn(RANGE_PARAMS, value) ? RANGE_PARAMS[value] : 30;
+export const rangeParam = (range: ChartRange): string | null =>
+  range === 30 ? null : range === "hour" ? "1h" : `${range}d`;
 /** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
 export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
 
@@ -241,6 +264,14 @@ export const traded = (day: { tradeCount: number }) => day.tradeCount > 0;
 /** One trade terms' identity across range answers (each range answers its own list, in its own order). */
 export const termsKey = (terms: { tradeRemainCount?: number | null; bundleCount?: number | null }) =>
   `${terms.tradeRemainCount ?? "-"}:${terms.bundleCount ?? "-"}`;
+
+/** A trade terms button's text. Terms only in stored history (api #920, 30일+) have no terms today: not "1개". */
+export const termsLabel = (terms: { tradeRemainCount?: number | null; bundleCount?: number | null }) =>
+  terms.tradeRemainCount != null
+    ? `거래 ${terms.tradeRemainCount}회`
+    : terms.bundleCount != null
+      ? `${terms.bundleCount}개`
+      : "지난 기록";
 
 /**
  * The terms a chart opens on (codex #1671): the clicked row's own terms when they trade, else the terms

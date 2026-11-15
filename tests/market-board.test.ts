@@ -10,6 +10,10 @@ import {
   defaultVariant,
   openingVariant,
   termsKey,
+  termsLabel,
+  addressParams,
+  parseRange,
+  rangeParam,
   traded,
   windowStart,
   goldText,
@@ -233,4 +237,25 @@ test("openingVariant opens the clicked row's terms when they trade, else the mos
   assert.equal(openingVariant([noTrades, tradedTerms] as never, { tradeRemainCount: 5, bundleCount: 1 }), 1, "no such terms");
   assert.equal(termsKey({ tradeRemainCount: null, bundleCount: 100 }), "-:100");
   assert.equal(termsKey(noTrades), termsKey(row));
+});
+
+test("the address is read like the server reads it: a repeated name is a list, ignored (codex #1669 P3)", () => {
+  const params = addressParams(new URLSearchParams("tab=FOOD&tab=LIFE&item=7&q=%EA%B0%81"));
+  assert.deepEqual(params, { tab: ["FOOD", "LIFE"], item: "7", q: "각" });
+  // The server page gets the same record from Next: both sides fall back to the first tab.
+  assert.equal(readBoardQuery(params).tab, "REFINING");
+  assert.equal(readBoardQuery(addressParams(new URLSearchParams("tab=FOOD"))).tab, "FOOD");
+});
+
+test("chart range in the address: none for 30일, 1h · 7d · 14d · 90d · 365d, anything else 30일", () => {
+  for (const range of ["hour", 7, 14, 30, 90, 365] as const) assert.equal(parseRange(rangeParam(range) ?? undefined), range);
+  assert.equal(rangeParam(30), null);
+  assert.equal(rangeParam(90), "90d");
+  for (const odd of ["30d", "90", "2y", "", undefined, ["90d", "7d"]]) assert.equal(parseRange(odd), 30);
+});
+
+test("trade terms labels: trades left, else bundle, else stored history only", () => {
+  assert.equal(termsLabel({ tradeRemainCount: 0, bundleCount: 1 }), "거래 0회");
+  assert.equal(termsLabel({ tradeRemainCount: null, bundleCount: 10 }), "10개");
+  assert.equal(termsLabel({}), "지난 기록");
 });
