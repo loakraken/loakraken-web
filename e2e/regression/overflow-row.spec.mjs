@@ -239,9 +239,11 @@ test("600 마우스: 비교 카드 값을 끌면 글자가 골라지고 줄은 �
   await expect(page.getByText("4명을 비교하고 있어요")).toBeVisible();
   const strip = page.locator("[data-overflow-row]").filter({ has: page.getByRole("region", { name: "캐릭터 비교 카드" }) });
   await expect(next(strip)).toBeVisible();
-  const value = strip.getByText("1,717.5").first();
-  await value.scrollIntoViewIfNeeded();
+  // A value in the first card: the strip stays at its start, so › is there for the last step.
+  const value = strip.locator("article").first().locator("dd").first();
+  await expect(value).toBeVisible();
   const before = await scroll(strip);
+  expect(before.left).toBe(0);
   const box = await value.boundingBox();
   await page.mouse.move(box.x + 1, box.y + box.height / 2);
   await page.mouse.down();
