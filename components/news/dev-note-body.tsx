@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { parseMarkdown, type Block, type Inline } from "@/lib/dev-notes/model";
 import { EmailLink } from "@/components/ui/email-link";
+import { FpEnd } from "@/components/ui/fp-end";
 import styles from "./dev-notes.module.css";
 
 function Inlines({ parts }: { parts: Inline[] }) {
@@ -81,9 +82,10 @@ function BlockView({ block }: { block: Block }) {
       );
     }
     case "table":
-      // Wide tables scroll inside their own box on a phone, never the page.
+      // Wide tables scroll inside their own box on a phone, never the page. Drawn once whole (data-fp-whole, A7
+      // rest sweep): the table re-measured its columns as each later row arrived, so the rows already drawn moved.
       return (
-        <div className={styles.tableWrap} role="region" aria-label="가로로 넘겨 보는 표" tabIndex={0}>
+        <div className={styles.tableWrap} role="region" aria-label="가로로 넘겨 보는 표" tabIndex={0} data-fp-whole="">
           <table>
             <thead>
               <tr>
@@ -106,6 +108,7 @@ function BlockView({ block }: { block: Block }) {
               ))}
             </tbody>
           </table>
+          <FpEnd />
         </div>
       );
   }
