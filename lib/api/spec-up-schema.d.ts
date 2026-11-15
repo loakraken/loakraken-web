@@ -482,7 +482,7 @@ export interface components {
             stopReasonCode: string;
             stopReason: string | null;
             totalCost: number | null;
-            /** @example spec-up-path-v4 */
+            /** @example spec-up-path-v5 */
             ruleVersion: string;
             /** @description 전투력을 낸 시뮬레이터 규칙 */
             simulatorRuleVersion: string;

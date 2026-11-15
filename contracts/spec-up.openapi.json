@@ -1887,7 +1887,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "마지막 단계까지 적용한 전투력(단계가 없으면 지금 전투력)"
+                "description": "마지막 단계까지 적용한 전투력(단계가 없으면 지금 전투력). 지금 전투력이 없거나 서포터 추천 순서 sort=KRAKEN이면 null"
               },
               {
                 "type": "null"
@@ -1934,7 +1934,7 @@
           },
           "ruleVersion": {
             "type": "string",
-            "example": "spec-up-path-v4"
+            "example": "spec-up-path-v5"
           },
           "simulatorRuleVersion": {
             "type": "string",
