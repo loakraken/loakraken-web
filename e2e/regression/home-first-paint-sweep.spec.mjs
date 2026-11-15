@@ -24,21 +24,25 @@ for (const theme of ["light", "dark"])
     });
 
 // #1618: at 360 and narrower the schedule head's tools (toggle + legend) are on their own line under the heading from
-// the first paint. With a phone's own font (the site font is display: optional, here its file is blocked) the head
+// the first paint. With a phone's own font (the site font is display: optional; here its files are held back) the head
 // needed ~275 of 268px at 320, so everything wrapped and the head grew when the legend came late. Each part on one
 // line, the tools below the heading, the legend text kept, and nothing in the card moves wherever the HTML is cut.
 for (const width of [320, 360])
   test(`@A7 홈 ${width} 기기 글꼴: 일정 카드 머리의 토글·범례가 제목 아래 한 줄, 첫 HTML이 끊겨도 움직이지 않는다 @regression`, async ({ page }) => {
     test.slow();
-    await page.route(/\.woff2(\?|$)/, (route) => route.abort());
+    // The font files are held, never answered (an aborted request is a console error): display: optional then
+    // keeps the system face for the whole visit, as a phone without the file paints.
+    await page.route(/\.woff2(\?|$)/, () => {});
     await page.setViewportSize({ width, height: 1000 });
-    await gotoReady(page, "/");
+    // Not gotoReady: its network wait would sit on the held fonts.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     const card = page.locator("section#schedule");
     const heading = card.getByRole("heading", { name: "주간 일정표" });
     const toggle = card.getByRole("button", { name: "지난 회차 숨김" });
     const legend = card.locator('[data-fp-label="골드 섬"]');
     await expect(heading).toBeVisible();
     await expect(legend).toBeVisible();
+    await expect(card.getByRole("group", { name: "요일 선택" })).toBeVisible();
     // The font really is the fallback (the test means nothing on the site font).
     expect(await page.evaluate(() => [...document.fonts].some((font) => font.status === "loaded" && /kraken/i.test(font.family)))).toBe(false);
     const box = async (locator) => (await locator.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
