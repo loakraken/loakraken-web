@@ -205,5 +205,8 @@ test("연마 rows with a combat-power gain carry one fixed basis line; without o
   // The api flag off: no ΔCP on 연마 rows, so the line stays hidden.
   assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: null }), null);
   assert.equal(polishBasis({ kind: "GEM_LEVEL", deltaCombatPower: 30 }), null);
-  assert.match(POLISH_BASIS, /연마 효과 두 줄 기준/);
+  // 계산 검증's wording (11-15 14:05): flat-value lines dropped; in the already-both-상 case the flat line is replaced.
+  assert.match(POLISH_BASIS, /^점수에 쓰는 연마 효과 두 줄을 이 후보의 등급으로 바꾼 장신구로 셈해요\./);
+  assert.match(POLISH_BASIS, /고정값 공격력·무기 공격력 줄은 빼고/);
+  assert.match(POLISH_BASIS, /고정값 줄을 이 후보의 고정값 줄로 바꿔/);
 });
