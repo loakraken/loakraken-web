@@ -45,7 +45,9 @@ import {
   isRefineOpen,
   polishValue,
   polishOptionText,
+  polishSwapOf,
   polishSwapValue,
+  wornPolish,
   POLISH_NONE,
   refineEdit,
   type Grade,
@@ -142,6 +144,7 @@ function currentOf(data: Character) {
       index,
       line,
       item: item.name ?? item.type ?? "",
+      part: item.type ?? null,
       option: effect.name,
       value: effect.value,
       grade: isGrade(effect.grade) ? effect.grade : null,
@@ -450,13 +453,24 @@ function Editors({
             const key = `${line.index}:${line.line}`;
             // A spec-up 연마 step (api #951) puts another accessory in: the line names its new option, the one worn
             // now under it, and a line with no scoring option has no grade to pick (never the raw "NONE").
-            const swap = edits.polishOption[key];
-            if (swap != null && isOpen("POLISH"))
+            const swap = polishSwapOf(edits, line);
+            if (swap != null)
               return (
                 <li key={key}>
                   <span className={styles.rowName}>
                     {polishOptionText(swap)}
-                    <small className={styles.rowSub}>{`${line.item} · 지금 ${line.option} ${line.value}`}</small>
+                    <small className={styles.rowSub}>
+                      {`${line.item} · 지금 ${line.option} ${line.value} `}
+                      {/* Back to the worn line, this line only (review P3 #1700); 이전 undoes it. */}
+                      <button
+                        type="button"
+                        className={styles.link}
+                        aria-label={`${line.item} 연마 ${line.line + 1} 지금 줄로 되돌리기`}
+                        onClick={() => setEdits((prev) => wornPolish(prev, key))}
+                      >
+                        되돌리기
+                      </button>
+                    </small>
                   </span>
                   {swap === POLISH_NONE ? (
                     <span className={styles.locked}>등급 없음</span>
@@ -468,7 +482,7 @@ function Editors({
                       original=""
                       values={options.polishGrades.map((grade) => ({
                         value: grade,
-                        label: gradeWithValue(grade, polishSwapValue(options.polishValues, swap, grade)),
+                        label: gradeWithValue(grade, polishSwapValue(options.polishValues, swap, grade, line.part)),
                       }))}
                       onChange={(grade) =>
                         setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))

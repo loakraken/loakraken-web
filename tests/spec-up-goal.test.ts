@@ -196,10 +196,18 @@ test("a 연마 step (api #951) opens whole, NONE lines too, and the last step pe
     path.changes.map((c) => [c.kind, c.index ?? c.slot, c.line ?? null, c.option ?? null, c.grade ?? null]),
     [
       ["GEM_LEVEL", 0, null, null, null],
-      ["POLISH", 9, 1, "치명타 피해 %", "HIGH"],
+      // In the earlier step's place: path order kept (review P3 #1700).
       ["POLISH", 7, 0, "추가 피해 %", "HIGH"],
       ["POLISH", 7, 1, "적에게 주는 피해 %", "HIGH"],
+      ["POLISH", 9, 1, "치명타 피해 %", "HIGH"],
     ],
+  );
+  // The api's fixed later step (api #951 P0 fix) also carries a reset line for each line the earlier step
+  // touched: it goes in as given, and replay by slot or by plain order gives the same edits.
+  const reset = polish("POLISH:7:HH2", [...later.changes!, line(7, 2, "공격력", "MID")] as never);
+  assert.deepEqual(
+    simulatorPath([first, reset]).changes.map((c) => [c.line, c.option]),
+    [[0, "추가 피해 %"], [1, "적에게 주는 피해 %"], [2, "공격력"]],
   );
   // Without the later step the NONE line goes in as it is, and the whole path survives ?try=.
   const opened = simulatorPath([first]).changes;

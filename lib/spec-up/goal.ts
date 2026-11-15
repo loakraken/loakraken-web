@@ -94,9 +94,12 @@ export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes
     // A 연마 step buys another accessory for its slot (api #951): it replaces an earlier step's one there whole,
     // not line by line (a line the later one keeps as worn must not keep the earlier one's option). The api
     // replays the path the same way, the last step per slot.
+    // In the earlier one's place, so the list keeps path order (review P3 #1700; the total is the same).
     const bought = new Set(all.flatMap((change) => (change.kind === "POLISH" ? [change.index] : [])));
-    if (bought.size) changes = changes.filter((change) => change.kind !== "POLISH" || !bought.has(change.index));
-    changes.push(...all);
+    const replaced = (change: SpecUpChange) => change.kind === "POLISH" && bought.has(change.index);
+    const at = changes.findIndex(replaced);
+    if (at < 0) changes.push(...all);
+    else changes = [...changes.slice(0, at).filter((c) => !replaced(c)), ...all, ...changes.slice(at).filter((c) => !replaced(c))];
   }
   // In path order: the simulator applies them one after another, so a later
   // value for the same slot (보석 9 → 10, the same engraving again) wins.

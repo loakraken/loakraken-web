@@ -33,4 +33,12 @@ for (const width of [320, 1280])
     await expect(page.getByRole("region", { name: "바꾼 것" })).toContainText("점수 옵션 없는 줄");
     await expect(page.locator("main")).not.toContainText("NONE");
     await expectNoHorizontalOverflow(page);
+    // 되돌리기 (review P3 #1700): that line alone goes back to the worn one, and the next request drops it.
+    const again = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
+    await card.getByRole("button", { name: "테스트 목걸이 연마 2 지금 줄로 되돌리기" }).click();
+    const left = (await again).postDataJSON().changes.filter((c) => c.kind === "POLISH");
+    expect(left.map(({ line, option }) => ({ line, option }))).toEqual([{ line: 0, option: "적에게 주는 피해 %" }]);
+    await expect(card).not.toContainText("점수 옵션 없는 줄");
+    await expect(card).toContainText("테스트 목걸이 · +0.55%");
+    await expect(card.getByRole("combobox")).toHaveCount(2);
   });
