@@ -192,7 +192,8 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
       page.getByRole("region", { name: "순위큰수 캐릭터 요약" }).evaluate((region) => {
         const rank = region.querySelector("p[class*=bannerRank]");
         const column = rank.parentElement;
-        return [...column.children].map((el) => {
+        // Drawn boxes only (a <template> or a display:none part has none).
+        return [...column.children].filter((el) => el.getClientRects().length > 0).map((el) => {
           const r = el.getBoundingClientRect();
           return { el: el === rank ? "rank" : `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]}`, top: r.top, height: r.height, rank: el === rank };
         });
