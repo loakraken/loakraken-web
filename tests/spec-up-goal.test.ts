@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { parseTarget, simulatorPath, stepCost, stepKindLabel, targetError, type GoalStep } from "../lib/spec-up/goal";
-import { gearTypeOf, koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
+import { editsFor, gearTypeOf, koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
+import { NO_EDITS, toChanges, type Edits } from "../lib/combat-power/model";
 import { requestSpecUpGoal } from "../lib/spec-up/upstream";
 
 const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
@@ -169,6 +170,103 @@ test("a stone step (api #812) opens with both engravings; a step is never opened
   assert.equal(half.skipped, 1);
   // Today's api (no `changes`): the one `change` as before.
   assert.equal(simulatorPath([{ ...stone, changes: undefined }]).changes.length, 1);
+});
+
+test("a 연마 step (api #951) opens whole, NONE lines too, and the last step per accessory wins", () => {
+  const [gem] = sample.data.steps as GoalStep[];
+  const line = (index: number, n: number, option: string, grade: string | null) => ({
+    ...gem.change,
+    kind: "POLISH",
+    slot: null,
+    level: null,
+    index,
+    line: n,
+    option,
+    grade,
+  });
+  const polish = (id: string, changes: ReturnType<typeof line>[]) =>
+    ({ ...gem, kind: "POLISH", candidateId: id, change: changes[0], changes }) as GoalStep;
+  // The api's order: named options first, then the line with no scoring option (NONE, grade null).
+  const first = polish("POLISH:7:HM", [line(7, 0, "추가 피해 %", "HIGH"), line(7, 1, "적에게 주는 피해 %", "MID"), line(7, 2, "NONE", null)]);
+  const ring = polish("POLISH:9:HH", [line(9, 1, "치명타 피해 %", "HIGH")]);
+  // A later step on the same accessory: each line it names replaces that line in its place (path order kept),
+  // a line it does not name keeps the earlier step's (here the NONE line).
+  const later = polish("POLISH:7:HH", [line(7, 0, "추가 피해 %", "HIGH"), line(7, 1, "적에게 주는 피해 %", "HIGH")]);
+  const path = simulatorPath([gem, first, ring, later]);
+  assert.equal(path.skipped, 0);
+  assert.deepEqual(
+    path.changes.map((c) => [c.kind, c.index ?? c.slot, c.line ?? null, c.option ?? null, c.grade ?? null]),
+    [
+      ["GEM_LEVEL", 0, null, null, null],
+      ["POLISH", 7, 0, "추가 피해 %", "HIGH"],
+      ["POLISH", 7, 1, "적에게 주는 피해 %", "HIGH"],
+      ["POLISH", 7, 2, "NONE", null],
+      ["POLISH", 9, 1, "치명타 피해 %", "HIGH"],
+    ],
+  );
+  // Without the later step the NONE line goes in as it is, and the whole path survives ?try=.
+  const opened = simulatorPath([first]).changes;
+  assert.deepEqual(opened.map((c) => [c.line, c.option, c.grade]), [[0, "추가 피해 %", "HIGH"], [1, "적에게 주는 피해 %", "MID"], [2, "NONE", null]]);
+  assert.deepEqual(
+    readTryPath(tryPathParam(opened)).map((c) => [c.kind, c.index, c.line, c.option, c.grade ?? null]),
+    [["POLISH", 7, 0, "추가 피해 %", "HIGH"], ["POLISH", 7, 1, "적에게 주는 피해 %", "MID"], ["POLISH", 7, 2, "NONE", null]],
+  );
+  // One line the simulator cannot take (no grade on a named option): the whole step stays out.
+  assert.deepEqual(simulatorPath([polish("POLISH:7:X", [line(7, 0, "추가 피해 %", null), line(7, 2, "NONE", null)])]), { changes: [], skipped: 1 });
+});
+
+test("연마 chain MM → LH → MH on one accessory (api #951): per line, later wins, in either changes form", () => {
+  const [gem] = sample.data.steps as GoalStep[];
+  const line = (n: number, option: string, grade: string | null) => ({
+    ...gem.change,
+    kind: "POLISH",
+    slot: null,
+    level: null,
+    index: 7,
+    line: n,
+    option,
+    grade,
+  });
+  const step = (id: string, changes: ReturnType<typeof line>[]) =>
+    ({ ...gem, kind: "POLISH", candidateId: id, change: changes[0], changes }) as GoalStep;
+  // The 귀걸이 worn: 적에게 주는 피해 하, 추가 피해 중, flat 공격력 중 (the line each step drops: NONE).
+  const worn = {
+    gems: [],
+    gear: [],
+    polish: [
+      { index: 7, line: 0, option: "적에게 주는 피해", grade: "LOW" as const, value: "+0.55%" },
+      { index: 7, line: 1, option: "추가 피해", grade: "MID" as const, value: "+1.60%" },
+      { index: 7, line: 2, option: "공격력", grade: "MID" as const, value: "+195" },
+    ],
+  };
+  // What /simulate gets from the opened path: the changes fold into one state per line, then toChanges.
+  const sent = (steps: GoalStep[]) =>
+    toChanges(
+      simulatorPath(steps).changes.reduce<Edits>((edits, change) => editsFor(change, edits) ?? edits, NO_EDITS),
+      worn,
+    );
+  const mm = step("POLISH:7:MM", [line(0, "추가 피해 %", "MID"), line(1, "적에게 주는 피해 %", "MID"), line(2, "NONE", null)]);
+  // SUPERSET (the form #951 sends, PM 총괄 11-15): every line that differs from the worn accessory.
+  const lh = step("POLISH:7:LH", [line(0, "추가 피해 %", "LOW"), line(1, "적에게 주는 피해 %", "HIGH"), line(2, "NONE", null)]);
+  const mh = step("POLISH:7:MH", [line(0, "추가 피해 %", "MID"), line(1, "적에게 주는 피해 %", "HIGH"), line(2, "NONE", null)]);
+  const final = [
+    { kind: "POLISH", index: 7, line: 0, option: "추가 피해 %", grade: "MID" },
+    { kind: "POLISH", index: 7, line: 1, option: "적에게 주는 피해 %", grade: "HIGH" },
+    { kind: "POLISH", index: 7, line: 2, option: "NONE" },
+  ];
+  assert.deepEqual(sent([mm, lh, mh]), final);
+  // Diff form (only what changes from the step before): MH names line 0 alone, and lines 1 and 2 keep LH's
+  // (review P1 #1700: replacing the whole accessory lost them).
+  const mhDiff = step("POLISH:7:MH-diff", [line(0, "추가 피해 %", "MID")]);
+  assert.deepEqual(sent([mm, lh, mhDiff]), final);
+  // A step that keeps the worn flat line sends a reset line back to it: that line goes out as worn (nothing).
+  const keep = step("POLISH:7:HH", [line(0, "추가 피해 %", "HIGH"), line(1, "적에게 주는 피해 %", "HIGH"), line(2, "공격력", "MID")]);
+  assert.deepEqual(sent([mm, lh, keep]), [
+    { kind: "POLISH", index: 7, line: 0, option: "추가 피해 %", grade: "HIGH" },
+    { kind: "POLISH", index: 7, line: 1, option: "적에게 주는 피해 %", grade: "HIGH" },
+  ]);
+  // And a later step can drop that line again (NONE after the reset).
+  assert.deepEqual(sent([mm, keep, mh]), final);
 });
 
 test("목표 경로 v2 응답(api #592): 보석 단계 비용은 지금부터 그 레벨까지, GEM_STEP 없음, 합계는 단계를 더한 값이 아님", () => {

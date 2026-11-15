@@ -79,8 +79,14 @@ export type Edits = {
   quality: Record<number, number>;
   /** Advanced refining step per equipment index (search advancedRefineLevel, web #374). */
   advanced: Record<number, number>;
-  /** Polish grade per `${index}:${line}` (the option itself stays). */
+  /** Polish grade per `${index}:${line}` (the option stays, unless polishOption names another). */
   polish: Record<string, Grade>;
+  /**
+   * Another option for a polish line, per `${index}:${line}`, as the request's option ("추가 피해 %", a % option
+   * ending in " %"), or POLISH_NONE for a line with no scoring option. Only a spec-up 연마 step sets it: the
+   * step buys another accessory, so its lines change option, not only grade (api #951).
+   */
+  polishOption: Record<string, string>;
   /** Bracelet grade per line. */
   bracelet: Record<number, Grade>;
   /** Bracelet option family per line (options.braceletOptions name, "없음" removes it; backend #332). */
@@ -99,6 +105,7 @@ export const NO_EDITS: Edits = {
   quality: {},
   advanced: {},
   polish: {},
+  polishOption: {},
   bracelet: {},
   braceletName: {},
   engraving: {},
@@ -108,6 +115,38 @@ export const NO_EDITS: Edits = {
   armGuard: {},
 };
 
+/** The POLISH option of a line with no scoring option (0 combat power, no grade; api #951). */
+export const POLISH_NONE = "NONE";
+/** How such a line reads on screen, the api's own words for it: never the raw code. */
+export const POLISH_NONE_TEXT = "점수 옵션 없는 줄";
+
+/**
+ * A polish option as the screen names it: the request's " %" mark dropped ("추가 피해 %" → "추가 피해"),
+ * and POLISH_NONE in words.
+ */
+export const polishOptionText = (option: string) =>
+  option === POLISH_NONE ? POLISH_NONE_TEXT : option.replace(/\s*%$/, "");
+
+/**
+ * The table value of a polish option the line changes to (a 연마 step's new accessory, api #951), e.g.
+ * "추가 피해 %" HIGH → "+2.60%". The request option says % or flat by its " %"; null when not in the table.
+ */
+export function polishSwapValue(
+  values: PolishValues | undefined,
+  option: string,
+  grade: string,
+  part?: string | null,
+): string | null {
+  const percent = /\s%$/.test(option);
+  const name = option.replace(/\s*%$/, "");
+  // The row for this accessory's part when it is known (목걸이·귀걸이·반지 each list their own options).
+  const row = values?.options.find(
+    (item) => item.option === name && item.percent === percent && (!part || item.parts.includes(part)),
+  );
+  if (!row) return null;
+  return (grade === "LOW" ? row.low : grade === "MID" ? row.mid : grade === "HIGH" ? row.high : null) ?? null;
+}
+
 export const GRADES = ["LOW", "MID", "HIGH"] as const;
 export type Grade = (typeof GRADES)[number];
 /** Official tooltip colours map to 하·중·상 (backend PolishEffectResponse). */
@@ -116,7 +155,8 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 export type Current = {
   gems: { slot: number; level: number }[];
   gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
-  polish?: { index: number; line: number; option: string; grade: Grade | null }[];
+  /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
+  polish?: { index: number; line: number; option: string; grade: Grade | null; value?: string; part?: string | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
@@ -183,6 +223,28 @@ export function refineEdit(
 }
 
 /**
+ * The other option a polish line is set to (a spec-up 연마 step, api #951), or null when it keeps the worn
+ * one. Not while POLISH is locked (the card cannot show or undo it). A line set back to its worn option (a
+ * later step's reset line on the same accessory, api #951) is the worn line: its grade, if another, is an
+ * ordinary grade edit. Without the worn value the % mark cannot be told, so the option stays as given.
+ */
+export function polishSwapOf(
+  edits: Edits,
+  line: { index: number; line: number; option: string; value?: string },
+): string | null {
+  const option = edits.polishOption[`${line.index}:${line.line}`];
+  if (option == null || !isOpen("POLISH")) return null;
+  if (line.value != null && option === (line.value.includes("%") ? `${line.option} %` : line.option)) return null;
+  return option;
+}
+
+/** A polish line back to the one worn: its other option and grade go (one 이전 step). */
+export function wornPolish(edits: Edits, key: string): Edits {
+  const drop = <T,>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([at]) => at !== key));
+  return { ...edits, polish: drop(edits.polish) as Edits["polish"], polishOption: drop(edits.polishOption) };
+}
+
+/**
  * Only real differences become changes, in a fixed order (gems, gear, then the
  * rest in screen order), so
  * the same edits always send the same body and hit the same cache entry.
@@ -208,9 +270,17 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (advanced != null && item.advanced != null && advanced !== item.advanced)
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
-  for (const line of current.polish ?? []) {
-    const grade = edits.polish[`${line.index}:${line.line}`];
-    if (grade && grade !== line.grade)
+  // Nothing for polish while the card is locked: it cannot show or undo an edit (review P3 #1700).
+  for (const line of isOpen("POLISH") ? (current.polish ?? []) : []) {
+    const key = `${line.index}:${line.line}`;
+    const grade = edits.polish[key];
+    const option = polishSwapOf(edits, line);
+    // A line with no scoring option has no grade (api #951).
+    if (option === POLISH_NONE) changes.push({ kind: "POLISH", index: line.index, line: line.line, option });
+    else if (option != null) {
+      const to = grade ?? line.grade;
+      if (to) changes.push({ kind: "POLISH", index: line.index, line: line.line, option, grade: to });
+    } else if (grade && grade !== line.grade)
       changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
   }
   for (const line of current.bracelet ?? []) {

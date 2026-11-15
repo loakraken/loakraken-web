@@ -97,6 +97,21 @@ test("적용해 보기 turns a change into simulator inputs, through the URL", (
   assert.deepEqual(editsFor(readTry(tryParam(guard)), NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
   // An unknown grade from a hand-written address is not read.
   assert.equal(readTry(JSON.stringify({ ...guard, grade: "<b>" }))?.grade, undefined);
+  // 연마 path step lines (api #951): option and grade, or NONE without a grade, through the address.
+  const polish = { ...gem, kind: "POLISH", slot: null, level: null, index: 3, line: 0, option: "추가 피해 %", grade: "HIGH" };
+  const swapped = editsFor(readTry(tryParam(polish)), NO_EDITS);
+  assert.deepEqual([swapped?.polish, swapped?.polishOption], [{ "3:0": "HIGH" }, { "3:0": "추가 피해 %" }]);
+  const none = { ...polish, line: 2, option: "NONE", grade: null };
+  const dropped = editsFor(readTry(tryParam(none)), { ...NO_EDITS, polish: { "3:2": "MID" } });
+  assert.deepEqual([dropped?.polish, dropped?.polishOption], [{}, { "3:2": "NONE" }], "a NONE line keeps no grade");
+  // A change that cannot be sent as it is opens nothing: no grade on a named option, no line, a list row's
+  // line text (grade null), or a grade the request does not know.
+  assert.equal(editsFor({ ...polish, grade: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, line: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, option: "추가 피해 +2.60%", grade: null }, NO_EDITS), null);
+  assert.equal(editsFor({ ...polish, grade: "유물" }, NO_EDITS), null);
+  assert.equal(readTry(JSON.stringify({ ...polish, grade: "<b>" }))?.grade, undefined);
+  assert.equal(readTry(JSON.stringify({ ...polish, option: "x".repeat(33) }))?.option, null);
   assert.equal(editsFor(null, NO_EDITS), null);
   assert.equal(readTry("{"), null);
   assert.equal(readTry(JSON.stringify({ slot: 1 })), null);

@@ -7,6 +7,11 @@ import {
   braceletName,
   gradeWithValue,
   polishValue,
+  polishOptionText,
+  polishSwapOf,
+  polishSwapValue,
+  wornPolish,
+  POLISH_NONE,
   isOpen,
   isRefineOpen,
   gemLevel,
@@ -134,6 +139,73 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
   );
   assert.equal(braceletName("치명타 피해 +8.40%"), "치명타 피해");
   assert.equal(braceletName("특화 +100"), "특화");
+});
+
+test("a 연마 step's other option (api #951) goes out with its grade; a NONE line goes out with none", () => {
+  const worn = {
+    ...current,
+    polish: [
+      { index: 3, line: 0, option: "적에게 주는 피해", grade: "LOW" as const },
+      { index: 3, line: 1, option: "추가 피해", grade: "HIGH" as const },
+      { index: 3, line: 2, option: "공격력", grade: "MID" as const },
+    ],
+  };
+  const edits = {
+    ...NO_EDITS,
+    polish: { "3:0": "HIGH" as const, "3:1": "HIGH" as const },
+    polishOption: { "3:0": "추가 피해 %", "3:1": "적에게 주는 피해 %", "3:2": POLISH_NONE },
+  };
+  // Every line of the new accessory is sent, even one whose grade is the worn one's (another option is a change).
+  assert.deepEqual(toChanges(edits, worn), [
+    { kind: "POLISH", index: 3, line: 0, option: "추가 피해 %", grade: "HIGH" },
+    { kind: "POLISH", index: 3, line: 1, option: "적에게 주는 피해 %", grade: "HIGH" },
+    { kind: "POLISH", index: 3, line: 2, option: "NONE" },
+  ]);
+  // The proxy lets a NONE line (no grade) through.
+  assert.deepEqual(parseSimulateRequest({ characterName: "모험가", changes: toChanges(edits, worn) })?.changes[2], {
+    kind: "POLISH",
+    index: 3,
+    line: 2,
+    option: "NONE",
+  });
+  // Never the raw code on screen, and the request's " %" mark is not shown.
+  assert.equal(polishOptionText(POLISH_NONE), "점수 옵션 없는 줄");
+  assert.equal(polishOptionText("추가 피해 %"), "추가 피해");
+  assert.equal(polishOptionText("공격력"), "공격력");
+  // The new option's value comes from the table by its own name and % mark.
+  const values = read("combat-power-options.json").data.polishValues;
+  assert.equal(polishSwapValue(values, "추가 피해 %", "HIGH"), "+2.60%");
+  assert.equal(polishSwapValue(values, "추가 피해", "HIGH"), null, "no flat 추가 피해 row");
+  assert.equal(polishSwapValue(values, "모르는 옵션 %", "HIGH"), null);
+  // The accessory's part when known (review P3 #1700): 추가 피해 is a 목걸이 option.
+  assert.equal(polishSwapValue(values, "추가 피해 %", "HIGH", "목걸이"), "+2.60%");
+  assert.equal(polishSwapValue(values, "추가 피해 %", "HIGH", "반지"), null);
+});
+
+test("a line set back to its worn option (api #951 reset line) is the worn line; 되돌리기 drops one line", () => {
+  const worn = {
+    ...current,
+    polish: [
+      { index: 3, line: 0, option: "추가 피해", grade: "MID" as const, value: "+1.60%" },
+      { index: 3, line: 1, option: "공격력", grade: "LOW" as const, value: "+80" },
+    ],
+  };
+  // The worn option at the worn grade: no change, and no swapped row.
+  const same = { ...NO_EDITS, polish: { "3:0": "MID" as const, "3:1": "LOW" as const }, polishOption: { "3:0": "추가 피해 %", "3:1": "공격력" } };
+  assert.equal(polishSwapOf(same, worn.polish[0]), null);
+  assert.equal(polishSwapOf(same, worn.polish[1]), null);
+  assert.deepEqual(toChanges(same, worn), []);
+  // The worn option at another grade: an ordinary grade edit of the worn line.
+  assert.deepEqual(toChanges({ ...same, polish: { ...same.polish, "3:0": "HIGH" } }, worn), [
+    { kind: "POLISH", index: 3, line: 0, option: "추가 피해", grade: "HIGH" },
+  ]);
+  // A % option where the worn line is flat (or the other way) is another option.
+  assert.equal(polishSwapOf({ ...NO_EDITS, polishOption: { "3:1": "공격력 %" } }, worn.polish[1]), "공격력 %");
+  // 되돌리기: that line's option and grade go, the others stay.
+  const swapped = { ...NO_EDITS, polish: { "3:0": "HIGH" as const }, polishOption: { "3:0": "적에게 주는 피해 %", "3:1": POLISH_NONE } };
+  const back = wornPolish(swapped, "3:0");
+  assert.deepEqual([back.polish, back.polishOption], [{}, { "3:1": POLISH_NONE }]);
+  assert.deepEqual(toChanges(back, worn), [{ kind: "POLISH", index: 3, line: 1, option: "NONE" }]);
 });
 
 test("advanced refining becomes EQUIPMENT_ADVANCED_REFINE (search advancedRefineLevel, web #374)", () => {
