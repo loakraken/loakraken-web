@@ -28,6 +28,7 @@ import {
   windowStart,
   goldText,
   historyKey,
+  chartRange,
   historyRange,
   OLD_RANGES,
   RANGE_LABEL,
@@ -277,8 +278,8 @@ function Detail({
   });
   const stored = base.data ? base.data.data.range != null : true;
   const ranges: readonly ChartRange[] = stored ? STORED_RANGES : OLD_RANGES;
-  // A range the api cannot answer (an older api) falls back to its 14 days.
-  const range: ChartRange = ranges.includes(picked) ? picked : 14;
+  // A range this api's buttons do not have reads as their opening one (30일, or an older api's 14일).
+  const range = chartRange(picked, stored);
   const answer = range === "hour" ? "30d" : historyRange(range);
   const longer = useQuery({
     queryKey: historyKey(item.itemId, answer),
