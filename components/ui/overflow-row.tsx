@@ -35,6 +35,11 @@ type OverflowRowProps = React.HTMLAttributes<HTMLElement> & {
   reveal?: string
   /** Brings the chosen item into view again when it changes (a choice made elsewhere, Back). */
   revealKey?: unknown
+  /**
+   * The inline script that reveals the chosen item while the server's HTML is parsed. Off for a row
+   * only the browser draws (read from storage): a script React adds there never runs.
+   */
+  revealScript?: boolean
 }
 
 // The chosen item, clear of the row's scroll-padding (its end fades). Runs as the server's HTML
@@ -56,7 +61,7 @@ function revealChosen(row: Element | null, selector: string) {
 const REVEAL = (selector: string) =>
   `(${revealChosen.toString()})(document.currentScript.parentElement.firstElementChild,${JSON.stringify(selector)})`
 
-function OverflowRow({ as: Tag = "div", reveal, revealKey, className, children, ...props }: OverflowRowProps) {
+function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, className, children, ...props }: OverflowRowProps) {
   const box = React.useRef<HTMLElement>(null)
   const nonce = useNonce()
 
@@ -176,7 +181,7 @@ function OverflowRow({ as: Tag = "div", reveal, revealKey, className, children, 
     // data-overflow-row marks the box even when the caller names its own data-slot.
     <Tag ref={box as React.Ref<never>} data-slot="overflow-row" {...props} data-overflow-row="" className={cn(styles.row, className)}>
       {children}
-      {reveal && <script nonce={nonce} dangerouslySetInnerHTML={{ __html: REVEAL(reveal) }} suppressHydrationWarning />}
+      {reveal && revealScript && <script nonce={nonce} dangerouslySetInnerHTML={{ __html: REVEAL(reveal) }} suppressHydrationWarning />}
       {/* Mouse only, and the keyboard reaches every item by Tab (which scrolls the row), so the
           buttons stay out of the Tab order; a press never takes the focus. */}
       <button

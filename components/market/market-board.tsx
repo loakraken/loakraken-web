@@ -866,8 +866,8 @@ function MarketContent({
             </BotNote>
           ) : (
             // Scrolls sideways when the favourites outgrow the line (OverflowRow): ‹ › on a mouse, drag,
-            // the shown item's favourite in view.
-            <OverflowRow reveal="[aria-pressed=true]" revealKey={active?.itemId}>
+            // the shown item's favourite in view (no first-paint script: storage, browser only).
+            <OverflowRow reveal="[aria-pressed=true]" revealKey={active?.itemId} revealScript={false}>
               <ul className={styles.favorites} aria-label="즐겨찾기 품목">
                 {favorites.map((f) => (
                   <li key={f.itemId}>

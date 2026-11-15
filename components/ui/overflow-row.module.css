@@ -53,7 +53,7 @@
   }
 }
 .arrow:active {
-  scale: 0.94;
+  scale: var(--press-scale, 0.97);
 }
 .arrow:focus-visible {
   outline: 2px solid var(--ring);
