@@ -11,11 +11,8 @@ type Schemas = components["schemas"];
 export type SpecUp = Schemas["SpecUpResponse"];
 export type Candidate = Schemas["CandidateResponse"];
 export type Cost = Schemas["CostResponse"];
-/**
- * A polish step's line and option (api #951, optional until that api ships) come typed from the contract once it
- * is synced; until then they are named here so the step can be read.
- */
-export type SpecUpChange = Schemas["ChangeResponse"] & { line?: number | null; option?: string | null };
+/** A polish step's `line` and `option` (api #951) are in the contract, optional until that api ships. */
+export type SpecUpChange = Schemas["ChangeResponse"];
 export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
 // 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
