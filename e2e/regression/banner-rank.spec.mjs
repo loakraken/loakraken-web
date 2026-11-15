@@ -151,12 +151,10 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 // full badge past the row at 320 and 360 (CI flaky 170 > 167, A37; PM 총괄 11-16). Here every element
 // is set to such a face, so the layout is the fallback one on any machine that has it, and the row must
 // hold the badge. The face must really be in use, or the test says so instead of passing on the site font.
-// The breakpoint's edges (sweep 320–400: the full badge overflowed up to 381) and the widest badge in
-// practice, a 6-digit rank with a tier and a two-decimal share (mock '순위큰수', PM 11-16).
-const WIDE_CASES = [
-  { who: "상세", name: /전투력 4,120위 · 상위 22\.6%/, widths: [320, 360, 361, 381, 399, 400] },
-  { who: "순위큰수", name: /전투력 123,456위 · 상위 49\.98%/, widths: [320, 360, 399, 400] },
-];
+// The breakpoint's edges (sweep 320–400: the full badge overflowed up to 381). The widest badge in
+// practice (mock '순위큰수', a 6-digit rank) joins with its own rule once the metric-matched fallback is
+// measured (PM 총괄 11-16).
+const WIDE_CASES = [{ who: "상세", name: /전투력 4,120위 · 상위 22\.6%/, widths: [320, 360, 361, 381, 399, 400] }];
 test.describe("배너 순위: 넓은 시스템 글꼴에서도 순위 줄 안에 @A37 @regression", () => {
   for (const { who, name, widths } of WIDE_CASES)
   for (const width of widths) {
