@@ -24,6 +24,11 @@ for (const width of [1280, 360])
     const row = (name) => list.locator("li").filter({ hasText: name }).first();
     await expect(row("합성 하의 (패스)")).toContainText("담력 5 · 매력 15");
     await expect(row("합성 무기 아바타")).toContainText("지성 5 · 담력 5 · 매력 5 · 친절 5");
+    // The two 덧입기 carry 민첩 +1% each with overlay true: not applied, so the effect total is the four
+    // others' 2 + 2 + 2 + 1, not 9 (QA v0.3.13 RC P0-1).
+    const effects = panelOf(page, "아바타 효과");
+    await expect(effects.locator("dt")).toHaveText(["민첩"]);
+    await expect(effects.locator("dd")).toHaveText(["+7%"]);
     // 기본 and 덧입기 as the game shows them (user 11-12): the official answer names both "무기 아바타";
     // IsInner true is the base, false the 덧입기 over it.
     await expect(row("합성 무기 아바타").locator("small").first()).toHaveText("무기");
@@ -79,6 +84,8 @@ test("성향 값이 없는 예전 응답: 아바타 탭은 그대로, 성향 칸
   await gotoReady(page, characterPath("아바타옛응답", "avatars"));
   await expect(page.getByRole("heading", { name: "아바타 목록", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "아바타 효과", exact: true })).toBeVisible();
+  // No overlay field either: the slot pairing leaves out the same two 덧입기 (QA v0.3.13 RC P0-1).
+  await expect(panelOf(page, "아바타 효과").locator("dd")).toHaveText(["+7%"]);
   await expect(page.getByRole("heading", { name: "아바타 성향", exact: true })).toHaveCount(0);
   const list = panelOf(page, "아바타 목록");
   await expect(list.locator("li").filter({ hasText: "합성 하의 (패스)" }).first()).toBeVisible();
