@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { droppedFields, readDropFlag } from "../scripts/contract-drop-guard.mjs";
+import { droppedFields, readBaseline, readDropFlag } from "../scripts/contract-drop-guard.mjs";
 import { OPTIONAL_OVERRIDES } from "../scripts/contract-optional-overrides.mjs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,8 +62,10 @@ test("lists each kind of drop, and nothing for additions or reworded text", () =
     "GET /a → 429",
     "GET /a → 429 names CLIENT_RATE_LIMITED",
     "GET /a → 429 names SPEC_UP_BUSY",
+    "Gone type object",
     "POST /b → 200",
     "Row.days[].storedDays",
+    "Row.days[].storedDays type integer",
     'Row.range enum "365d"',
     'Row.range enum "90d"',
     "operation POST /b",
@@ -75,6 +77,61 @@ test("lists each kind of drop, and nothing for additions or reworded text", () =
   grown.components.schemas.Row.properties.extra = { type: "string" };
   grown.components.schemas.Row.properties.range.enum.push("7d");
   assert.deepEqual(droppedFields(base, grown), []);
+});
+
+// codex #1673 P2: a kept field whose type changes loses its old type — a source that predates a develop-only
+// type change would revert it.
+test("a kept field's type change is a drop: $ref retarget, a nullable member's type, a method without its path", () => {
+  const base = {
+    paths: { "/a": { get: { responses: { "200": { description: "ok" } } }, post: { responses: { "200": { description: "ok" } } } } },
+    components: {
+      schemas: {
+        A: { type: "object", properties: { x: { type: "string" } } },
+        B: { type: "object", properties: { y: { type: "string" } } },
+        Row: {
+          type: "object",
+          properties: {
+            payload: { $ref: "#/components/schemas/A" },
+            other: { $ref: "#/components/schemas/A" },
+            count: { anyOf: [{ type: "integer", format: "int64" }, { type: "null" }] },
+            tags: { type: "array", items: { $ref: "#/components/schemas/B" } },
+          },
+        },
+      },
+    },
+  };
+  const retarget = copy(base) as Json;
+  retarget.components.schemas.Row.properties.payload = { $ref: "#/components/schemas/B" };
+  assert.deepEqual(droppedFields(base, retarget), ["Row.payload $ref #/components/schemas/A"]);
+  const retyped = copy(base) as Json;
+  retyped.components.schemas.Row.properties.count = { anyOf: [{ type: "string" }, { type: "null" }] };
+  assert.deepEqual(droppedFields(base, retyped), ["Row.count type integer"]);
+  const items = copy(base) as Json;
+  items.components.schemas.Row.properties.tags.items = { $ref: "#/components/schemas/A" };
+  assert.deepEqual(droppedFields(base, items), ["Row.tags[] $ref #/components/schemas/B"]);
+  const method = copy(base) as Json;
+  delete method.paths["/a"].post;
+  assert.deepEqual(droppedFields(base, method), ["POST /a → 200", "operation POST /a"]);
+  // Reordered members, the 3.1 list form of the same types, and a new member are not drops.
+  const same = copy(base) as Json;
+  same.components.schemas.Row.properties.count = { anyOf: [{ type: "null" }, { type: "integer" }, { type: "number" }] };
+  assert.deepEqual(droppedFields(base, same), []);
+  const listed = copy(base) as Json;
+  listed.components.schemas.Row.properties.count = { type: ["integer", "null"] };
+  assert.deepEqual(droppedFields(base, listed), []);
+});
+
+test("the committed contract: none when missing, a stop when broken (never overwritten unchecked)", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "contract-baseline-"));
+  try {
+    assert.equal(await readBaseline(join(dir, "missing.json")), null);
+    writeFileSync(join(dir, "broken.json"), '{\n<<<<<<< HEAD\n  "openapi": "3.1.0"\n');
+    await assert.rejects(readBaseline(join(dir, "broken.json")), /not valid JSON/);
+    writeFileSync(join(dir, "ok.json"), '{"openapi":"3.1.0"}');
+    assert.deepEqual(await readBaseline(join(dir, "ok.json")), { openapi: "3.1.0" });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("the develop-only market fields count as drops when a source lacks them", () => {
@@ -138,6 +195,50 @@ test("sync-contract refuses a source that would drop a committed field, unless -
     assert.equal(allowed.status, 0, allowed.stderr);
     assert.match(allowed.stderr, /dropping 1 \(--allow-drop\)/);
     assert.ok(!readFileSync(target, "utf8").includes("SPEC_UP_BUSY: 목표"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// The character script, the same way: a source that retypes a kept field stops; the develop-shaped source writes
+// the committed contract back; a broken committed file stops without being overwritten.
+test("sync-character-contract refuses a retyped field and a broken committed file", () => {
+  const dir = mkdtempSync(join(tmpdir(), "contract-character-"));
+  try {
+    const contract = committed("character");
+    const backend = copy(contract);
+    for (const [schema, props] of Object.entries((OPTIONAL_OVERRIDES as Json).character as Record<string, string[]>))
+      backend.components.schemas[schema].required = [...(backend.components.schemas[schema].required ?? []), ...props];
+    const schemas = backend.components.schemas;
+    const holder = Object.keys(schemas).find((name) =>
+      Object.values(schemas[name].properties ?? {}).some((p: Json) => p.type === "integer"),
+    )!;
+    const prop = Object.keys(schemas[holder].properties).find((name) => schemas[holder].properties[name].type === "integer")!;
+    const older = copy(backend);
+    older.components.schemas[holder].properties[prop] = { ...older.components.schemas[holder].properties[prop], type: "string" };
+    writeFileSync(join(dir, "develop.json"), JSON.stringify(backend));
+    writeFileSync(join(dir, "older.json"), JSON.stringify(older));
+    mkdirSync(join(dir, "contracts"));
+    const target = join(dir, "contracts", "character.openapi.json");
+    const before = readFileSync(join(root, "contracts", "character.openapi.json"), "utf8");
+    writeFileSync(target, before);
+    const sync = (source: string) =>
+      spawnSync(process.execPath, [join(root, "scripts", "sync-character-contract.mjs"), source], { cwd: dir, encoding: "utf8" });
+
+    const refused = sync("older.json");
+    assert.notEqual(refused.status, 0);
+    assert.ok(refused.stderr.includes(`${holder}.${prop} type integer`), refused.stderr);
+    assert.equal(readFileSync(target, "utf8"), before, "nothing written");
+
+    const same = sync("develop.json");
+    assert.equal(same.status, 0, same.stderr);
+    assert.equal(readFileSync(target, "utf8").replace(/\r\n/g, "\n"), before.replace(/\r\n/g, "\n"), "byte-identical");
+
+    writeFileSync(target, before.slice(0, 200) + "\n<<<<<<< HEAD\n");
+    const broken = sync("develop.json");
+    assert.notEqual(broken.status, 0);
+    assert.match(broken.stderr, /not valid JSON/);
+    assert.ok(readFileSync(target, "utf8").includes("<<<<<<<"), "the broken file is left as it was");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

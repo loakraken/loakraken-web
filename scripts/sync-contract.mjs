@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { applyOptionalOverrides } from "./contract-optional-overrides.mjs";
-import { readDropFlag, refuseDrops } from "./contract-drop-guard.mjs";
+import { readBaseline, readDropFlag, refuseDrops } from "./contract-drop-guard.mjs";
 
 // Capture selected paths (and every schema they reference) from the backend's
 // generated OpenAPI document into contracts/<name>.openapi.json.
@@ -46,7 +46,7 @@ const contract = {
   paths: selected,
   components: { schemas: applyOptionalOverrides(name, schemas) },
 };
-const previous = await readFile(file, "utf8").then(JSON.parse, () => null);
+const previous = await readBaseline(file);
 refuseDrops(`${file} (source ${source})`, previous, contract, allowDrop);
 await mkdir("contracts", { recursive: true });
 await writeFile(file, JSON.stringify(contract, null, 2) + "\n");

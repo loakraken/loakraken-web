@@ -9,16 +9,24 @@
 // Until the next api release: sync from the api develop doc (or per contract, from the doc that has its paths).
 //
 // Counted as dropped: a path or operation, a response status, a schema, a property (inline ones too), an enum
-// value, and an UPPER_SNAKE error code named in an operation's or a response's description. Added things and
-// changed wording are not drops.
+// value, a type or $ref target a property had (each allOf / oneOf / anyOf member too: a kept field whose type
+// changes loses its old type — codex #1673 P2), and an UPPER_SNAKE error code named in an operation's or a
+// response's description. Added things and changed wording are not drops.
+
+import { readFile } from "node:fs/promises";
 
 const METHODS = ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
 const CODE = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const codes = (text) => new Set(typeof text === "string" ? text.match(CODE) ?? [] : []);
 
-/** Properties and enum values under `node`, by a readable path (`Schema.prop.inner`, `Schema.prop[]`). */
+/**
+ * Properties, types, $ref targets and enum values under `node`, by a readable path (`Schema.prop.inner`,
+ * `Schema.prop[]`). Composition members land on their parent's path, so reordering them changes nothing.
+ */
 function shape(node, at, out) {
   if (!node || typeof node !== "object") return;
+  if (typeof node.$ref === "string") out.add(`${at} $ref ${node.$ref}`);
+  for (const type of [node.type].flat()) if (typeof type === "string") out.add(`${at} type ${type}`);
   if (Array.isArray(node.enum)) for (const value of node.enum) out.add(`${at} enum ${JSON.stringify(value)}`);
   for (const [prop, child] of Object.entries(node.properties ?? {})) {
     out.add(`${at}.${prop}`);
@@ -65,6 +73,27 @@ export function droppedFields(previous, next) {
   if (!previous) return [];
   const kept = inventory(next);
   return [...inventory(previous)].filter((name) => !kept.has(name)).sort();
+}
+
+/**
+ * The committed contract (the working-tree file) to compare with, or null when there is none yet. Only a missing
+ * file counts as none: an unreadable or broken one (a merge left conflict markers in it) stops the sync instead
+ * of being overwritten unchecked (codex #1673 P3).
+ * @param {string} file
+ */
+export async function readBaseline(file) {
+  let text;
+  try {
+    text = await readFile(file, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`${file}: the committed contract is not valid JSON (${error.message}); fix or remove it first`);
+  }
 }
 
 /**
