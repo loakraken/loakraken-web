@@ -240,3 +240,20 @@ test("without a typed rate, the break-even exchange rate: a gain at it, a loss o
   // 페온 only: nothing to value.
   assert.equal(breakEvenRate(pkg("hangawi-peon"), () => 1), null);
 });
+
+test("an open-ended package missing from the official shop screen is marked, not claimed on sale (PM 총괄 2026-11-15)", () => {
+  const growth = SHOP_DATA.packages.find((p) => p.id === "monthly-growth-plus");
+  assert.equal(growth?.saleUnconfirmed, "2026-11-15");
+  // The others are on the official shop screen (11-15) or end by date.
+  assert.deepEqual(
+    SHOP_DATA.packages.filter((p) => p.saleUnconfirmed).map((p) => p.id),
+    ["monthly-growth-plus"],
+  );
+  const bad: ShopData = structuredClone(SHOP_DATA);
+  bad.packages[0].saleUnconfirmed = "11-15";
+  assert.ok(checkShopData(bad).includes("monthly-growth-plus: bad saleUnconfirmed"));
+  const dated: ShopData = structuredClone(SHOP_DATA);
+  const hangawi = dated.packages.find((p) => p.endsAt !== null)!;
+  hangawi.saleUnconfirmed = "2026-11-15";
+  assert.ok(checkShopData(dated).includes(`${hangawi.id}: saleUnconfirmed on a dated sale`));
+});

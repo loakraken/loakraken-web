@@ -24,6 +24,11 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(growth.getByText("3회 구매 + 보너스 = 4세트 기준 (1회 33,000)")).toBeVisible();
     await expect(growth.getByText("본 상품 3회 구매 시, 동일한 구성품의 보너스 상품을 추가 지급합니다.")).toBeVisible();
     await expect(growth.getByText("2026년 8월 19일(수) 정기 점검 후 ~ 별도 안내 시")).toBeVisible();
+    // Missing from the official shop screen (11-15) with no end notice: marked, not claimed on sale. The 1,700 pack is on it.
+    await expect(growth.getByText("· 판매 여부 확인 안 됨(2026-11-15 공식 상점 화면에 없음)")).toBeVisible();
+    const level = page.getByRole("region", { name: "[한정] 아이템 레벨 1,700 달성" });
+    await expect(level.getByText("2026년 8월 5일(수) 정기 점검 이후 ~ 별도 안내 시")).toBeVisible();
+    await expect(level.getByText(/판매 여부 확인 안 됨/)).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: RATE })).toHaveValue("");
     await expect(page.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
     // A23(#864): with no rate each card shows its break-even rate and how to get the gain.

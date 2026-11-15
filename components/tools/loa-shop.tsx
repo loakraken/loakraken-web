@@ -205,7 +205,10 @@ function PackageCard({
           <dd>
             {pkg.period}
             {/* Held from the first paint: the date comes from the client clock. */}
-            <span className={styles.ended}>{ended ? " · 판매 기간이 지났어요" : ""}</span>
+            {/* saleUnconfirmed: missing from the official shop screen with no end notice, so not claimed as on sale. */}
+            <span className={styles.ended}>
+              {ended ? " · 판매 기간이 지났어요" : pkg.saleUnconfirmed ? ` · 판매 여부 확인 안 됨(${pkg.saleUnconfirmed} 공식 상점 화면에 없음)` : ""}
+            </span>
           </dd>
         </div>
         <div>
