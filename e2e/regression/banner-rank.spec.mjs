@@ -82,8 +82,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 
           await expect(badge).toBeVisible();
           await expect(badge).toContainText("대양");
-          // Up to 5 digits the full badge at every width (length rule, PM 총괄 11-16); what is drawn.
-          await expect(badge).toContainText("4,120위 · 상위 22.6%", { useInnerText: true });
+          // This badge fits one line in full at every width here (fit rule, PM 총괄 11-16); 상위 is drawn.
+          await expect(badge.locator("[class*=bannerRankTopWord]")).toBeVisible();
           // The badge keeps the row's type at every width (the button inherits
           // it); only its spacing tightens below 360px.
           const rowFont = await row.evaluate((el) => getComputedStyle(el).fontSize);

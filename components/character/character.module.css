@@ -776,6 +776,14 @@
   height: auto;
   min-height: 26px;
 }
+/* `.page button`'s `font: inherit` also sets line-height; this keeps the 16px line (26px badge). */
+.bannerRank > .bannerRankBadge {
+  line-height: 16px;
+}
+/* A row first drawn empty stays one line (its height is fixed): the halves never wrap there. */
+.bannerRank:not(.bannerRankWraps) .bannerRankHalves {
+  flex-wrap: nowrap;
+}
 .bannerRankText {
   --rank-gap: 0.9em;
   display: block;

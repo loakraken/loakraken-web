@@ -33,18 +33,22 @@ export function BannerRank({ name }: { name: string }) {
   const [wraps] = useState(() => rank !== null);
   const [short, setShort] = useState(false);
   const row = useRef<HTMLParagraphElement>(null);
+  const halves = useRef<HTMLSpanElement>(null);
   const id = useId();
   const text = rank?.text;
 
-  // The one-line row: full when it fits, else without 상위. Measured before paint, again on resize.
+  // The one-line row: full when it fits, else without 상위. Measured before paint (the full form drawn for the
+  // measurement only), again when the row's width changes. The badge is held to the row, so the test is
+  // whether the unwrapped halves run past their own box.
   useLayoutEffect(() => {
     const el = row.current;
     const badge = el?.querySelector("button");
     if (wraps || !el || !badge) return;
     const decide = () => {
+      if (!halves.current) return;
       const was = badge.classList.contains(styles.bannerRankShort);
       badge.classList.remove(styles.bannerRankShort);
-      const over = badge.getBoundingClientRect().right > el.getBoundingClientRect().right + 0.5;
+      const over = halves.current.scrollWidth > halves.current.clientWidth + 0.5;
       badge.classList.toggle(styles.bannerRankShort, was);
       setShort(over);
     };
@@ -62,7 +66,7 @@ export function BannerRank({ name }: { name: string }) {
         <Tooltip>
           <TooltipTrigger className={badgeClass} aria-labelledby={`${id}-text ${id}-more`}>
             <span id={`${id}-text`} className={styles.bannerRankText}>
-              <span className={styles.bannerRankHalves}>
+              <span ref={halves} className={styles.bannerRankHalves}>
                 <span className={styles.bannerRankHalf}>
                   {rank.tier && <b>{rank.tier} </b>}
                   {/* On a phone the label is left out so the badge stays left of the
