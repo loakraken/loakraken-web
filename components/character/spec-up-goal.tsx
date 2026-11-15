@@ -241,7 +241,7 @@ function GoalAnswer({ name, goal, gearType }: { name: string; goal: Goal; gearTy
           ) : (
             <span>이 경로의 단계는 시뮬레이터에서 아직 바꿀 수 없어요.</span>
           )}
-          {path.changes.length > 0 && path.skipped > 0 && ` · ${path.skipped}단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
+          {path.changes.length > 0 && path.skipped > 0 && ` · ${path.skipped}개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
         </p>
       )}
       <p className={styles.note}>

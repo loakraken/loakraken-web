@@ -126,6 +126,16 @@ test("a 연마 step's other option (api #951) is saved, read back, and dropped w
   assert.ok(!isEmpty({ ...NO_EDITS, polishOption: { "3:2": "NONE" } }), "a NONE line alone is an edit");
 });
 
+test("a saved ark passive value is held to the tree's in-game maximum (review P3 #1706)", () => {
+  // 도약 71 cannot exist (official max 70): it loads as 70, what the field shows and the request sends.
+  const saved = parseSaved(JSON.stringify({ savedAt: "x", edits: { arkPassive: { 도약: 71, 진화: 500 } } }));
+  // Trees without a known maximum keep the api range (진화 is not sent anyway while it is locked).
+  assert.deepEqual(saved?.edits.arkPassive, { 도약: 70, 진화: 500 });
+  assert.deepEqual(parseSaved(JSON.stringify({ savedAt: "x", edits: { arkPassive: { 도약: 65 } } }))?.edits.arkPassive, {
+    도약: 65,
+  });
+});
+
 test("a saved input applies only to the gear it was aimed at (PM 총괄 10-12 01:54)", () => {
   const edits: Edits = {
     ...NO_EDITS,

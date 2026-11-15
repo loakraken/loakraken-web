@@ -36,6 +36,19 @@ for (const width of [320, 1280])
     await expectNoHorizontalOverflow(page);
   });
 
+// QA v0.3.13 RC P3-2: a typed range=14d (kept for the older api's 14일) drew '14일' with no button pressed.
+// This api has no 14일 button, so the address reads as the opening 30일.
+test("주소에 쓴 range=14d는 14일 버튼이 없는 api에서 30일로 연다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK&range=14d");
+  const detail = detailOf(page);
+  const ranges = detail.getByRole("group", { name: "기간" });
+  await expect(ranges.getByRole("button")).toHaveText(["1시간", "7일", "30일", "3개월", "1년"]);
+  await expect(ranges.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "true");
+  await expect(detail.getByText(/^14일 [▲▼]?\d+\.\d%$/)).toHaveCount(0);
+  await expect(detail.getByText(/^30일 [▲▼]?\d+\.\d%$/)).toBeVisible();
+});
+
 test("기간 조회 전 api(range 없음)면 1시간·7일·14일 그대로 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   // The web's own route answers { ok, envelope }; drop the #920 fields as an older api would.

@@ -13,6 +13,7 @@ import {
   termsLabel,
   addressParams,
   parseRange,
+  chartRange,
   rangeParam,
   traded,
   windowStart,
@@ -252,6 +253,15 @@ test("chart range in the address: none for 30일, 1h · 7d · 14d · 90d · 365d
   assert.equal(rangeParam(30), null);
   assert.equal(rangeParam(90), "90d");
   for (const odd of ["30d", "90", "2y", "", undefined, ["90d", "7d"]]) assert.equal(parseRange(odd), 30);
+});
+
+test("chart range: one this api's buttons lack reads as their opening one (QA v0.3.13 RC P3-2)", () => {
+  // An api with stored history has no 14일 button: a typed range=14d draws 30일, not an unpressed 14일.
+  assert.equal(chartRange(14, true), 30);
+  for (const kept of ["hour", 7, 30, 90, 365] as const) assert.equal(chartRange(kept, true), kept);
+  // An older api (no stored history): 1시간 · 7일 · 14일, anything else its 14 days.
+  for (const kept of ["hour", 7, 14] as const) assert.equal(chartRange(kept, false), kept);
+  for (const longer of [30, 90, 365] as const) assert.equal(chartRange(longer, false), 14);
 });
 
 test("trade terms labels: trades left, else bundle, else stored history only", () => {

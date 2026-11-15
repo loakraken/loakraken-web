@@ -22,6 +22,9 @@ for (const width of [320, 1280]) {
     const passive = page.getByRole("region", { name: "아크 패시브", exact: true });
     const field = passive.getByRole("textbox", { name: "아크 패시브 도약 포인트", exact: true });
     await expect(field).toHaveValue("60");
+    // The in-game maximum beside the field, read as its description (review P3 #1706); the name stays the label.
+    await expect(passive.getByText("최대 70", { exact: true })).toBeVisible();
+    await expect(field).toHaveAccessibleDescription("최대 70");
     await expect(passive.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
     await expect(passive.getByRole("listitem").filter({ hasText: "진화" })).toContainText("포인트 120P · 준비 중");
     // The card is open (one tree is), so no card-wide "준비 중" badge.

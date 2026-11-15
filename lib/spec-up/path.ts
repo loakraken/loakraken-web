@@ -22,6 +22,35 @@ export const PATH_SORTS: readonly { id: PathSort; label: string }[] = [
 ];
 export const isPathSort = (value: unknown): value is PathSort => value === "EFFICIENCY" || value === "DELTA";
 
+/**
+ * The figures a path is told in (api #967). A KRAKEN answer orders by the Kraken
+ * score, so it is told in that score, as the list's KRAKEN view is; on a
+ * supporter's KRAKEN path the combat power is null (no CP number on screen).
+ * Every other answer is told in combat power, as before. The web does not ask
+ * for sort=KRAKEN on the path yet (백엔드 11-15: only after this ships).
+ */
+export function pathFigures(
+  path: Pick<SpecUpPath, "sort" | "combatPower" | "finalCombatPower" | "krakenScore" | "finalKrakenScore">,
+  supporter: boolean,
+) {
+  const scored = path.sort === "KRAKEN";
+  return {
+    scored,
+    /** The figure's name: the list's own words for the same score. */
+    name: scored ? (supporter ? "서포터 점수" : "크라켄 점수") : "전투력",
+    perGold: scored ? "10만G당 점수" : "1만G당 전투력",
+    start: (scored ? path.krakenScore : path.combatPower) ?? null,
+    final: (scored ? path.finalKrakenScore : path.finalCombatPower) ?? null,
+  };
+}
+
+/** One step's gain, value after it and gain per gold, in the path's figure; null = not given. */
+export function stepFigures(step: GoalStep, scored: boolean) {
+  return scored
+    ? { gain: step.deltaKrakenScore ?? null, after: step.krakenScoreAfter ?? null, perGold: step.krakenScorePer100kGold ?? null }
+    : { gain: step.deltaCombatPower, after: step.combatPowerAfter, perGold: step.combatPowerPer10kGold };
+}
+
 /** Rows shown before "모두 보기". */
 export const PATH_FIRST_ROWS = 10;
 

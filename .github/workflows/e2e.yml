@@ -3,6 +3,10 @@ name: E2E
 # QA 스모크·회귀 E2E(e2e/ Playwright). 합성 목 백엔드만 쓰며 공식 API·OpenAI 호출과 비밀값이 없다.
 # 비필수(정보용) 검사로 시작한다(PM-프론트 결정 2026-10-09). 10-23쯤 실행 통계를 보고 필수 전환을 판단한다.
 # 앱 코드·e2e 경로가 바뀔 때만 돈다. 초안 PR은 건너뛰고(준비 완료로 바꾸면 돎), 같은 PR의 이전 실행은 취소한다.
+# PR은 경로와 상관없이 늘 시작하고, 첫 job 'changes'가 경로를 봐서 나머지 job을 건너뛴다. 'e2e webkit'이 필수 검사라
+# (11-15) 실행 자체가 안 뜨면 글만 바꾼 PR이 병합되지 못하는데, 조건(if:)으로 건너뛴 job은 통과로 친다.
+# develop push는 예전처럼 on.push.paths로 거른다(필수 검사와 상관없고, 대기 중인 코드 push 실행이 뒤이은 글만 바뀐
+# push 실행으로 바뀌어 빠지는 일이 없게).
 # develop push(병합 뒤)에도 돌아 병합마다 통계 표본(e2e-stats)을 남긴다(10-10, 저장소 공개로 Actions 시간 제한 없음).
 #
 # 나눠 돌리기(사용자 요청 2026-10-31, 한 번에 약 33분 → 목표 약 10분, 테스트는 하나도 빼지 않는다):
@@ -17,22 +21,10 @@ on:
   pull_request:
     branches: [develop, master]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - app/**
-      - components/**
-      - lib/**
-      - public/**
-      - contracts/**
-      - e2e/**
-      - tests/mock-backend.mjs
-      - package.json
-      - package-lock.json
-      - next.config.ts
-      - tsconfig.json
-      - postcss.config.mjs
-      - .github/workflows/e2e.yml
+    # paths는 두지 않는다(머리말). 같은 목록을 changes job이 본다.
   push:
     branches: [develop]
+    # 이 목록을 바꾸면 changes job의 PATHS도 같이 바꾼다.
     paths:
       - app/**
       - components/**
@@ -65,9 +57,50 @@ env:
   E2E_SERVER: standalone
 
 jobs:
-  build:
-    # 초안 PR은 건너뛴다. develop push와 수동 실행은 항상.
+  # PR이 e2e 경로를 건드렸는지 본다(on.push.paths와 같은 목록). 새 외부 action 없이 git으로만 본다.
+  # PR은 병합 커밋(refs/pull/N/merge)과 그 첫 부모(받는 브랜치 끝)를 비교해, 받는 브랜치에 들어갈 변경 전체를 본다.
+  # push와 수동 실행은 늘 돈다(push는 on.push.paths가 이미 걸렀다). 비교가 안 되면 돌리는 쪽으로 간다.
+  changes:
+    # 초안 PR은 건너뛴다(뒤 job도 모두 건너뜀). develop push와 수동 실행은 항상.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    name: e2e changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.match.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          # 병합 커밋과 첫 부모만 있으면 된다. 받은 뒤 git 원격을 쓰지 않아 토큰을 남기지 않는다.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Match changed files against e2e paths
+        id: match
+        env:
+          EVENT: ${{ github.event_name }}
+          # on.push.paths와 같은 목록(정규식). 하나를 바꾸면 다른 하나도 바꾼다.
+          PATHS: ^(app|components|lib|public|contracts|e2e)/|^tests/mock-backend\.mjs$|^(package\.json|package-lock\.json|next\.config\.ts|tsconfig\.json|postcss\.config\.mjs)$|^\.github/workflows/e2e\.yml$
+        run: |
+          set -uo pipefail
+          run_all() { echo "$1: 모두 돈다"; echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          [ "$EVENT" = pull_request ] || run_all "$EVENT"
+          # --no-renames: 옮긴 파일은 옛 경로와 새 경로가 둘 다 나온다(app/ 밖으로 옮겨도 잡힘).
+          files=$(git -c core.quotepath=off diff --no-renames --name-only HEAD^1 HEAD) || run_all "변경 파일 비교 실패"
+          matched=$(printf '%s\n' "$files" | grep -E "$PATHS" || true)
+          echo "바뀐 파일 $(printf '%s\n' "$files" | grep -c .)개, 그중 e2e 경로 $(printf '%s\n' "$matched" | grep -c .)개"
+          [ -z "$matched" ] || printf '%s\n' "$matched" | head -20
+          if [ -n "$matched" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e 경로 변경 없음: build·shard·serial·webkit·e2e를 건너뛴다(조건으로 건너뛴 job은 통과로 친다)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: changes
+    # changes가 e2e 경로 변경을 찾았을 때만. 초안 PR은 changes를 건너뛰어 여기도 건너뛴다.
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -325,17 +358,28 @@ jobs:
 
   # WebKit(Safari 엔진) 휴대폰 크기, @webkit 태그 검사만(#1609). Safari만 다르게 가는 길(scroll-initial-target ·
   # overflow-anchor 없음)을 실제 브라우저로 본다. 위 build의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD).
-  # 처음에는 묶음 'e2e'의 needs에 넣지 않는다(새 브라우저가 흔들리면 모든 PR 병합이 막히므로). 초록이 이어지면
-  # 필수로 넣을지 정리 담당이 정한다. WebKit 캐시 키는 chromium과 따로 둔다.
+  # 묶음 'e2e'의 needs에는 넣지 않는다. 5번 연속 초록 뒤 develop 룰셋의 필수 검사가 됐다(11-15). WebKit 캐시 키는
+  # chromium과 따로 둔다.
   webkit:
-    needs: build
+    needs: [changes, build]
     name: e2e webkit
+    # 필수 검사다. 건너뛰는 때는 초안 PR과 changes가 'e2e 경로 변경 없음'이라 한 때뿐이다. changes나 build가 실패하거나
+    # 실행이 취소되면 건너뛰지 않고 돌아 실패한다(건너뛴 필수 검사는 통과로 쳐서, 실패·취소를 건너뜀으로 숨기면 안 된다).
+    # 그래서 !cancelled()가 아니라 always()다: 취소된 실행에서도 이 job은 떠서 아래 첫 단계에서 실패한다.
+    if: ${{ always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       E2E_SKIP_BUILD: "1"
       E2E_WEBKIT: "1"
     steps:
+      - name: Require changes and build
+        # always(): 취소된 실행에서도 이 단계는 돈다(기본 조건 success()는 취소 때 거짓이라 단계가 모두 건너뛰어지고
+        # job이 통과로 끝날 수 있다).
+        if: always() && (cancelled() || needs.changes.result != 'success' || needs.build.result != 'success')
+        run: |
+          echo "::error title=e2e webkit::changes=${{ needs.changes.result }} build=${{ needs.build.result }} — 앞 job이 실패했거나 실행이 취소돼 WebKit 검사를 돌리지 않았습니다."
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -383,8 +427,9 @@ jobs:
 
   e2e:
     # 검사 이름 'e2e'를 지키는 묶음 job: 모든 shard·serial 결과를 합쳐 요약하고, 하나라도 실패하면 실패한다.
-    needs: [build, shard, serial]
-    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    needs: [changes, build, shard, serial]
+    # changes가 'e2e 경로 변경 없음'이라 하면 건너뛴다. changes가 실패하면 돌아서 아래 마지막 단계에서 실패한다.
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -482,5 +527,5 @@ jobs:
       - name: Fail when any part failed
         if: always()
         run: |
-          echo "build=${{ needs.build.result }} shard=${{ needs.shard.result }} serial=${{ needs.serial.result }}"
-          [ "${{ needs.build.result }}" = success ] && [ "${{ needs.shard.result }}" = success ] && [ "${{ needs.serial.result }}" = success ]
+          echo "changes=${{ needs.changes.result }} build=${{ needs.build.result }} shard=${{ needs.shard.result }} serial=${{ needs.serial.result }}"
+          [ "${{ needs.changes.result }}" = success ] && [ "${{ needs.build.result }}" = success ] && [ "${{ needs.shard.result }}" = success ] && [ "${{ needs.serial.result }}" = success ]

@@ -23,6 +23,9 @@ test("검색 결과 파비콘: /favicon.ico는 200 · 아이콘 형식, 첫 화�
   expect(links.map(({ href }) => path(href)).sort()).toEqual(["/favicon.ico", "/icon.svg", "/icon1.png"]);
   const png = links.find(({ href }) => path(href) === "/icon1.png");
   expect(png).toMatchObject({ sizes: "192x192", type: "image/png" });
+  // The ICO's first entry is 48: Next labels the link from it, and search results ask for a multiple of 48.
+  const ico = links.find(({ href }) => path(href) === "/favicon.ico");
+  expect(ico).toMatchObject({ sizes: "48x48", type: "image/x-icon" });
   const svg = links.find(({ href }) => path(href) === "/icon.svg");
   expect(svg).toMatchObject({ type: "image/svg+xml" });
 
