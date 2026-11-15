@@ -29,7 +29,6 @@ import {
   postSimulation,
 } from "@/lib/combat-power/client";
 import {
-  ARK_PASSIVE_MAX,
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
   ROLE_REASONS,
@@ -41,6 +40,7 @@ import {
   KIND_LABEL,
   braceletName,
   gradeWithValue,
+  arkPassiveMax,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -625,7 +625,7 @@ function Editors({
                   label={`아크 패시브 ${item.tree} 포인트`}
                   value={edits.arkPassive[item.tree] ?? item.points}
                   original={item.points}
-                  max={ARK_PASSIVE_MAX}
+                  max={arkPassiveMax(item.tree)}
                   onChange={(points) =>
                     setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
                   }
@@ -673,8 +673,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어를 바꿀 수 있어요. 방어구
-        재련·상급 재련·아크 패시브·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요.
+        방어구 재련·상급 재련·아크 패시브 진화와 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );

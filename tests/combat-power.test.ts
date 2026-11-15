@@ -12,6 +12,8 @@ import {
   polishSwapValue,
   wornPolish,
   POLISH_NONE,
+  ARK_PASSIVE_MAX,
+  arkPassiveMax,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -130,12 +132,12 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
       },
       full,
     ),
-    // 도약 is locked until its input cap (PM 총괄 11-15 option C): its edit is not sent.
     [
       { kind: "POLISH", index: 3, line: 0, option: "추가 피해", grade: "HIGH" },
       { kind: "BRACELET_EFFECT", line: 1, name: "치명타 피해", grade: "HIGH" },
       { kind: "ENGRAVING_LEVEL", name: "원한", level: 4 },
       { kind: "STONE_ENGRAVING", name: "원한", level: 2 },
+      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
       { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
     ],
   );
@@ -287,11 +289,19 @@ test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", 
   );
 });
 
-test("ark passive stays locked, 도약 too until its input cap (option C); the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
+test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
   assert.deepEqual(
     ["도약", "진화", "깨달음"].map((tree) => isArkPassiveOpen(tree)),
-    [false, false, false],
+    [true, false, false],
   );
+  // The in-game maximum (official guide 2026-06-24): 도약 70; other trees keep the api range.
+  assert.deepEqual([arkPassiveMax("도약"), arkPassiveMax("진화")], [70, ARK_PASSIVE_MAX]);
+  const leap = { ...current, arkPassive: [{ tree: "도약", points: 60 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 70 } }, leap), [
+    { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
+  ]);
+  // 71 cannot exist in game: not sent (an old saved input, say).
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 71 } }, leap), []);
   assert.deepEqual(
     ["질서의 해 코어 : 테스트", "혼돈의 별 코어 : 공격", "혼돈의 별 코어 : 무기", " 혼돈의 별 코어 : 무기"].map((name) =>
       isCoreOpen(name),
@@ -319,7 +329,10 @@ test("ark passive stays locked, 도약 too until its input cap (option C); the �
       },
       worn,
     ),
-    [{ kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 }],
+    [
+      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
+      { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
+    ],
   );
 });
 

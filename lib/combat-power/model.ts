@@ -50,15 +50,21 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
 
 /**
- * Ark passive trees the simulator takes, one by one. The api computes 도약 (api
- * #842), while 진화·깨달음 come back UNSUPPORTED until their formula is
- * confirmed. 도약 waits too, for its input cap: the field takes 0~999 (the api
- * range) and needs the in-game maximum from an official source first, or a typed
- * 300 would show a combat power that cannot exist (PM 총괄 11-15, option C). The
- * cap follow-up adds "도약" here.
+ * Ark passive trees the simulator takes, one by one: 도약 (api #842). 진화·깨달음
+ * come back UNSUPPORTED until their formula is confirmed, so they stay "준비 중".
  */
-export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>([]);
+export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>(["도약"]);
 export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || OPEN_ARK_PASSIVE_TREES.has(tree);
+
+/**
+ * The in-game maximum of a tree's points, so the input cannot reach a combat
+ * power that cannot exist (the api takes 0~999; PM 총괄 11-15). 도약 70 = 팔찌
+ * 고대 +18, 전투 레벨 51 이상 +40, 카르마 랭크 +12. Source: official game guide
+ * '아크 패시브', https://m-lostark.game.onstove.com/GameGuide/Pages/아크%20패시브
+ * (최근수정일 2026-06-24), read by 레퍼런스 and 계산 검증 11-15.
+ */
+export const ARK_PASSIVE_TREE_MAX: Readonly<Record<string, number>> = { 도약: 70 };
+export const arkPassiveMax = (tree: string) => ARK_PASSIVE_TREE_MAX[tree] ?? ARK_PASSIVE_MAX;
 
 /**
  * The 혼돈의 별 : 무기 core counts through weapon attack and the api does not
@@ -323,7 +329,8 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
   // Nothing for a row the screen keeps locked: it cannot show or undo an edit.
   for (const item of (current.arkPassive ?? []).filter((item) => isArkPassiveOpen(item.tree))) {
     const points = edits.arkPassive[item.tree];
-    if (points != null && points !== item.points)
+    // Over the in-game maximum (an old saved input, say): not sent.
+    if (points != null && points !== item.points && points <= arkPassiveMax(item.tree))
       changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
   }
   for (const item of (current.cores ?? []).filter((item) => isCoreOpen(item.name ?? ""))) {
