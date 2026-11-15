@@ -42,9 +42,13 @@ export const AVATAR_SLOTS = [
  * while the 5 lone false ones carry no mark: so a false one is the 덧입기 only
  * next to a base in its slot (65/65). `worn` is everything the character wears.
  *
- * Known gap: a real 덧입기 worn over an empty base slot reads as the base (0 of
- * 65 in the saved raws). The api reads the tooltip mark but does not send it
- * yet; until it does, pairing is all the web can go on.
+ * The api now reads that mark for us (api #941, `overlay`: true = marked,
+ * false = not marked, null = tooltip unreadable). When it is a boolean it
+ * decides; pairing is only the fallback for null or an older api without the
+ * field (until the api release that ships it, PM 총괄 11-15).
+ *
+ * Known gap of the fallback: a real 덧입기 worn over an empty base slot reads
+ * as the base (0 of 65 in the saved raws). The `overlay` field has no such gap.
  *
  * One-piece (한벌) avatars: the official answer sends them as "상의 아바타"
  * (their tooltip says "상의&하의 아바타"), never as a type of their own, so
@@ -54,9 +58,11 @@ export const AVATAR_SLOTS = [
  */
 export function isOverlay(avatar: Avatar, worn: readonly Avatar[]) {
   if (/덧입기/.test(avatar.type ?? "")) return true;
-  if (avatar.isInner !== false) return false;
   const slot = avatarSlot(avatar);
-  if (!(AVATAR_SLOTS as readonly string[]).includes(`${slot} 덧입기`)) return false;
+  // Only the four slots that have a 덧입기 one (an unknown slot never gets a made-up "얼굴1 덧입기").
+  const layered = (AVATAR_SLOTS as readonly string[]).includes(`${slot} 덧입기`);
+  if (typeof avatar.overlay === "boolean") return avatar.overlay && layered;
+  if (avatar.isInner !== false || !layered) return false;
   return worn.some((other) => other !== avatar && other.isInner === true && avatarSlot(other) === slot);
 }
 

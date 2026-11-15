@@ -95,6 +95,49 @@ test("One-piece (상의&하의) avatars come as 상의 아바타 and pair in 상
   assert.equal(avatarSlots(alone).length, AVATAR_SLOTS.length);
 });
 
+test("api overlay (api #941) decides when it is true or false; null and absent fall back to pairing (PM 총괄 11-15)", () => {
+  type Avatar = Parameters<typeof avatarSlots>[0][number];
+  const avatar = (type: string, name: string, isInner: boolean | null, overlay?: boolean | null) =>
+    ({
+      type,
+      name,
+      icon: null,
+      grade: "영웅",
+      isSet: false,
+      isInner,
+      effects: [],
+      tendencies: [],
+      ...(overlay === undefined ? {} : { overlay }),
+    }) as Avatar;
+  const slotOf = (worn: Avatar[], name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+
+  // true: a 덧입기 even over an empty base (the pairing rule's known gap).
+  const lone = avatar("머리 아바타", "덧입은 모자", false, true);
+  assert.equal(isOverlay(lone, [lone]), true);
+  assert.equal(slotOf([lone], "머리 덧입기"), "덧입은 모자");
+  assert.equal(slotOf([lone], "머리"), undefined);
+  // true in a slot with no 덧입기 one stays in its own slot (no made-up "얼굴1 덧입기").
+  const face = avatar("얼굴1 아바타", "얼굴", false, true);
+  assert.equal(isOverlay(face, [face]), false);
+
+  // false: the base, even when IsInner is false next to a true one (the mark says it is not worn as a 덧입기).
+  const base = avatar("상의 아바타", "기본 상의", true, false);
+  const notMarked = avatar("상의 아바타", "표시 없는 상의", false, false);
+  assert.equal(isOverlay(notMarked, [base, notMarked]), false);
+
+  // null (tooltip unreadable) and absent (an api before #941): the pairing rule, as before.
+  for (const flag of [null, undefined]) {
+    const top = avatar("상의 아바타", "기본 상의", true, flag);
+    const over = avatar("상의 아바타", "덧입은 상의", false, flag);
+    const alone = avatar("하의 아바타", "혼자 입은 하의", false, flag);
+    const worn = [top, over, alone];
+    assert.equal(isOverlay(over, worn), true, `${flag}: paired false is the 덧입기`);
+    assert.equal(isOverlay(alone, worn), false, `${flag}: lone false is the base`);
+    assert.equal(slotOf(worn, "상의 덧입기"), "덧입은 상의");
+    assert.equal(slotOf(worn, "하의"), "혼자 입은 하의");
+  }
+});
+
 test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
   type Avatar = Parameters<typeof avatarTendencyTotals>[0][number];
   const avatar = (tendencies: { type: string | null; point: number | null }[] | undefined) =>
