@@ -43,7 +43,7 @@ const contract = {
   components: { schemas: applyOptionalOverrides("character", schemas) },
 };
 const previous = await readFile(file, "utf8").then(JSON.parse, () => null);
-refuseDrops(file, previous, contract, allowDrop);
+refuseDrops(`${file} (source ${source})`, previous, contract, allowDrop);
 await mkdir("contracts", { recursive: true });
 await writeFile(file, JSON.stringify(contract, null, 2) + "\n");
 console.log(
