@@ -21,6 +21,7 @@ import { useLandingMotion, useReducedMotion, useVisible } from "./motion-context
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import { cameFromHistory, clearHistoryMark } from "./history-mark";
 import styles from "./landing.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const noSubscribe = () => () => {};
 // Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
@@ -149,7 +150,13 @@ export function Hero({
           <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : null}</div>
         </div>}
       </div>
-      {!embedded && <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>}
+      {/* Drawn once whole (data-fp-whole, A7 rest sweep): the link is centred, so its words arriving moved it left. */}
+      {!embedded && (
+        <a className={styles.exploreLink} href="#preview" data-fp-whole="">
+          캐릭터 화면 미리보기 <ArrowDown size={16} />
+          <FpEnd />
+        </a>
+      )}
     </section>
   );
 }

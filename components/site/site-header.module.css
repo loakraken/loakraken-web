@@ -89,6 +89,10 @@
 /* Search sits just before the theme toggle, nearly touching it. */
 .theme {
   grid-column: 10;
+  /* The toggle's box lays its button out as a flex item, not on a line (A7, as the menu items, #1688): on pages
+     with a bigger body line its 44px button sat on that line with the strut's descent under it, 52px until the
+     icons came. */
+  display: flex;
 }
 /* Discord: a 28px pill (radius 8, 14px label, 14px logo) in the muted text
    colour on a 4% tint, the text colour on hover. */

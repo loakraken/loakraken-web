@@ -100,12 +100,14 @@ export function useCategoryNav() {
 export function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
   if (!kinds.length) return null;
   return (
-    <span className={styles.rewards}>
+    // Drawn once whole (data-fp-whole, A7 rest sweep): each kind's word arriving grew the chips at the row's end.
+    <span className={styles.rewards} data-fp-whole="">
       {kinds.map((kind) => (
         <i key={kind} data-kind={kind}>
           {rewardLabel(kind)}
         </i>
       ))}
+      <FpEnd />
     </span>
   );
 }
@@ -493,7 +495,9 @@ export function ScheduleBoard({
         {/* The tools sit at the right end, so the rightmost (the toggle) comes
             first in the page and the legend joins on its left (row-reverse): a
             later part never pushes one already drawn (A7, home sweep). */}
-        <span className={`${styles.headTools} ${styles.headToolsReverse}`}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): on /schedule the tools keep their own width, so the legend joining moved the
+            toggle (320, 360: 26 → 85px). */}
+        <span className={`${styles.headTools} ${styles.headToolsReverse}`} data-fp-whole="">
           <button
             type="button"
             className={styles.toggle}
@@ -506,6 +510,7 @@ export function ScheduleBoard({
           <span className={styles.legend} data-fp-label="골드 섬">
             <i data-kind="GOLD" /><span className={styles.legendText}>골드 섬</span>
           </span>
+          <FpEnd />
         </span>
       </div>
       {page && (
@@ -547,7 +552,8 @@ export function ScheduleBoard({
         </div>
       )}
       {page && (
-        <nav className={own.chips} aria-label="일정 분류">
+        // Drawn once whole (data-fp-whole, A7 rest sweep): the chips wrap, so a later one changed the lines (320).
+        <nav className={own.chips} aria-label="일정 분류" data-fp-whole="">
           <a
             href={schedulePath(null)}
             aria-current={shownCategory === null ? "page" : undefined}
@@ -565,6 +571,7 @@ export function ScheduleBoard({
               {item.label}
             </a>
           ))}
+          <FpEnd />
         </nav>
       )}
       {query.isPending ? (
