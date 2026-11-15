@@ -235,6 +235,42 @@ test("avatars group by slot (overlay shares the base slot) and effect lines sum 
   );
 });
 
+test("avatar effect totals leave out 덧입기 avatars: overlay first, slot pairing only when it is absent (QA RC P0-1)", async () => {
+  const { avatarEffectTotals } = await import("../lib/character/inner");
+  type Overlay = boolean | null | undefined;
+  const avatar = (type: string, grade: string, effect: string, isInner: boolean, overlay: Overlay) => ({
+    type, name: "a", icon: null, grade, isSet: false, isInner, effects: [effect], tendencies: [],
+    ...(overlay === undefined ? {} : { overlay }),
+  });
+  // The main reference character's shape (QA RC, api f6cc92d5): four 전설 bases at 민첩 +2% and four 영웅 덧입기 at +1% over them, marked.
+  const shape = (overlay: (base: boolean) => Overlay) =>
+    ["무기", "머리", "상의", "하의"].flatMap((slot) => [
+      avatar(`${slot} 아바타`, "전설", "민첩 +2.00%", true, overlay(true)),
+      avatar(`${slot} 아바타`, "영웅", "민첩 +1.00%", false, overlay(false)),
+    ]);
+  // The game applies +8% (계산 검증 11-15 table); develop summed +12%.
+  assert.deepEqual(avatarEffectTotals(shape((base) => !base)), [{ name: "민첩", value: 8 }]);
+  // No overlay field (an older api) or null (tooltip unreadable): the slot pairing finds the same four.
+  assert.deepEqual(avatarEffectTotals(shape(() => undefined)), [{ name: "민첩", value: 8 }]);
+  assert.deepEqual(avatarEffectTotals(shape(() => null)), [{ name: "민첩", value: 8 }]);
+  // Never IsInner alone: a lone non-inner avatar applies, with or without the field (계산 검증: +6, not +4).
+  const lone = [
+    avatar("상의 아바타", "전설", "지능 +2.00%", true, false),
+    avatar("하의 아바타", "전설", "지능 +2.00%", true, false),
+    avatar("머리 아바타", "영웅", "지능 +1.00%", false, false),
+    avatar("무기 아바타", "영웅", "지능 +1.00%", false, null),
+  ];
+  assert.deepEqual(avatarEffectTotals(lone), [{ name: "지능", value: 6 }]);
+  // The mark decides over the type's words and the pairing: false counts, true never does.
+  assert.deepEqual(
+    avatarEffectTotals([
+      avatar("상의 덧입기 아바타", "영웅", "힘 +1.00%", false, false),
+      avatar("머리 아바타", "영웅", "힘 +1.00%", false, true),
+    ]),
+    [{ name: "힘", value: 1 }],
+  );
+});
+
 test("gem kind follows the gem name and the base attack bonus is read from the set text", async () => {
   const { gemBaseAttack, gemKind } = await import("../lib/character/detail");
   assert.equal(gemKind("10레벨 겁화의 보석"), "겁");

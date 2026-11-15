@@ -2951,16 +2951,22 @@ createServer(async (req, res) => {
     const t = (...pairs) => pairs.map(([type, point]) => ({ type, point }));
     d.avatars = [
       ["무기 아바타", "합성 무기 아바타", "전설", true, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
-      ["무기 아바타", "합성 무기 덧입기", "영웅", false, [], t(["지성", 5])],
+      ["무기 아바타", "합성 무기 덧입기", "영웅", false, ["민첩 +1.00%"], t(["지성", 5])],
       ["상의 아바타", "합성 상의 (패스)", "전설", true, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
-      ["상의 아바타", "합성 상의 덧입기", "영웅", false, [], t(["담력", 5])],
+      ["상의 아바타", "합성 상의 덧입기", "영웅", false, ["민첩 +1.00%"], t(["담력", 5])],
       ["하의 아바타", "합성 하의 (패스)", "전설", true, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
       ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
       ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
       ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
     ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));
-    // An api before #833: the avatars come without the field at all.
-    if (name === "아바타옛응답") for (const avatar of d.avatars) delete avatar.tendencies;
+    // api #941's mark from the official tooltip: true on the two 덧입기 (their 민첩 +1% does not apply, QA RC P0-1).
+    for (const avatar of d.avatars) avatar.overlay = avatar.name.endsWith("덧입기");
+    // An api before #833 (and #941): the avatars come without those fields at all, so the slot pairing decides.
+    if (name === "아바타옛응답")
+      for (const avatar of d.avatars) {
+        delete avatar.tendencies;
+        delete avatar.overlay;
+      }
     d.coverage.avatars = "PROVIDED";
     d.coverage.collectibles = "PROVIDED";
     for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
