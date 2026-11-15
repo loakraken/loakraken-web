@@ -63,7 +63,11 @@ export const specUpQuery = (
   includeCooldownGems: boolean | null = null,
 ) => ["spec-up", name, fetchedAt ?? null, sort, includeCooldownGems] as const;
 
-/** Kinds the screen names; a newer kind shows its own code. */
+/**
+ * Kinds the screen names. A kind the web does not know yet (the api adds kinds ahead of the web, PM 총괄 11-15)
+ * reads "기타", never its code: the list, the detail card and the folded reasons stay readable, and such a row
+ * opens nothing in the simulator (editsFor gives null).
+ */
 export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   GEM_LEVEL: "보석",
   GEM_LEVEL_ALL: "보석",
@@ -79,7 +83,9 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   KARMA_LEVEL: "카르마",
   ABILITY_STONE: "어빌리티 스톤",
 };
-export const kindLabel = (kind: string) => SPEC_UP_KIND_LABEL[kind] ?? kind;
+export const UNKNOWN_KIND_LABEL = "기타";
+export const kindLabel = (kind: string) =>
+  Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
 /** The site reads a gem by its role (보석은 '10겁 8작', user 10-22): gemType → word. */
 const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" };
