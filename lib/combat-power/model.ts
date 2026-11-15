@@ -79,8 +79,14 @@ export type Edits = {
   quality: Record<number, number>;
   /** Advanced refining step per equipment index (search advancedRefineLevel, web #374). */
   advanced: Record<number, number>;
-  /** Polish grade per `${index}:${line}` (the option itself stays). */
+  /** Polish grade per `${index}:${line}` (the option stays, unless polishOption names another). */
   polish: Record<string, Grade>;
+  /**
+   * Another option for a polish line, per `${index}:${line}`, as the request's option ("추가 피해 %", a % option
+   * ending in " %"), or POLISH_NONE for a line with no scoring option. Only a spec-up 연마 step sets it: the
+   * step buys another accessory, so its lines change option, not only grade (api #951).
+   */
+  polishOption: Record<string, string>;
   /** Bracelet grade per line. */
   bracelet: Record<number, Grade>;
   /** Bracelet option family per line (options.braceletOptions name, "없음" removes it; backend #332). */
@@ -99,6 +105,7 @@ export const NO_EDITS: Edits = {
   quality: {},
   advanced: {},
   polish: {},
+  polishOption: {},
   bracelet: {},
   braceletName: {},
   engraving: {},
@@ -107,6 +114,30 @@ export const NO_EDITS: Edits = {
   core: {},
   armGuard: {},
 };
+
+/** The POLISH option of a line with no scoring option (0 combat power, no grade; api #951). */
+export const POLISH_NONE = "NONE";
+/** How such a line reads on screen, the api's own words for it: never the raw code. */
+export const POLISH_NONE_TEXT = "점수 옵션 없는 줄";
+
+/**
+ * A polish option as the screen names it: the request's " %" mark dropped ("추가 피해 %" → "추가 피해"),
+ * and POLISH_NONE in words.
+ */
+export const polishOptionText = (option: string) =>
+  option === POLISH_NONE ? POLISH_NONE_TEXT : option.replace(/\s*%$/, "");
+
+/**
+ * The table value of a polish option the line changes to (a 연마 step's new accessory, api #951), e.g.
+ * "추가 피해 %" HIGH → "+2.60%". The request option says % or flat by its " %"; null when not in the table.
+ */
+export function polishSwapValue(values: PolishValues | undefined, option: string, grade: string): string | null {
+  const percent = /\s%$/.test(option);
+  const name = option.replace(/\s*%$/, "");
+  const row = values?.options.find((item) => item.option === name && item.percent === percent);
+  if (!row) return null;
+  return (grade === "LOW" ? row.low : grade === "MID" ? row.mid : grade === "HIGH" ? row.high : null) ?? null;
+}
 
 export const GRADES = ["LOW", "MID", "HIGH"] as const;
 export type Grade = (typeof GRADES)[number];
@@ -209,8 +240,15 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
   for (const line of current.polish ?? []) {
-    const grade = edits.polish[`${line.index}:${line.line}`];
-    if (grade && grade !== line.grade)
+    const key = `${line.index}:${line.line}`;
+    const grade = edits.polish[key];
+    const option = edits.polishOption[key];
+    // A line with no scoring option has no grade (api #951).
+    if (option === POLISH_NONE) changes.push({ kind: "POLISH", index: line.index, line: line.line, option });
+    else if (option != null) {
+      const to = grade ?? line.grade;
+      if (to) changes.push({ kind: "POLISH", index: line.index, line: line.line, option, grade: to });
+    } else if (grade && grade !== line.grade)
       changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
   }
   for (const line of current.bracelet ?? []) {

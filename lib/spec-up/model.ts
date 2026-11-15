@@ -3,13 +3,19 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ARM_GUARD_GRADES, isRefineOpen, type Edits } from "../combat-power/model";
+import { ARM_GUARD_GRADES, GRADES, isRefineOpen, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+
+const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
 type Schemas = components["schemas"];
 export type SpecUp = Schemas["SpecUpResponse"];
 export type Candidate = Schemas["CandidateResponse"];
 export type Cost = Schemas["CostResponse"];
-export type SpecUpChange = Schemas["ChangeResponse"];
+/**
+ * A polish step's line and option (api #951, optional until that api ships) come typed from the contract once it
+ * is synced; until then they are named here so the step can be read.
+ */
+export type SpecUpChange = Schemas["ChangeResponse"] & { line?: number | null; option?: string | null };
 export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
 // 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
@@ -294,6 +300,24 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
       return change.level != null
         ? { ...base, armGuard: { ...base.armGuard, level: change.level, ...(change.grade ? { grade: change.grade } : {}) } }
         : null;
+    // 연마 (api #951): one line of the accessory a path step buys, its option and grade, or "NONE" (a line with
+    // no scoring option, no grade). Sent as it is, so opening the path gives the step's combat power. A change
+    // without a line, option or grade (a list row's, which names the line's text) opens nothing.
+    case "POLISH": {
+      if (change.index == null || change.line == null || !change.option || change.option.length > 32) return null;
+      const key = `${change.index}:${change.line}`;
+      if (change.option === POLISH_NONE) {
+        const polish = Object.fromEntries(Object.entries(base.polish).filter(([at]) => at !== key)) as Edits["polish"];
+        return { ...base, polish, polishOption: { ...base.polishOption, [key]: POLISH_NONE } };
+      }
+      return isGrade(change.grade)
+        ? {
+            ...base,
+            polish: { ...base.polish, [key]: change.grade },
+            polishOption: { ...base.polishOption, [key]: change.option },
+          }
+        : null;
+    }
     default:
       return null;
   }
@@ -355,6 +379,15 @@ function changeOf(value: unknown): SpecUpChange | null {
     // codex P1). From the address, so only the known grades are read.
     // Optional in the contract: only a change that has one carries it back.
     ...((ARM_GUARD_GRADES as readonly unknown[]).includes(v.grade) ? { grade: v.grade as string } : {}),
+    // 연마 step lines (api #951): the line, its option ("NONE" too) and LOW·MID·HIGH. Dropped, a path opened
+    // with the steps' 연마 left out and other numbers than the path.
+    ...(v.kind === "POLISH"
+      ? {
+          line: int("line"),
+          option: typeof v.option === "string" && v.option.length <= 32 ? v.option : null,
+          ...(isGrade(v.grade) ? { grade: v.grade } : {}),
+        }
+      : {}),
   };
 }
 

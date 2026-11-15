@@ -171,6 +171,47 @@ test("a stone step (api #812) opens with both engravings; a step is never opened
   assert.equal(simulatorPath([{ ...stone, changes: undefined }]).changes.length, 1);
 });
 
+test("a 연마 step (api #951) opens whole, NONE lines too, and the last step per accessory wins", () => {
+  const [gem] = sample.data.steps as GoalStep[];
+  const line = (index: number, n: number, option: string, grade: string | null) => ({
+    ...gem.change,
+    kind: "POLISH",
+    slot: null,
+    level: null,
+    index,
+    line: n,
+    option,
+    grade,
+  });
+  const polish = (id: string, changes: ReturnType<typeof line>[]) =>
+    ({ ...gem, kind: "POLISH", candidateId: id, change: changes[0], changes }) as GoalStep;
+  // The api's order: named options first, then the line with no scoring option (NONE, grade null).
+  const first = polish("POLISH:7:HM", [line(7, 0, "추가 피해 %", "HIGH"), line(7, 1, "적에게 주는 피해 %", "MID"), line(7, 2, "NONE", null)]);
+  const ring = polish("POLISH:9:HH", [line(9, 1, "치명타 피해 %", "HIGH")]);
+  // A later step on the same accessory buys another one: it keeps line 2 as worn, so the earlier NONE must go.
+  const later = polish("POLISH:7:HH", [line(7, 0, "추가 피해 %", "HIGH"), line(7, 1, "적에게 주는 피해 %", "HIGH")]);
+  const path = simulatorPath([gem, first, ring, later]);
+  assert.equal(path.skipped, 0);
+  assert.deepEqual(
+    path.changes.map((c) => [c.kind, c.index ?? c.slot, c.line ?? null, c.option ?? null, c.grade ?? null]),
+    [
+      ["GEM_LEVEL", 0, null, null, null],
+      ["POLISH", 9, 1, "치명타 피해 %", "HIGH"],
+      ["POLISH", 7, 0, "추가 피해 %", "HIGH"],
+      ["POLISH", 7, 1, "적에게 주는 피해 %", "HIGH"],
+    ],
+  );
+  // Without the later step the NONE line goes in as it is, and the whole path survives ?try=.
+  const opened = simulatorPath([first]).changes;
+  assert.deepEqual(opened.map((c) => [c.line, c.option, c.grade]), [[0, "추가 피해 %", "HIGH"], [1, "적에게 주는 피해 %", "MID"], [2, "NONE", null]]);
+  assert.deepEqual(
+    readTryPath(tryPathParam(opened)).map((c) => [c.kind, c.index, c.line, c.option, c.grade ?? null]),
+    [["POLISH", 7, 0, "추가 피해 %", "HIGH"], ["POLISH", 7, 1, "적에게 주는 피해 %", "MID"], ["POLISH", 7, 2, "NONE", null]],
+  );
+  // One line the simulator cannot take (no grade on a named option): the whole step stays out.
+  assert.deepEqual(simulatorPath([polish("POLISH:7:X", [line(7, 0, "추가 피해 %", null), line(7, 2, "NONE", null)])]), { changes: [], skipped: 1 });
+});
+
 test("목표 경로 v2 응답(api #592): 보석 단계 비용은 지금부터 그 레벨까지, GEM_STEP 없음, 합계는 단계를 더한 값이 아님", () => {
   const goal = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8")).data;
   assert.equal(goal.ruleVersion, "spec-up-goal-v2");

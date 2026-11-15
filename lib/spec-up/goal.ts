@@ -80,15 +80,23 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
 export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes: SpecUpChange[]; skipped: number } {
   const takes = (change: SpecUpChange) =>
     (isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") && editsFor(change, NO_EDITS, gearType) != null;
-  const changes: SpecUpChange[] = [];
+  let changes: SpecUpChange[] = [];
   let skipped = 0;
   for (const step of steps) {
     // A step may change more than one thing (api #812: a stone step sets two
     // engravings, `changes`; `change` is only its first). The whole step goes
     // in or none of it: half a stone would be a stone that does not exist.
     const all = (step.changes?.length ? step.changes : [step.change]) as SpecUpChange[];
-    if (all.every(takes)) changes.push(...all);
-    else skipped += 1;
+    if (!all.every(takes)) {
+      skipped += 1;
+      continue;
+    }
+    // A 연마 step buys another accessory for its slot (api #951): it replaces an earlier step's one there whole,
+    // not line by line (a line the later one keeps as worn must not keep the earlier one's option). The api
+    // replays the path the same way, the last step per slot.
+    const bought = new Set(all.flatMap((change) => (change.kind === "POLISH" ? [change.index] : [])));
+    if (bought.size) changes = changes.filter((change) => change.kind !== "POLISH" || !bought.has(change.index));
+    changes.push(...all);
   }
   // In path order: the simulator applies them one after another, so a later
   // value for the same slot (보석 9 → 10, the same engraving again) wins.

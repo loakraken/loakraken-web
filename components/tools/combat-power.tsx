@@ -44,6 +44,9 @@ import {
   isOpen,
   isRefineOpen,
   polishValue,
+  polishOptionText,
+  polishSwapValue,
+  POLISH_NONE,
   refineEdit,
   type Grade,
   NO_EDITS,
@@ -445,6 +448,35 @@ function Editors({
         <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
+            // A spec-up 연마 step (api #951) puts another accessory in: the line names its new option, the one worn
+            // now under it, and a line with no scoring option has no grade to pick (never the raw "NONE").
+            const swap = edits.polishOption[key];
+            if (swap != null && isOpen("POLISH"))
+              return (
+                <li key={key}>
+                  <span className={styles.rowName}>
+                    {polishOptionText(swap)}
+                    <small className={styles.rowSub}>{`${line.item} · 지금 ${line.option} ${line.value}`}</small>
+                  </span>
+                  {swap === POLISH_NONE ? (
+                    <span className={styles.locked}>등급 없음</span>
+                  ) : (
+                    <Choice
+                      label={`${line.item} ${polishOptionText(swap)} 등급`}
+                      value={edits.polish[key] ?? line.grade ?? ""}
+                      // Not the line worn: every grade is a change, and there is no empty pick.
+                      original=""
+                      values={options.polishGrades.map((grade) => ({
+                        value: grade,
+                        label: gradeWithValue(grade, polishSwapValue(options.polishValues, swap, grade)),
+                      }))}
+                      onChange={(grade) =>
+                        setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
+                      }
+                    />
+                  )}
+                </li>
+              );
             return (
               <li key={key}>
                 <span className={styles.rowName}>
@@ -720,11 +752,12 @@ function ResultBand({
 function polishText(text: string | null, from: string | null, values: PolishValues | undefined) {
   const match = text?.match(/^(.*) (LOW|MID|HIGH)$/);
   if (!match) return gradeText(text);
+  // A 연마 step's option keeps the request's " %" mark ("추가 피해 % HIGH", api #951): shown without it.
   const [, option, grade] = match;
   // from is "옵션 +1.60%": the accessory's current value decides if the table fits.
   const current = from?.startsWith(`${option} `) ? from.slice(option.length + 1) : null;
   const value = current ? polishValue(values, option, { value: current, grade: null }, grade) : null;
-  return `${option} ${gradeWithValue(grade, value)}`;
+  return `${polishOptionText(option)} ${gradeWithValue(grade, value)}`;
 }
 
 function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
