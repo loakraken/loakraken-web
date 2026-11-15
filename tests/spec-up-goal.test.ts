@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { parseTarget, simulatorPath, stepCost, stepKindLabel, targetError, type GoalStep } from "../lib/spec-up/goal";
-import { gearTypeOf, koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
+import { editsFor, gearTypeOf, koreanGold, readTry, readTryPath, tryPathParam, type SpecUpChange } from "../lib/spec-up/model";
+import { NO_EDITS, toChanges, type Edits } from "../lib/combat-power/model";
 import { requestSpecUpGoal } from "../lib/spec-up/upstream";
 
 const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
@@ -209,6 +210,26 @@ test("a 연마 step (api #951) opens whole, NONE lines too, and the last step pe
     simulatorPath([first, reset]).changes.map((c) => [c.line, c.option]),
     [[0, "추가 피해 %"], [1, "적에게 주는 피해 %"], [2, "공격력"]],
   );
+  // What /simulate gets: the changes fold into one state per line (the simulator tab's start), then toChanges.
+  // Folding the plain concatenation (no slot replacement) gives the same request: the reset line sets line 2
+  // back to its worn option and grade, so the earlier NONE does not survive and nothing goes out for it.
+  const worn = {
+    gems: [],
+    gear: [],
+    polish: [
+      { index: 7, line: 0, option: "적에게 주는 피해", grade: "LOW" as const, value: "+0.55%" },
+      { index: 7, line: 1, option: "추가 피해", grade: "MID" as const, value: "+1.60%" },
+      { index: 7, line: 2, option: "공격력", grade: "MID" as const, value: "+195" },
+    ],
+  };
+  const sent = (list: SpecUpChange[]) =>
+    toChanges(list.reduce<Edits>((edits, change) => editsFor(change, edits) ?? edits, NO_EDITS), worn);
+  const bySlot = sent(simulatorPath([first, reset]).changes);
+  assert.deepEqual(sent([...first.changes!, ...reset.changes!] as SpecUpChange[]), bySlot);
+  assert.deepEqual(bySlot, [
+    { kind: "POLISH", index: 7, line: 0, option: "추가 피해 %", grade: "HIGH" },
+    { kind: "POLISH", index: 7, line: 1, option: "적에게 주는 피해 %", grade: "HIGH" },
+  ]);
   // Without the later step the NONE line goes in as it is, and the whole path survives ?try=.
   const opened = simulatorPath([first]).changes;
   assert.deepEqual(opened.map((c) => [c.line, c.option, c.grade]), [[0, "추가 피해 %", "HIGH"], [1, "적에게 주는 피해 %", "MID"], [2, "NONE", null]]);
