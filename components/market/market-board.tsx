@@ -74,6 +74,7 @@ import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/comp
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
 import { PendingText } from "@/components/ui/pending-text";
 import { BotNote } from "@/components/bot/bot-note";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const TIERS = [4, 3] as const;
 
@@ -373,8 +374,9 @@ function Detail({
       : "최근 14일 동안 거래 기록이 없어요.";
   // The latest days (at most 14) under the caption; each cell stays on one line (#1634), so its rows are
   // the skeleton's height at every width.
+  // Drawn once whole (data-fp-whole, A7 rest sweep): the columns were measured again as each later row came in.
   const dailyTable = variant && variant.days.length > 0 && (
-    <table className={styles.daily}>
+    <table className={styles.daily} data-fp-whole="">
       <thead>
         <tr>
           <th scope="col">날짜</th>
@@ -399,18 +401,21 @@ function Detail({
           </tr>
         ))}
       </tbody>
+      <FpEnd />
     </table>
   );
   return (
     <section className={styles.detail} aria-label={`${item.name} 시세`}>
       <header className={styles.detailHead}>
         <GameIcon src={item.icon} grade={item.grade} size={44} />
-        <div>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the two lines are centred by the icon, so the second arriving moved the name up. */}
+        <div data-fp-whole="">
           <strong data-grade={item.grade ?? undefined}>{item.name}</strong>
           <small>
             {[tier != null && `T${tier}`, item.grade].filter(Boolean).join(" · ")}
             {item.bundleCount > 1 && ` · ${item.bundleCount}개 묶음`}
           </small>
+          <FpEnd />
         </div>
         <button
           type="button"
@@ -903,9 +908,11 @@ function MarketContent({
               <div className={styles.boardHead}>
                 {/* Drawn anew per kind: its text changes in place otherwise and
                     counts as moving (A7). */}
-                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`}>
-                  {data?.tabLabel ?? currentTab?.label ?? "시세"} 시세{" "}
-                  {data && <small>{data.totalItems}종</small>}
+                {/* Drawn once whole (data-fp-whole, A7 rest sweep): the count arriving after the name re-set the line's baseline. */}
+                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`} data-fp-whole="">
+                  {`${data?.tabLabel ?? currentTab?.label ?? "시세"} 시세 `}
+                  {data && <small>{`${data.totalItems}종`}</small>}
+                  <FpEnd />
                 </h2>
                 <div className={styles.sorts} role="group" aria-label="정렬">
                   {SORTS.map((s) => (
