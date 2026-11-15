@@ -15,9 +15,10 @@ for (const width of [1280, 360])
     await gotoReady(page, characterPath("상세", "avatars"));
     const totals = panelOf(page, "아바타 성향");
     await expect(totals).toBeVisible();
-    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock.
+    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock, without the two
+    // 덧입기 (지성 5, 담력 5): their points do not apply either (PM 총괄 11-15).
     await expect(totals.locator("dt")).toHaveText(["지성", "담력", "매력", "친절"]);
-    await expect(totals.locator("dd")).toHaveText(["+25", "+20", "+35", "+15"]);
+    await expect(totals.locator("dd")).toHaveText(["+20", "+15", "+35", "+15"]);
     await expect(totals).toContainText("캐릭터 전체 성향은 내실 탭에 있어요.");
 
     const list = panelOf(page, "아바타 목록");
