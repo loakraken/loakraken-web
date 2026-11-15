@@ -13,6 +13,7 @@ import {
   REQUEST_DAYS,
 } from "@/lib/legal";
 import { EmailLink } from "@/components/ui/email-link";
+import { FpEnd } from "@/components/ui/fp-end";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침",
@@ -25,7 +26,9 @@ const Pending = ({ value }: { value: string | null }) =>
 
 function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   return (
-    <div className={styles.tableWrap}>
+    // Drawn once whole (data-fp-whole, A7 rest sweep): an auto-layout table re-measured its columns as each later
+    // row arrived, so the rows already drawn moved.
+    <div className={styles.tableWrap} data-fp-whole="">
       <table>
         <thead>
           <tr>
@@ -44,6 +47,7 @@ function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
           ))}
         </tbody>
       </table>
+      <FpEnd />
     </div>
   );
 }
