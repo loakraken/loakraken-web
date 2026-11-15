@@ -68,19 +68,26 @@ const drawn = (row) =>
 
 test.describe("배너 순위 길이: 5자리는 한 줄 전체 @A37 @regression", () => {
   test.use({ allowConsoleErrors: true });
+  // A usual rank, and the longest one-line badge: 5 digits, a two-decimal share, on the longest real server
+  // name's banner (PM 총괄 · PM-프론트 #1755: the real tuned stack, site font and matched fallback).
+  const CASES = [
+    { who: "상세", shown: /^대양 4,120위 · 상위 22\.6%$/ },
+    { who: "순위다섯자리긴값", shown: /^\S+ 99,999위 · 상위 47\.62%$/ },
+  ];
+  for (const { who, shown } of CASES)
   for (const face of ["site", "matched"])
-    for (const width of [320, 360, 390])
-      test(`${width}px ${face === "site" ? "사이트 글꼴" : "맞춘 대체 글꼴"}: '대양 4,120위 · 상위 22.6%'가 한 줄로 줄 안에`, async ({ page }) => {
+    for (const width of [320, 360, 390, 399])
+      test(`${who} ${width}px ${face === "site" ? "사이트 글꼴" : "맞춘 대체 글꼴"}: 5자리까지는 '상위'까지 한 줄로 줄 안에`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         if (face === "site") await warmSiteFont(page);
         else await page.route(/\.woff2(\?|$)/, (route) => route.abort());
-        await gotoReady(page, characterPath("상세"));
+        await gotoReady(page, characterPath(who));
         expect(await drawnFace(page), "그리는 글꼴").toBe(face);
-        const row = rowOf(page, "상세");
+        const row = rowOf(page, who);
         // The name: what is shown, then what is not (WCAG 2.5.3).
-        const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6% 전투력 순위, .*공식 순위가 아니에요\.$/ });
+        const badge = row.getByRole("button", { name: new RegExp(`${shown.source.slice(0, -1)} 전투력 순위, .*공식 순위가 아니에요\\.$`) });
         await expect(badge).toBeVisible();
-        await expect(badge.locator("[class*=bannerRankText]")).toHaveText("대양 4,120위 · 상위 22.6%", { useInnerText: true });
+        await expect(badge.locator("[class*=bannerRankText]")).toHaveText(shown, { useInnerText: true });
         const d = await drawn(row);
         expect(d.lines, "한 줄").toBe(1);
         expect(d.height, "줄 높이").toBe(26);

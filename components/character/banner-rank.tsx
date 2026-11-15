@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRank } from "@/lib/character/client";
 import { bannerRank } from "@/lib/character/rank";
@@ -14,12 +14,13 @@ import styles from "./character.module.css";
  * the first HTML, empty until the rank arrives or when there is none, so the
  * banner never moves (A6). Never called an official rank.
  *
- * Length rule (PM 총괄 11-16): up to 5 digits the badge is one full line at every width. A 6+ digit rank does
- * not fit one line below 400px, so there it takes two (tier and rank, then 상위 and the share). The row's
- * height is fixed by the first render: two lines only when the rank is already known to be long (the server's
- * answer in the first HTML). A long rank arriving later, into a one-line row, keeps that row and leaves 상위
- * out below 400px (the name still says the full rank), so nothing moves. The name is the
- * badge's own text, then a sentence that is never drawn, so it starts with what is shown (WCAG 2.5.3).
+ * Fit (PM 총괄 11-16): the badge is two unbreakable halves, [tier rank] and [상위 share]. When the rank is in
+ * the first HTML the browser lays them out on one line if they fit and on two if not, for any tier, rank
+ * length, font and width; the site font is display:optional, so the face never changes after the first
+ * paint and neither does the height (only a resize can). A row first drawn empty (the server gave up after
+ * its 1 s wait) keeps its one line: a rank arriving later shows in full if that fits, else without 상위.
+ * The name is the badge's own text, then a sentence that is never drawn, so it starts with what is shown
+ * (WCAG 2.5.3).
  */
 export function BannerRank({ name }: { name: string }) {
   const query = useQuery({
@@ -28,41 +29,66 @@ export function BannerRank({ name }: { name: string }) {
     staleTime: 5 * 60_000,
   });
   const rank = query.data ? bannerRank(query.data.data) : null;
-  // Read once: the row keeps the height it was first drawn with.
-  const [twoLines] = useState(() => rank?.long === true);
-  const late = rank?.long === true && !twoLines;
+  // Read once: a row drawn with its rank may grow to two lines; one drawn empty keeps one line.
+  const [wraps] = useState(() => rank !== null);
+  const [short, setShort] = useState(false);
+  const row = useRef<HTMLParagraphElement>(null);
   const id = useId();
+  const text = rank?.text;
+
+  // The one-line row: full when it fits, else without 상위. Measured before paint, again on resize.
+  useLayoutEffect(() => {
+    const el = row.current;
+    const badge = el?.querySelector("button");
+    if (wraps || !el || !badge) return;
+    const decide = () => {
+      const was = badge.classList.contains(styles.bannerRankShort);
+      badge.classList.remove(styles.bannerRankShort);
+      const over = badge.getBoundingClientRect().right > el.getBoundingClientRect().right + 0.5;
+      badge.classList.toggle(styles.bannerRankShort, was);
+      setShort(over);
+    };
+    decide();
+    const observer = new ResizeObserver(decide);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [wraps, text]);
+
+  const rowClass = wraps ? `${styles.bannerRank} ${styles.bannerRankWraps}` : styles.bannerRank;
+  const badgeClass = !wraps && short ? `${styles.bannerRankBadge} ${styles.bannerRankShort}` : styles.bannerRankBadge;
   return (
-    <p className={twoLines ? `${styles.bannerRank} ${styles.bannerRankTwo}` : styles.bannerRank}>
+    <p ref={row} className={rowClass}>
       {rank ? (
         <Tooltip>
-          <TooltipTrigger
-            className={late ? `${styles.bannerRankBadge} ${styles.bannerRankShort}` : styles.bannerRankBadge}
-            aria-labelledby={`${id}-text ${id}-more`}
-          >
+          <TooltipTrigger className={badgeClass} aria-labelledby={`${id}-text ${id}-more`}>
             <span id={`${id}-text`} className={styles.bannerRankText}>
-              {rank.tier && <b>{rank.tier}</b>}{" "}
-              {/* On a phone the label is left out so the badge stays left of the
-                  render (A37); the name above and the hidden sentence still say it. */}
-              <span className={styles.bannerRankLabel}>{rank.label} </span>
-              {rank.rank}
-              {rank.share && (
-                <>
-                  <span className={styles.bannerRankSep}> ·</span>
-                  <br className={styles.bannerRankBreak} />{" "}
-                  <span className={styles.bannerRankTopWord}>상위 </span>
-                  {rank.share}
-                </>
-              )}
+              <span className={styles.bannerRankHalves}>
+                <span className={styles.bannerRankHalf}>
+                  {rank.tier && <b>{rank.tier} </b>}
+                  {/* On a phone the label is left out so the badge stays left of the
+                      render (A37); the name above and the hidden sentence still say it. */}
+                  <span className={styles.bannerRankLabel}>{rank.label} </span>
+                  {rank.rank}
+                </span>
+                {rank.share && (
+                  // The "·" before it is drawn in its leading gap, which is cut off when it starts a line.
+                  <span className={`${styles.bannerRankHalf} ${styles.bannerRankShare}`}>
+                    <span className={styles.bannerRankTopWord}>상위 </span>
+                    {rank.share}
+                  </span>
+                )}
+              </span>
             </span>
-            {/* Never drawn (no box, so no text past the column for any scan); read through aria-labelledby. */}
-            {/* The late short form leaves 상위 out of the drawn text, so this sentence says it in full. */}
-            <span id={`${id}-more`} hidden>{late ? `${rank.text}, ${rank.note}` : `${rank.label} 순위, ${rank.note}`}</span>
+            {/* Never drawn (no box, so no text past the column for any scan); read through aria-labelledby.
+                The short form leaves 상위 out of the drawn text, so then this sentence says the rank in full. */}
+            <span id={`${id}-more`} hidden>
+              {!wraps && short ? `${rank.text}, ${rank.note}` : `${rank.label} 순위, ${rank.note}`}
+            </span>
           </TooltipTrigger>
           <TooltipContent>{rank.note}</TooltipContent>
         </Tooltip>
       ) : (
-        " "
+        " "
       )}
     </p>
   );
