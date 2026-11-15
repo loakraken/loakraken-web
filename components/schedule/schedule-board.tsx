@@ -552,7 +552,8 @@ export function ScheduleBoard({
         </div>
       )}
       {page && (
-        <nav className={own.chips} aria-label="일정 분류">
+        // Drawn once whole (data-fp-whole, A7 rest sweep): the chips wrap, so a later one changed the lines (320).
+        <nav className={own.chips} aria-label="일정 분류" data-fp-whole="">
           <a
             href={schedulePath(null)}
             aria-current={shownCategory === null ? "page" : undefined}
@@ -570,6 +571,7 @@ export function ScheduleBoard({
               {item.label}
             </a>
           ))}
+          <FpEnd />
         </nav>
       )}
       {query.isPending ? (
