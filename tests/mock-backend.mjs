@@ -14,6 +14,7 @@ const read = (name) =>
 const counts = {};
 // Client addresses that already had their one busy goal answer (api #922, spec-up-goal-retry spec).
 const goalBusyOnce = new Set();
+const rankAsks = new Map();
 /** BYOK: last four characters of the X-LK-User-Key each character read carried. */
 const userKeys = {};
 
@@ -1721,7 +1722,14 @@ createServer(async (req, res) => {
       // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
       // 순위큰수늦음: the same, after the page's 1s wait (the late path keeps a one-line row).
       entry("COMBAT_POWER", "ALL", null, 123456, 247000),
-    ] : who === "순위다섯자리긴값" ? [
+    ] : who.startsWith("순위바뀜") || who.startsWith("순위줄어듦") ? (() => {
+      // A rank whose length changes between asks (the page's own ask, then a later one, e.g. a tab switch):
+      // 순위바뀜… grows 4,120 → 123,456, 순위줄어듦… shrinks 123,456 → 4,120. Counted per name (specs use their own).
+      const asked = (rankAsks.get(who) ?? 0) + 1;
+      rankAsks.set(who, asked);
+      const long = who.startsWith("순위바뀜") ? asked > 1 : asked === 1;
+      return [long ? entry("COMBAT_POWER", "ALL", null, 123456, 247000) : entry("COMBAT_POWER", "ALL", null, 4120, 18231)];
+    })() : who === "순위다섯자리긴값" ? [
       // The longest one-line badge: 5 digits and a two-decimal share ('99,999위 · 상위 47.62%'), on the
       // longest real server name (아브렐슈드, character mock above).
       entry("COMBAT_POWER", "ALL", null, 99999, 210000),
