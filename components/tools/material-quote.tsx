@@ -55,6 +55,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
 import restoreStyles from "./material-quote-restore.module.css";
+import { OverflowRow } from "@/components/ui/overflow-row";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -335,19 +336,22 @@ function ItemSearch({
               ))}
             </PillTabs>
             {activeGroup && (activeGroup.subs?.length ?? 0) > 0 && (
-              <div ref={chipRow} className={styles.chips} role="group" aria-label={`${activeGroup.codeName} 분류`}>
-                {[{ code: activeGroup.code, codeName: "전체" }, ...(activeGroup.subs ?? [])].map((sub) => (
-                  <button
-                    key={sub.code}
-                    type="button"
-                    className={`${styles.chip} hit-44`}
-                    aria-pressed={selectedCategory === sub.code}
-                    onClick={() => choose(sub.code)}
-                  >
-                    {sub.codeName}
-                  </button>
-                ))}
-              </div>
+              // Scrolls sideways when the kinds outgrow the line (OverflowRow: ‹ › on a mouse, drag).
+              <OverflowRow>
+                <div ref={chipRow} className={styles.chips} role="group" aria-label={`${activeGroup.codeName} 분류`}>
+                  {[{ code: activeGroup.code, codeName: "전체" }, ...(activeGroup.subs ?? [])].map((sub) => (
+                    <button
+                      key={sub.code}
+                      type="button"
+                      className={`${styles.chip} hit-44`}
+                      aria-pressed={selectedCategory === sub.code}
+                      onClick={() => choose(sub.code)}
+                    >
+                      {sub.codeName}
+                    </button>
+                  ))}
+                </div>
+              </OverflowRow>
             )}
           </>
         ) : (

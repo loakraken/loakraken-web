@@ -76,6 +76,7 @@ import { DataRefreshState } from "@/components/ui/data-refresh-state";
 import { PendingText } from "@/components/ui/pending-text";
 import { BotNote } from "@/components/bot/bot-note";
 import { FpEnd } from "@/components/ui/fp-end";
+import { OverflowRow } from "@/components/ui/overflow-row";
 
 const TIERS = [4, 3] as const;
 
@@ -864,20 +865,24 @@ function MarketContent({
               </p>
             </BotNote>
           ) : (
-            <ul className={styles.favorites} aria-label="즐겨찾기 품목">
-              {favorites.map((f) => (
-                <li key={f.itemId}>
-                  <button
-                    type="button"
-                    aria-pressed={active?.itemId === f.itemId}
-                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1, grade: null }, f.itemId)}
-                  >
-                    <Bookmark size={12} aria-hidden="true" />
-                    <span data-grade={f.grade ?? undefined}>{f.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            // Scrolls sideways when the favourites outgrow the line (OverflowRow): ‹ › on a mouse, drag,
+            // the shown item's favourite in view (no first-paint script: storage, browser only).
+            <OverflowRow reveal="[aria-pressed=true]" revealKey={active?.itemId} revealScript={false}>
+              <ul className={styles.favorites} aria-label="즐겨찾기 품목">
+                {favorites.map((f) => (
+                  <li key={f.itemId}>
+                    <button
+                      type="button"
+                      aria-pressed={active?.itemId === f.itemId}
+                      onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1, grade: null }, f.itemId)}
+                    >
+                      <Bookmark size={12} aria-hidden="true" />
+                      <span data-grade={f.grade ?? undefined}>{f.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </OverflowRow>
           )}
 
           <div className={styles.columns}>
