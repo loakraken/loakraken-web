@@ -21,7 +21,8 @@ for (const width of [320, 1280])
       { line: 0, option: "적에게 주는 피해 %", grade: "HIGH" },
       { line: 1, option: "NONE", grade: undefined },
     ]);
-    const card = page.getByRole("region", { name: "연마" });
+    // exact: the character banner ("스펙순서연마 캐릭터 요약") has the word too.
+    const card = page.getByRole("region", { name: "연마", exact: true });
     // The new option by name (no " %" mark) with its table value, the worn line under it.
     await expect(card.getByRole("combobox", { name: "테스트 목걸이 적에게 주는 피해 등급" })).toHaveText("상(+2.00%)");
     await expect(card).toContainText("테스트 목걸이 · 지금 추가 피해 +1.60%");
