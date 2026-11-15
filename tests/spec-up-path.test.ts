@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort, pathFigures, stepFigures } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathFigures, pathSortsFor, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -39,12 +39,57 @@ test("no sort is the backend's default; a sort it does not take never leaves the
     },
   });
   assert.ok(result.ok);
-  for (const sort of ["KRAKEN", "efficiency", ""])
+  for (const sort of ["kraken", "efficiency", ""])
     assert.deepEqual(await requestSpecUpPath("스펙순서", sort, origin, { fetcher: async () => json(sample) }), {
       ok: false,
       error: { code: "INVALID_REQUEST", status: 400 },
     });
-  assert.ok(isPathSort("EFFICIENCY") && isPathSort("DELTA") && !isPathSort("KRAKEN"));
+  // KRAKEN passes since api #967/#971: the screen asks for it only where the api offered it.
+  assert.ok(isPathSort("EFFICIENCY") && isPathSort("DELTA") && isPathSort("KRAKEN") && !isPathSort("kraken"));
+});
+
+test("추천 순서 by score is offered only where the api says it runs (supportOrderAvailable, api #971)", () => {
+  const ids = (sorts: readonly { id: string }[]) => sorts.map((s) => s.id);
+  assert.deepEqual(ids(pathSortsFor(false, false)), ["EFFICIENCY", "DELTA"], "off: the dealer's two rules, no KRAKEN");
+  assert.deepEqual(ids(pathSortsFor(true, false)), ["EFFICIENCY", "DELTA", "KRAKEN"]);
+  assert.deepEqual(ids(pathSortsFor(false, true)), [], "off: a supporter has no 추천 순서");
+  assert.deepEqual(ids(pathSortsFor(true, true)), ["KRAKEN"], "on: a supporter's only rule is the score");
+});
+
+test("the score's name follows the answer's own role (krakenScoreRole), else the web's position check", () => {
+  assert.equal(scoredAsSupporter("SUPPORT", false), true);
+  assert.equal(scoredAsSupporter("DEALER", true), false);
+  // A value the web does not know yet (the field's values may grow) or none: the web's own check.
+  for (const role of [null, undefined, "HEALER"]) {
+    assert.equal(scoredAsSupporter(role, true), true);
+    assert.equal(scoredAsSupporter(role, false), false);
+  }
+  const answer = { sort: "KRAKEN", combatPower: 1, finalCombatPower: null, krakenScore: 1, finalKrakenScore: 2 };
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: "SUPPORT" }, false).name, "서포터 점수");
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: "DEALER" }, true).name, "크라켄 점수");
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: null }, true).name, "서포터 점수");
+});
+
+test("the api's own supporter KRAKEN path (api #969 test answer) passes the contract and reads in its score", async () => {
+  const real = JSON.parse(
+    readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"),
+  );
+  const result = await requestSpecUpPath("점수순서서폿", "KRAKEN", origin, {
+    fetcher: async (url) => {
+      assert.match(String(url), /sort=KRAKEN$/);
+      return json(real);
+    },
+  });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.finalCombatPower, null);
+  const figures = pathFigures(path, true);
+  assert.deepEqual([figures.name, figures.start, figures.final], ["서포터 점수", 5286.48, 5490.12]);
+  assert.deepEqual(
+    path.steps.map((step) => stepFigures(step, true).gain),
+    [53.33, 40.57, 43.43, 41.33, 24.99],
+  );
+  assert.ok(path.steps.every((step) => stepFigures(step, false).gain === null), "no combat power on any step");
 });
 
 test("SPEC_UP_BUSY keeps its code and Retry-After; another 429 is the rate limit; 404 codes pass", async () => {
