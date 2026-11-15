@@ -302,7 +302,7 @@ export function TabBar({
       <div className={styles.tabInner} data-fp-whole="">
         {/* ‹ › on a mouse, drag, a keyboard focus clear of the fades (OverflowRow); the current tab is
             revealed by the pill (tab-pill.ts). */}
-        <OverflowRow>
+        <OverflowRow className={styles.tabsRow}>
           <nav
             ref={pillNav}
             // Fades at an end where tabs are hidden (A35).

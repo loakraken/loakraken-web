@@ -1,7 +1,9 @@
 /* OverflowRow (overflow-row.tsx): a box round a row that scrolls sideways. It
-   takes no room of its own; the ‹ › buttons are overlays placed on the row's
-   ends from a measurement (--row-start / --row-end / --row-mid), so showing
-   them never moves an item (A7). */
+   takes no room of its own. The ‹ › buttons are overlays on the row's ends,
+   not drawn at all (display: none) until the row is measured as hiding items
+   past that end, so they never move anything while a page arrives (A7). A row
+   whose scroller sits off this box's edges (negative margins for its focus
+   room) sets --row-start / --row-end / --row-top / --row-bottom in its CSS. */
 .row {
   position: relative;
   min-width: 0;
@@ -9,13 +11,15 @@
 
 .arrow {
   position: absolute;
-  top: var(--row-mid, 50%);
+  top: var(--row-top, 0px);
+  bottom: var(--row-bottom, 0px);
   z-index: 2;
-  display: grid;
+  display: none;
   place-items: center;
+  box-sizing: border-box;
   width: 28px;
   height: 28px;
-  margin-top: -14px;
+  margin-block: auto;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -23,12 +27,8 @@
   color: var(--foreground);
   box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 12%, transparent);
   cursor: pointer;
-  /* Hidden (and out of the accessibility tree) unless items wait past this end. */
-  visibility: hidden;
-  opacity: 0;
   transition:
     opacity var(--duration-fast) var(--ease-out),
-    visibility 0s linear var(--duration-fast),
     scale var(--duration-fast) var(--ease-out);
 }
 .prev {
@@ -42,11 +42,14 @@
 @media (hover: hover) and (pointer: fine) {
   .row[data-overflow-start] > .prev,
   .row[data-overflow-end] > .next {
-    visibility: visible;
-    opacity: 1;
-    transition:
-      opacity var(--duration-fast) var(--ease-out),
-      scale var(--duration-fast) var(--ease-out);
+    display: grid;
+  }
+  /* Fades in; at the row's end it goes at once. */
+  @starting-style {
+    .row[data-overflow-start] > .prev,
+    .row[data-overflow-end] > .next {
+      opacity: 0;
+    }
   }
   .arrow:hover {
     background: var(--hover-surface);
@@ -74,10 +77,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .arrow {
-    transition: none;
-  }
-  .row[data-overflow-start] > .prev,
-  .row[data-overflow-end] > .next {
     transition: none;
   }
 }

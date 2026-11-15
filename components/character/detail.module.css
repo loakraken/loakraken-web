@@ -35,6 +35,14 @@
   margin: 0 auto;
   padding: 0 28px;
 }
+/* The OverflowRow box round the tabs: the scroller spills 8px past it on every
+   side (its focus room, below), which the ‹ › buttons follow. */
+.tabsRow {
+  --row-start: -8px;
+  --row-end: -8px;
+  --row-top: -8px;
+  --row-bottom: -8px;
+}
 .tabs {
   position: relative; /* the pill copy scrolls with the tabs */
   display: flex;
@@ -1407,8 +1415,8 @@
     flex: 1 0 100%;
     justify-content: flex-end;
   }
-  .tabs {
-    flex: 0 0 calc(100% + 16px); /* the full row, with its focus room */
+  .tabsRow {
+    flex: 0 0 100%; /* the full row; the tabs inside add their focus room */
   }
 }
 

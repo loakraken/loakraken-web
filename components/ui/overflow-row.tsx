@@ -20,7 +20,10 @@ import styles from "./overflow-row.module.css"
 //   after the row, every browser) and again whenever `revealKey` changes.
 //
 // Touch swipe, trackpad and shift+wheel stay the browser's own: nothing here reads the wheel or
-// a touch. The buttons are overlays placed after measuring, so they never move an item (A7).
+// a touch. The buttons are overlays, not drawn at all (display: none) until the row is measured as
+// hiding items past that end, so they never move anything while a page arrives (A7). A row whose
+// scroller sits off this box's edges (negative margins for its focus room) says where with
+// --row-start / --row-end / --row-top / --row-bottom in its own CSS.
 //
 // <OverflowRow as="nav" aria-label="…" reveal="[aria-current=page]">
 //   <div className="overflow-x-auto …">…items…</div>
@@ -74,18 +77,13 @@ function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, 
     const row = root?.firstElementChild
     if (!root || !(row instanceof HTMLElement)) return
 
-    // Which ends hide items, and where the row sits in this box (the buttons are placed on it).
+    // Which ends hide items.
     let frame = 0
     const read = () => {
       frame = 0
       const overflow = row.scrollWidth > row.clientWidth + 1
       flag(root, "data-overflow-start", overflow && row.scrollLeft > 1)
       flag(root, "data-overflow-end", overflow && row.scrollLeft + row.clientWidth < row.scrollWidth - 1)
-      const outer = root.getBoundingClientRect()
-      const inner = row.getBoundingClientRect()
-      root.style.setProperty("--row-start", `${inner.left - outer.left}px`)
-      root.style.setProperty("--row-end", `${outer.right - inner.right}px`)
-      root.style.setProperty("--row-mid", `${inner.top - outer.top + inner.height / 2}px`)
     }
     const later = () => {
       if (!frame) frame = requestAnimationFrame(read)

@@ -6,6 +6,11 @@
 .row {
   grid-column: 1 / -1;
   max-width: 100%;
+  /* Where the tabs' scroller sits in it (its margin below): for the ‹ › buttons. */
+  --row-start: -8px;
+  --row-end: 8px;
+  --row-top: 4px;
+  --row-bottom: -8px;
 }
 .tabs {
   display: flex;
