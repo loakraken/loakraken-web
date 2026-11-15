@@ -14,6 +14,7 @@ import {
   POLISH_NONE,
   ARK_PASSIVE_MAX,
   arkPassiveMax,
+  arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -289,13 +290,29 @@ test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", 
   );
 });
 
-test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
+test("ark passive opens 도약 (api #842) and 진화 (api #965), each to its in-game maximum; 깨달음 and the 혼돈의 별 : 무기 core stay locked", () => {
+  // 깨달음 waits for the api to compute above 100 (nearly every character is at 101; PM 총괄 11-16).
   assert.deepEqual(
     ["도약", "진화", "깨달음"].map((tree) => isArkPassiveOpen(tree)),
-    [true, false, false],
+    [true, true, false],
   );
-  // The in-game maximum (official guide 2026-06-24): 도약 70; other trees keep the api range.
-  assert.deepEqual([arkPassiveMax("도약"), arkPassiveMax("진화")], [70, ARK_PASSIVE_MAX]);
+  // The in-game maxima (PM 총괄 11-16, sources in model.ts): 도약 70, 진화 140, 깨달음 101; a tree without one keeps the api range.
+  assert.deepEqual(
+    [arkPassiveMax("도약"), arkPassiveMax("진화"), arkPassiveMax("깨달음"), arkPassiveMax("모르는 트리")],
+    [70, 140, 101, ARK_PASSIVE_MAX],
+  );
+  const trees = {
+    ...current,
+    arkPassive: [
+      { tree: "진화", points: 120 },
+      { tree: "깨달음", points: 95 },
+    ],
+  };
+  // 진화 at its maximum goes out, one over never does; locked 깨달음 sends nothing (an old saved input, say).
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 진화: 140, 깨달음: 100 } }, trees), [
+    { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 },
+  ]);
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 진화: 141 } }, trees), []);
   const leap = { ...current, arkPassive: [{ tree: "도약", points: 60 }] };
   assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 70 } }, leap), [
     { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
@@ -330,9 +347,17 @@ test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 
       worn,
     ),
     [
+      { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 },
       { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
       { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
     ],
+  );
+});
+
+test("the note beside a tree's field is its in-game maximum (review P3 #1706)", () => {
+  assert.deepEqual(
+    ["도약", "진화", "모르는 트리"].map((tree) => arkPassiveNote(tree)),
+    ["최대 70", "최대 140", undefined],
   );
 });
 

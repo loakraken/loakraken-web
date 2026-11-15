@@ -41,8 +41,8 @@ import {
   KIND_LABEL,
   braceletName,
   gradeWithValue,
-  ARK_PASSIVE_TREE_MAX,
   arkPassiveMax,
+  arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -629,7 +629,7 @@ function Editors({
                   original={item.points}
                   max={arkPassiveMax(item.tree)}
                   // The in-game maximum, said beside the field (review P3 #1706); none for the api range.
-                  hint={item.tree in ARK_PASSIVE_TREE_MAX ? `최대 ${arkPassiveMax(item.tree)}` : undefined}
+                  hint={arkPassiveNote(item.tree)}
                   onChange={(points) =>
                     setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
                   }
@@ -677,8 +677,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요.
-        방어구 재련·상급 재련·아크 패시브 진화와 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
+        있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );
@@ -703,7 +703,11 @@ function PointField({
 }) {
   // Typed text while focused; otherwise the applied value (so a reset shows).
   const [draft, setDraft] = useState<string | null>(null);
-  const hintId = useId();
+  // The last keystroke went over the maximum and was held to it (QA P2-1 v0.3.13).
+  const [clamped, setClamped] = useState(false);
+  const noteId = useId();
+  // Gone once the value moves off the maximum (another key, 이전, 초기화).
+  const note = clamped && value === max ?`최대 ${max}까지 넣을 수 있어 ${max}에 맞췄어요` : hint;
   return (
     <>
       <label className={styles.select} data-changed={value !== original || undefined}>
@@ -711,21 +715,29 @@ function PointField({
         <input
           className={styles.number}
           inputMode="numeric"
-          aria-describedby={hint ? hintId : undefined}
+          aria-describedby={note ? noteId : undefined}
           value={draft ?? String(value)}
           onChange={(event) => {
             const next = event.target.value.replace(/[^\d]/g, "").slice(0, 3);
-            setDraft(next);
-            const number = Number(next);
-            if (next !== "" && number <= max) onChange(number);
+            if (next === "") {
+              setDraft(next);
+              return;
+            }
+            // Typed key by key, "71" passes through 7 first: over the maximum it is held
+            // to the maximum, never left at the digits applied before (QA P2-1 v0.3.13).
+            const over = Number(next) > max;
+            setClamped(over);
+            setDraft(over ? String(max) : next);
+            onChange(Math.min(Number(next), max));
           }}
           onBlur={() => setDraft(null)}
         />
       </label>
-      {/* Outside the label, so the field's name stays the label alone; read as its description. */}
-      {hint && (
-        <span id={hintId} className={styles.caption}>
-          {hint}
+      {/* Outside the label, so the field's name stays the label alone; read as its description,
+          and said aloud when it changes to the clamp note. */}
+      {note && (
+        <span id={noteId} className={`${styles.caption} ${styles.note}`} aria-live="polite">
+          {note}
         </span>
       )}
     </>
