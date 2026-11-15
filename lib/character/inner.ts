@@ -57,11 +57,13 @@ export const AVATAR_SLOTS = [
  * alone (unmarked, read as 상의).
  */
 export function isOverlay(avatar: Avatar, worn: readonly Avatar[]) {
-  if (/덧입기/.test(avatar.type ?? "")) return true;
   const slot = avatarSlot(avatar);
   // Only the four slots that have a 덧입기 one (an unknown slot never gets a made-up "얼굴1 덧입기").
   const layered = (AVATAR_SLOTS as readonly string[]).includes(`${slot} 덧입기`);
+  // The tooltip mark first, before the type's words (codex #1682, 백엔드 11-15): the official types are
+  // '<slot> 아바타' for every avatar today, so a type naming 덧입기 is a guess, the mark is not.
   if (typeof avatar.overlay === "boolean") return avatar.overlay && layered;
+  if (/덧입기/.test(avatar.type ?? "")) return true;
   if (avatar.isInner !== false || !layered) return false;
   return worn.some((other) => other !== avatar && other.isInner === true && avatarSlot(other) === slot);
 }
