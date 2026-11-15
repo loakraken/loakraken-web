@@ -4,7 +4,11 @@ import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRank } from "@/lib/character/client";
 import { bannerRank } from "@/lib/character/rank";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import styles from "./character.module.css";
 
 /** How the row is laid out: "auto" lets the browser wrap (first paint only), 1 or 2 lines once fixed. */
@@ -13,7 +17,11 @@ type Lines = "auto" | 1 | 2;
 type Short = 0 | 1 | 2;
 
 const rowClass = (lines: Lines) =>
-  lines === "auto" ? `${styles.bannerRank} ${styles.bannerRankWraps}` : lines === 2 ? `${styles.bannerRank} ${styles.bannerRankTwo}` : styles.bannerRank;
+  lines === "auto"
+    ? `${styles.bannerRank} ${styles.bannerRankWraps}`
+    : lines === 2
+      ? `${styles.bannerRank} ${styles.bannerRankTwo}`
+      : styles.bannerRank;
 const badgeClass = (short: Short) =>
   short === 2
     ? `${styles.bannerRankBadge} ${styles.bannerRankShort} ${styles.bannerRankShorter}`
@@ -55,30 +63,41 @@ export function BannerRank({ name }: { name: string }) {
   // that follows renders the same classes. "mount" and "resize" read the natural line count (rows known at the
   // first paint); "text" keeps the line count and finds the first short step that fits.
   const decide = useRef<(why: "mount" | "resize" | "text") => void>(() => {});
-  decide.current = (why) => {
-    const el = row.current;
-    const badge = el?.querySelector("button");
-    const halves = badge?.querySelector<HTMLElement>(`.${styles.bannerRankHalves}`);
-    if (!el || !badge || !halves) return;
-    const [keepRow, keepBadge] = [el.className, badge.className];
-    const fits = (l: 1 | 2, s: Short) => {
-      el.className = rowClass(l);
-      badge.className = badgeClass(s);
-      return halves.scrollWidth <= halves.clientWidth + 0.5;
+  // Refreshed after every render (declared before the effects that call it, so they see this render's state).
+  useLayoutEffect(() => {
+    decide.current = (why) => {
+      const el = row.current;
+      const badge = el?.querySelector("button");
+      const halves = badge?.querySelector<HTMLElement>(
+        `.${styles.bannerRankHalves}`,
+      );
+      if (!el || !badge || !halves) return;
+      const [keepRow, keepBadge] = [el.className, badge.className];
+      const fits = (l: 1 | 2, s: Short) => {
+        el.className = rowClass(l);
+        badge.className = badgeClass(s);
+        return halves.scrollWidth <= halves.clientWidth + 0.5;
+      };
+      let nextLines: 1 | 2 = lines === "auto" ? 1 : lines;
+      if (known && why !== "text") {
+        el.className = rowClass("auto");
+        badge.className = badgeClass(0);
+        const [first, second] = halves.children;
+        nextLines =
+          second &&
+          second.getBoundingClientRect().top >
+            first.getBoundingClientRect().top + 1
+            ? 2
+            : 1;
+      }
+      const nextShort =
+        ([0, 1, 2] as const).find((s) => fits(nextLines, s)) ?? 2;
+      el.className = keepRow;
+      badge.className = keepBadge;
+      setLines(nextLines);
+      setShort(nextShort);
     };
-    let nextLines: 1 | 2 = lines === "auto" ? 1 : lines;
-    if (known && why !== "text") {
-      el.className = rowClass("auto");
-      badge.className = badgeClass(0);
-      const [first, second] = halves.children;
-      nextLines = second && second.getBoundingClientRect().top > first.getBoundingClientRect().top + 1 ? 2 : 1;
-    }
-    const nextShort = ([0, 1, 2] as const).find((s) => fits(nextLines, s)) ?? 2;
-    el.className = keepRow;
-    badge.className = keepBadge;
-    setLines(nextLines);
-    setShort(nextShort);
-  };
+  });
 
   const first = useRef(true);
   useLayoutEffect(() => {
@@ -105,11 +124,16 @@ export function BannerRank({ name }: { name: string }) {
     <p ref={row} className={rowClass(lines)}>
       {rank ? (
         <Tooltip>
-          <TooltipTrigger className={badgeClass(short)} aria-labelledby={`${id}-text ${id}-more`}>
+          <TooltipTrigger
+            className={badgeClass(short)}
+            aria-labelledby={`${id}-text ${id}-more`}
+          >
             <span id={`${id}-text`} className={styles.bannerRankText}>
               <span className={styles.bannerRankHalves}>
                 <span className={styles.bannerRankHalf}>
-                  {rank.tier && <b className={styles.bannerRankTier}>{rank.tier} </b>}
+                  {rank.tier && (
+                    <b className={styles.bannerRankTier}>{rank.tier} </b>
+                  )}
                   {/* On a phone the label is left out so the badge stays left of the
                       render (A37); the name above and the hidden sentence still say it. */}
                   <span className={styles.bannerRankLabel}>{rank.label} </span>
@@ -117,7 +141,9 @@ export function BannerRank({ name }: { name: string }) {
                 </span>
                 {rank.share && (
                   // The "·" before it is drawn in its leading gap, which is cut off when it starts a line.
-                  <span className={`${styles.bannerRankHalf} ${styles.bannerRankShare}`}>
+                  <span
+                    className={`${styles.bannerRankHalf} ${styles.bannerRankShare}`}
+                  >
                     <span className={styles.bannerRankTopWord}>상위 </span>
                     {rank.share}
                   </span>
