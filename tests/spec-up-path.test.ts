@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathFigures, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -90,6 +90,48 @@ test("without extraCost (an older answer): a gem step adds its cost minus the sa
   assert.deepEqual(extraCosts([unknown, steps[1]]), [null, null]);
   // The backend's own figure wins when it sends one, null included.
   assert.deepEqual(extraCosts([{ ...steps[0], extraCost: null }, { ...steps[1], extraCost: 1 }]), [null, 1]);
+});
+
+test("a supporter's KRAKEN path (api #967): null combat power passes the contract and is told in the score", async () => {
+  // As api #967 answers a supporter: combat power null on the path and its steps, the score given.
+  const kraken = structuredClone(sample);
+  Object.assign(kraken.data, { sort: "KRAKEN", finalCombatPower: null, krakenScore: 100, finalKrakenScore: 112.5 });
+  kraken.data.steps.forEach((step: Record<string, unknown>, i: number) =>
+    Object.assign(step, {
+      deltaCombatPower: null,
+      combatPowerAfter: null,
+      combatPowerPer10kGold: null,
+      deltaKrakenScore: 6.25,
+      krakenScoreAfter: 100 + 6.25 * (i + 1),
+      krakenScorePer100kGold: i === 0 ? 10.42 : null,
+    }),
+  );
+  const result = await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(kraken) });
+  assert.ok(result.ok, "the contract takes a null step combat power");
+  const path = result.envelope.data;
+
+  const figures = pathFigures(path, true);
+  assert.deepEqual(figures, { scored: true, name: "서포터 점수", perGold: "10만G당 점수", start: 100, final: 112.5 });
+  assert.equal(pathFigures(path, false).name, "크라켄 점수");
+  assert.deepEqual(
+    path.steps.map((step) => stepFigures(step, true)),
+    [
+      { gain: 6.25, after: 106.25, perGold: 10.42 },
+      { gain: 6.25, after: 112.5, perGold: null },
+    ],
+  );
+  // No combat power is ever read from it: the CP figures are null.
+  assert.deepEqual(stepFigures(path.steps[0], false), { gain: null, after: null, perGold: null });
+
+  // Any other answer is told in combat power, as before; an older answer without the score fields too.
+  const plain = (await requestSpecUpPath("스펙순서", "DELTA", origin, { fetcher: async () => json(sample) })) as {
+    ok: true;
+    envelope: { data: typeof path };
+  };
+  const cp = pathFigures(plain.envelope.data, false);
+  assert.deepEqual([cp.scored, cp.name, cp.perGold, cp.final], [false, "전투력", "1만G당 전투력", sample.data.finalCombatPower]);
+  assert.equal(stepFigures(plain.envelope.data.steps[0], false).gain, sample.data.steps[0].deltaCombatPower);
+  assert.equal(stepFigures(plain.envelope.data.steps[0], true).gain, null, "no score fields → null, never 0");
 });
 
 test("SPEC_UP_PATH: on/off override, hidden only on production, and never without the guide", () => {
