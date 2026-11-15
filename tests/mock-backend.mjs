@@ -1243,33 +1243,18 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", "전투력깨달음101"].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약"].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
-    if (request.characterName === "전투력코어도약" || request.characterName === "전투력깨달음101") withArkSimulator(search);
+    if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
-    if (request.characterName === "전투력깨달음101") search.loadout.arkPassive.points.find((p) => p.name === "깨달음").value = 101;
-    // api #965: 깨달음 over 100, now or new, is not computed (the api's own sentence, MODEL_UNCONFIRMED).
-    const enlightenmentOver = (change) =>
-      change.kind === "ARK_PASSIVE_POINT" &&
-      change.tree === "깨달음" &&
-      Math.max(change.points, search.loadout.arkPassive.points.find((p) => p.name === "깨달음")?.value ?? 0) > 100;
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
     d.fetchedAt = search.fetchedAt;
     d.before = search.combatPower;
-    d.contributions = request.changes.map((change, i) => enlightenmentOver(change) ? {
-      kind: change.kind,
-      target: powerTarget(search, change)[0],
-      from: powerTarget(search, change)[1],
-      to: powerTo(change),
-      delta: null,
-      status: "UNSUPPORTED",
-      basis: "깨달음 포인트 100 초과의 전투력 계산식을 아직 확인하고 있어 계산하지 않았습니다.",
-      reasonCode: "MODEL_UNCONFIRMED",
-    } : ({
+    d.contributions = request.changes.map((change, i) => ({
       kind: change.kind,
       target: powerTarget(search, change)[0],
       from: powerTarget(search, change)[1],
@@ -1285,12 +1270,12 @@ createServer(async (req, res) => {
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
-    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + (item.delta ?? 0), 0)) : 0;
+    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
     d.delta = d.before == null ? null : delta;
     d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
-    d.unsupportedCount = d.contributions.filter((item) => item.status !== "OK").length;
-    d.partial = d.unsupportedCount > 0;
+    d.unsupportedCount = computed ? 0 : d.contributions.length;
+    d.partial = !computed && d.contributions.length > 0;
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
@@ -2716,8 +2701,7 @@ createServer(async (req, res) => {
     ];
   }
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
-  if (name === "전투력코어도약" || name === "전투력깨달음101") withArkSimulator(envelope.data);
-  if (name === "전투력깨달음101") envelope.data.loadout.arkPassive.points.find((p) => p.name === "깨달음").value = 101;
+  if (name === "전투력코어도약") withArkSimulator(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not

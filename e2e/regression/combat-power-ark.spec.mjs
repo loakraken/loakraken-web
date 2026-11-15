@@ -25,9 +25,10 @@ for (const width of [320, 1280]) {
     // The in-game maximum beside the field, read as its description (review P3 #1706); the name stays the label.
     await expect(passive.getByText("최대 70", { exact: true })).toBeVisible();
     await expect(field).toHaveAccessibleDescription("최대 70");
-    // 진화 and 깨달음 open too (api #965, PM 총괄 11-16), each with its own maximum.
+    // 진화 opens too (api #965, PM 총괄 11-16); 깨달음 waits for the api to compute above 100.
     await expect(passive.getByRole("textbox", { name: "아크 패시브 진화 포인트", exact: true })).toHaveValue("120");
-    await expect(passive.getByRole("textbox", { name: "아크 패시브 깨달음 포인트", exact: true })).toHaveValue("95");
+    await expect(passive.getByRole("textbox", { name: "아크 패시브 깨달음 포인트" })).toHaveCount(0);
+    await expect(passive.getByRole("listitem").filter({ hasText: "깨달음" })).toContainText("포인트 95P · 준비 중");
     // The card is open (one tree is), so no card-wide "준비 중" badge.
     await expect(passive.locator("header")).not.toContainText("준비 중");
 
