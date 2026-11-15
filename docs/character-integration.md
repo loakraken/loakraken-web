@@ -73,3 +73,4 @@ Playwright가 프로젝트 밖에 설치되어 있으면 `PLAYWRIGHT_MODULE`에 
 화면의 `전체`, `테스트 무기` 등은 테스트용 데이터다. 결과: [브라우저 기록](previews/character-browser-results.json), [데스크톱](previews/character-desktop.png), [모바일](previews/character-mobile.png).
 
 실제 백엔드 서버가 준비되면 캐시 미적중 1건·재조회 1건을 우선 확인하고 공식 사용량을 관찰한다. 현재까지 이번 프론트 구현·검증의 공식 인증 API 호출은 **0회**다.
+
