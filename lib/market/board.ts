@@ -215,6 +215,15 @@ export type ChartRange = "hour" | DayRange;
 export const RANGE_LABEL: Record<DayRange, string> = { 7: "7일", 14: "14일", 30: "30일", 90: "3개월", 365: "1년" };
 export const STORED_RANGES = ["hour", 7, 30, 90, 365] as const satisfies readonly ChartRange[];
 export const OLD_RANGES = ["hour", 7, 14] as const satisfies readonly ChartRange[];
+/**
+ * The range the chart draws for the one picked (the address or a button): kept when this api's buttons
+ * have it, else the opening range of those buttons. 30일 for an api with stored history (QA v0.3.13 RC
+ * P3-2: a typed `range=14d` drew '14일' with no button pressed), 14일 for an older one.
+ */
+export const chartRange = (picked: ChartRange, stored: boolean): ChartRange => {
+  const ranges: readonly ChartRange[] = stored ? STORED_RANGES : OLD_RANGES;
+  return ranges.includes(picked) ? picked : stored ? 30 : 14;
+};
 export type HistoryRange = "30d" | "90d" | "365d";
 /** The history answer a day range reads: 7 and 30 (and the old 14) come from one 30-day answer. */
 export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "90d" : range === 365 ? "365d" : "30d");
