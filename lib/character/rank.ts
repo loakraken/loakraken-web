@@ -142,7 +142,7 @@ export function bannerRank(data: CharacterRank) {
     /** The metric's name, shown apart so a narrow banner can leave it out (the number line above says it). */
     label: "전투력",
     value,
-    /** The rank and the share apart, so up to 360px the badge can leave out "상위" (PM 총괄 11-16). */
+    /** The rank and the share apart, so a narrow badge can put the share on its own line (PM 총괄 11-16). */
     rank: cell.rank,
     share: cell.top?.replace(/^상위 /, "") ?? null,
     text: `전투력 ${value}`,

@@ -102,7 +102,7 @@ test("banner line: combat power over everyone seen, only when ranked and ready",
     tier: "대양",
     label: "전투력",
     value: "5위 · 상위 12.5%",
-    // Apart, so up to 360px the badge leaves out "상위" (PM 총괄 11-16); value and text keep it.
+    // Apart, so a narrow badge can put the share on its own line (PM 총괄 11-16); value and text keep it.
     rank: "5위",
     share: "12.5%",
     text: "전투력 5위 · 상위 12.5%",

@@ -1685,7 +1685,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음" || who === "순위긴범위") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (["순위늦음", "순위긴범위", "순위큰수늦음", "순위일곱자리늦음"].includes(who)) await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1716,10 +1716,21 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
-    ] : who === "순위큰수" ? [
+    ] : who === "순위큰수" || who === "순위큰수늦음" ? [
       // The widest banner badge in practice (PM 11-16): a 6-digit rank, a 2-letter tier and a two-decimal
       // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
+      // 순위큰수늦음: the same, after the page's 1s wait (the late path keeps a one-line row).
       entry("COMBAT_POWER", "ALL", null, 123456, 247000),
+    ] : who === "순위다섯자리긴값" ? [
+      // The longest one-line badge: 5 digits and a two-decimal share ('99,999위 · 상위 47.62%'), on the
+      // longest real server name (아브렐슈드, character mock above).
+      entry("COMBAT_POWER", "ALL", null, 99999, 210000),
+    ] : who === "순위다섯자리" ? [
+      // The longest rank that stays one line (5 digits): '12,345위 · 상위 30.86%'.
+      entry("COMBAT_POWER", "ALL", null, 12345, 40000),
+    ] : who === "순위일곱자리" || who === "순위일곱자리늦음" ? [
+      // A 7-digit rank, longer than any server has today: '1,234,567위 · 상위 61.73%' (no tier above 50%).
+      entry("COMBAT_POWER", "ALL", null, 1234567, 2000000),
     ] : who === "순위긴범위" ? [
       // The longest real server + class pair, late like 순위늦음: the
       // server-class value takes two lines in a narrow box.
@@ -2862,7 +2873,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "순위다섯자리긴값" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -3178,7 +3189,8 @@ createServer(async (req, res) => {
       };
     }
     // A37: the longest values the banner shows (name, title, server and class, combat power, levels).
-    if (name === "가려짐긴값캐릭터") {
+    // 순위다섯자리긴값: the same long banner with the longest one-line rank (5 digits, two-decimal share).
+    if (name === "가려짐긴값캐릭터" || name === "순위다섯자리긴값") {
       d.characterName = name;
       d.serverName = "아브렐슈드";
       d.className = "데모닉";

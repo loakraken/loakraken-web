@@ -71,7 +71,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
           await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme ?? "light")).toBe(theme);
           const banner = page.getByRole("region", { name: "순위늦음 캐릭터 요약" });
           const row = banner.locator("p[class*=bannerRank]");
-          const badge = row.getByRole("button", { name: /전투력 4,120위 · 상위 22\.6%/ });
+          // Phones leave the metric's name out of the badge; the name says it after the shown text.
+          const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6% 전투력 순위, / });
           await expect(row).toBeVisible();
           await expect(row.getByRole("button")).toHaveCount(0);
           await expect.poll(() => rankRequested).toBe(true);
@@ -81,11 +82,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 
           await expect(badge).toBeVisible();
           await expect(badge).toContainText("대양");
-          // Up to 399px the badge leaves out "상위" (PM 11-16); what is drawn, not the DOM text.
-          if (width <= 399) {
-            await expect(badge).toContainText("4,120위 · 22.6%", { useInnerText: true });
-            await expect(badge).not.toContainText("상위", { useInnerText: true });
-          } else await expect(badge).toContainText("4,120위 · 상위 22.6%", { useInnerText: true });
+          // This badge fits one line in full at every width here (fit rule, PM 총괄 11-16); 상위 is drawn.
+          await expect(badge.locator("[class*=bannerRankTopWord]")).toBeVisible();
           // The badge keeps the row's type at every width (the button inherits
           // it); only its spacing tightens below 360px.
           const rowFont = await row.evaluate((el) => getComputedStyle(el).fontSize);
@@ -146,48 +144,4 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
   }
 });
 
-// The site font is display:optional (app/layout.tsx): a visit that misses its load window keeps the
-// system face for good. A wider face (DejaVu Sans on Linux, the CI runner's; Verdana on Windows) ran the
-// full badge past the row at 320 and 360 (CI flaky 170 > 167, A37; PM 총괄 11-16). Here every element
-// is set to such a face, so the layout is the fallback one on any machine that has it, and the row must
-// hold the badge. The face must really be in use, or the test says so instead of passing on the site font.
-// The breakpoint's edges (sweep 320–400: the full badge overflowed up to 381). The widest badge in
-// practice (mock '순위큰수', a 6-digit rank) joins with its own rule once the metric-matched fallback is
-// measured (PM 총괄 11-16).
-const WIDE_CASES = [{ who: "상세", name: /전투력 4,120위 · 상위 22\.6%/, widths: [320, 360, 361, 381, 399, 400] }];
-test.describe("배너 순위: 넓은 시스템 글꼴에서도 순위 줄 안에 @A37 @regression", () => {
-  for (const { who, name, widths } of WIDE_CASES)
-  for (const width of widths) {
-    test(`${who} ${width}px: 사이트 글꼴을 못 받은 방문(넓은 대체 글꼴)에서도 넘치지 않는다`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.addInitScript(() => {
-        const style = document.createElement("style");
-        style.textContent = `
-          @font-face { font-family: "WideFallback"; src: local("DejaVu Sans"), local("DejaVuSans"), local("Verdana"); font-weight: 400; }
-          @font-face { font-family: "WideFallback"; src: local("DejaVu Sans Bold"), local("DejaVuSans-Bold"), local("Verdana Bold"), local("Verdana-Bold"); font-weight: 700; }
-          html, body, body * { font-family: "WideFallback", "Malgun Gothic", "Noto Sans CJK KR", "WenQuanYi Zen Hei", sans-serif !important; }`;
-        document.addEventListener("DOMContentLoaded", () => document.head.append(style));
-      });
-      await gotoReady(page, characterPath(who));
-      const row = page.getByRole("region", { name: `${who} 캐릭터 요약` }).locator("p[class*=bannerRank]");
-      const badge = row.getByRole("button", { name });
-      await expect(badge).toBeVisible();
-      // Up to 399px without "상위", from 400 with it.
-      if (width <= 399) await expect(badge).not.toContainText("상위", { useInnerText: true });
-      else await expect(badge).toContainText("상위", { useInnerText: true });
-      const used = await page.evaluate(async () => {
-        await Promise.all([document.fonts.load("12px WideFallback"), document.fonts.load("700 12px WideFallback")]);
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        return [...document.fonts].filter((f) => f.family.replace(/"/g, "") === "WideFallback" && f.status === "loaded").length;
-      });
-      expect(used, "넓은 대체 글꼴(DejaVu Sans·Verdana)이 이 기기에 있어 실제로 쓰였다").toBeGreaterThan(0);
-      const box = await row.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        const b = el.querySelector("button").getBoundingClientRect();
-        return { scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, right: r.right, badgeRight: b.right };
-      });
-      expect(box.scrollWidth, "순위 줄 가로 넘침").toBeLessThanOrEqual(box.clientWidth);
-      expect(box.badgeRight, "순위 배지 오른쪽").toBeLessThanOrEqual(box.right);
-    });
-  }
-});
+// Widths per rank length and font (site font, matched fallback, forced wide face): banner-rank-length.spec.
