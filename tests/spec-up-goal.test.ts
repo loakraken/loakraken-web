@@ -172,7 +172,7 @@ test("a stone step (api #812) opens with both engravings; a step is never opened
   assert.equal(simulatorPath([{ ...stone, changes: undefined }]).changes.length, 1);
 });
 
-test("a 연마 step (api #951) opens whole, NONE lines too, and the last step per accessory wins", () => {
+test("a 연마 step (api #951) opens whole, NONE lines too, and per line the later step wins", () => {
   const [gem] = sample.data.steps as GoalStep[];
   const line = (index: number, n: number, option: string, grade: string | null) => ({
     ...gem.change,
