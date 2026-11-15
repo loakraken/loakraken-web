@@ -35,13 +35,15 @@ for (const width of [1024, 768])
     // A press never takes the focus (the keyboard reaches every item by Tab).
     expect(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? null)).toBeNull();
 
-    // To the end: › goes away, ‹ stays.
+    // To the end: › goes away, ‹ stays. Each press is waited for by where the row comes to rest
+    // (a smooth scroll takes several frames), not by a fixed pause.
     for (let i = 0; i < 6 && (await next(row).isVisible()); i++) {
+      const from = (await scroll(row)).left;
       await next(row).click();
-      await page.waitForTimeout(500);
+      await expect.poll(async () => (await scroll(row)).left).toBeGreaterThan(from);
     }
+    await expect.poll(async () => (await scroll(row)).left).toBe(start.max);
     await expect(next(row)).toBeHidden();
-    expect((await scroll(row)).left).toBe(start.max);
     await prev(row).click();
     await expect.poll(async () => (await scroll(row)).left).toBeLessThan(start.max);
     await expect(next(row)).toBeVisible();
