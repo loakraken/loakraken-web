@@ -207,7 +207,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
             ? `올릴 수 있는 항목 ${path.unpriced.length}개 모두 시세를 몰라 순서를 만들 수 없어요. 시세가 모이면 다시 계산해 주세요.`
             : (path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요.")}
         </p>
-        <Unpriced items={path.unpriced} />
+        <Unpriced items={path.unpriced} scored={figures.scored} />
       </>
     );
 
@@ -293,12 +293,13 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         {figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. 비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞
         단계 비용을 빼고 셌어요.
       </p>
-      <Unpriced items={path.unpriced} />
+      <Unpriced items={path.unpriced} scored={figures.scored} />
     </div>
   );
 }
 
-function Unpriced({ items }: { items: Path["unpriced"] }) {
+/** An excluded item has only its combat power (api #967): a KRAKEN answer, told in its score, leaves it out. */
+function Unpriced({ items, scored }: { items: Path["unpriced"]; scored: boolean }) {
   if (items.length === 0) return null;
   return (
     <details className={styles.unpriced}>
@@ -309,7 +310,7 @@ function Unpriced({ items }: { items: Path["unpriced"] }) {
             <span>
               {item.target} ({item.from} → {item.to})
             </span>
-            <span className={styles.delta}>지금 기준 +{two(item.deltaCombatPower)}</span>
+            {!scored && <span className={styles.delta}>지금 기준 +{two(item.deltaCombatPower)}</span>}
           </li>
         ))}
       </ul>

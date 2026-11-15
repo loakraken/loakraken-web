@@ -49,6 +49,11 @@ for (const width of [320, 1280]) {
     await expect(table).not.toContainText("NaN");
     await expect(table).not.toContainText("전투력");
     await expect(page.getByText("크라켄 점수는 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요.", { exact: false })).toBeVisible();
+    // The excluded item has only its combat power (no score): listed without a figure.
+    const excluded = page.locator("details", { hasText: "시세를 몰라 순서에서 뺀 항목 1개" });
+    await excluded.locator("summary").click();
+    await expect(excluded.getByRole("listitem")).toHaveCount(1);
+    await expect(excluded).not.toContainText("지금 기준");
     await expectNoHorizontalOverflow(page);
   });
 }
@@ -61,4 +66,7 @@ test("다른 기준의 답은 그대로 전투력으로", async ({ page }) => {
   await expect(table.getByRole("columnheader")).toHaveText(["순서", "종류", "대상", "전 → 후", "전투력 증가", "추가 비용", "1만G당 전투력"]);
   await expect(page.getByText(/2단계를 차례로 올리면 전투력 /)).toBeVisible();
   await expect(page.getByText("전투력은 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요.", { exact: false })).toBeVisible();
+  const excluded = page.locator("details", { hasText: "시세를 몰라 순서에서 뺀 항목 1개" });
+  await excluded.locator("summary").click();
+  await expect(excluded).toContainText("지금 기준 +");
 });
