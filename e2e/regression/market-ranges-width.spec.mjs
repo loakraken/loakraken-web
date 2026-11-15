@@ -4,7 +4,10 @@
 // #1628: 보석 · 장신구 칸의 최저가 추이 기간 줄(7일 · 30일 · 3개월 · 1년)도 같다. 그리고 '사이트 글꼴로 잼'은 파일을
 // 받았는지가 아니라 실제로 그 글꼴로 그렸는지로 확인한다(글자 폭이 기본 글꼴과 다름): 두 쪽이 모두 기본 글꼴이면
 // 고치기 전 코드에서도 통과할 수 있었다.
+// The other face is the untuned system one (#1753): the metric-matched fallback draws at the site font's widths
+// by design, so it could not show a width that depends on the face.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
 
 const PAGES = [
   { path: "/market", count: 5 },
@@ -29,7 +32,7 @@ const useSiteFont = (page) =>
   page.evaluate(async () => {
     const rule = [...document.styleSheets]
       .flatMap((sheet) => [...sheet.cssRules])
-      .find((r) => r instanceof CSSFontFaceRule && r.style.getPropertyValue("font-family").includes("kraken"));
+      .find((r) => r instanceof CSSFontFaceRule && r.style.getPropertyValue("font-family").replace(/["']/g, "") === "kraken");
     if (!rule) return false;
     // The url() is relative to the stylesheet, not the page: resolve it there first.
     const [, file] = /url\(["']?([^"')]+)["']?\)/.exec(rule.style.getPropertyValue("src")) ?? [];
@@ -52,6 +55,7 @@ for (const { path, count } of PAGES)
       const site = await measure(page);
       // The same page with the web fonts never arriving: the system face only, as a first visit can paint.
       const bare = await browser.newContext({ baseURL: testInfo.project.use.baseURL, viewport: { width, height: 900 } });
+      await useUntunedSystemFace(bare);
       const plain = await bare.newPage();
       // As the page fixture: nothing off this site (item icons) is fetched.
       const local = new URL(testInfo.project.use.baseURL).origin;
@@ -59,6 +63,7 @@ for (const { path, count } of PAGES)
       await plain.route(/\.woff2(\?|$)/, (route) => route.abort());
       await plain.goto(path);
       await expect(plain.getByRole("group", { name: "기간" }).getByRole("button")).toHaveCount(count);
+      expect(await drawnFace(plain), "기본 글꼴(맞추지 않은 시스템 글꼴)로 그림").toBe("untuned");
       const fallback = await measure(plain);
       await bare.close();
       // Proof the two really are drawn in different faces: otherwise equal widths prove nothing.
@@ -75,6 +80,7 @@ for (const { path, count } of PAGES)
       await page.setViewportSize({ width, height: 900 });
       let release;
       const gate = new Promise((resolve) => (release = resolve));
+      await useUntunedSystemFace(page);
       await page.route(/\.woff2(\?|$)/, async (route) => {
         await gate;
         await route.continue();
@@ -96,6 +102,7 @@ for (const { path, count } of PAGES)
             return [Math.round(r.left - at.left), Math.round(r.top - at.top), Math.round(r.width), Math.round(r.height)].join(" ");
           });
         });
+      expect(await drawnFace(page), "글꼴이 오기 전: 맞추지 않은 시스템 글꼴").toBe("untuned");
       const before = await measure(page);
       const placed = await boxes();
       release();
