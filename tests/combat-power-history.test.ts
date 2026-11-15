@@ -128,9 +128,11 @@ test("a 연마 step's other option (api #951) is saved, read back, and dropped w
 
 test("a saved ark passive value is held to the tree's in-game maximum (review P3 #1706)", () => {
   // 도약 71 cannot exist (official max 70): it loads as 70, what the field shows and the request sends.
-  const saved = parseSaved(JSON.stringify({ savedAt: "x", edits: { arkPassive: { 도약: 71, 진화: 500 } } }));
-  // Trees without a known maximum keep the api range (진화 is not sent anyway while it is locked).
-  assert.deepEqual(saved?.edits.arkPassive, { 도약: 70, 진화: 500 });
+  const saved = parseSaved(
+    JSON.stringify({ savedAt: "x", edits: { arkPassive: { 도약: 71, 진화: 500, 깨달음: 102, 모르는트리: 500 } } }),
+  );
+  // Each known tree to its own maximum (진화 140, 깨달음 101, api #965); a tree without one keeps the api range.
+  assert.deepEqual(saved?.edits.arkPassive, { 도약: 70, 진화: 140, 깨달음: 101, 모르는트리: 500 });
   assert.deepEqual(parseSaved(JSON.stringify({ savedAt: "x", edits: { arkPassive: { 도약: 65 } } }))?.edits.arkPassive, {
     도약: 65,
   });

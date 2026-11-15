@@ -41,8 +41,8 @@ import {
   KIND_LABEL,
   braceletName,
   gradeWithValue,
-  ARK_PASSIVE_TREE_MAX,
   arkPassiveMax,
+  arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -629,7 +629,7 @@ function Editors({
                   original={item.points}
                   max={arkPassiveMax(item.tree)}
                   // The in-game maximum, said beside the field (review P3 #1706); none for the api range.
-                  hint={item.tree in ARK_PASSIVE_TREE_MAX ? `최대 ${arkPassiveMax(item.tree)}` : undefined}
+                  hint={arkPassiveNote(item.tree)}
                   onChange={(points) =>
                     setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
                   }
@@ -677,8 +677,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요.
-        방어구 재련·상급 재련·아크 패시브 진화와 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
+        있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );
