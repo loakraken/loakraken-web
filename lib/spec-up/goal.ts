@@ -22,7 +22,7 @@ const STEP_KIND_LABEL: Record<string, string> = {
   // 완갑 steps (api #809) and 스톤 steps (api #812, ABILITY_STONE from the list's labels).
   ARM_GUARD: "완갑",
 };
-export const stepKindLabel = (kind: string) => STEP_KIND_LABEL[kind] ?? "기타 단계";
+export const stepKindLabel = (kind: string) => (Object.hasOwn(STEP_KIND_LABEL, kind) ? STEP_KIND_LABEL[kind] : "기타 단계");
 
 /** Stop codes the screen words itself; any other code shows the backend's stopReason. */
 export const PATH_STOPS = ["REACHED", "ALREADY_REACHED", "NO_CANDIDATE", "STEP_LIMIT", "TIME_LIMIT"] as const;
