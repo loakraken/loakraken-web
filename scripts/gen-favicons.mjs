@@ -1,7 +1,8 @@
 // Writes the raster favicons from the logo mark (components/ui/logo.tsx), so search results show our mark instead
 // of a blank globe: Google wants a crawlable square icon that is a multiple of 48px, and its fetcher often falls
 // back to /favicon.ico (404 until now). app/icon.svg stays the browsers' icon.
-//   app/favicon.ico  16 / 32 / 48 (32-bit BMP entries: every reader takes them)
+//   app/favicon.ico  48 / 32 / 16 (32-bit BMP entries: every reader takes them; 48 first, since Next labels the
+//                    link from the first entry: sizes="48x48", the multiple of 48 search results ask for)
 //   app/icon1.png    192 × 192
 // Both draw the mark in the light ink on a solid light tile (no alpha), the apple-icon's look, so they read on light
 // and dark result pages alike. 48 and 192 keep the apple-icon's margin; 16 and 32 fill the tile so the mark stays
@@ -93,7 +94,7 @@ async function ico(entries) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  writeFileSync(root("app/favicon.ico"), await ico([[16, 0], [32, 0], [48, MARGIN]]));
+  writeFileSync(root("app/favicon.ico"), await ico([[48, MARGIN], [32, 0], [16, 0]]));
   // No alpha channel: the tile is opaque by construction.
   writeFileSync(
     root("app/icon1.png"),
