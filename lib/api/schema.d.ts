@@ -113,6 +113,7 @@ export interface components {
             effects: string[];
             /** @description 이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies. 배포 순서 때문에 계약에서는 아직 선택 필드 */
             tendencies?: components["schemas"]["AvatarTendencyResponse"][];
+            overlay?: boolean | null;
         };
         AvatarTendencyResponse: {
             /** @example 지성 */
@@ -537,7 +538,7 @@ export interface components {
             refineCount: number;
             minRefineLevel: number | null;
             maxRefineLevel: number | null;
-            refineDistribution: components["schemas"]["LevelCountResponse"][];
+            refineDistribution: components["schemas"]["CharacterLevelCountResponse"][];
             /**
              * Format: int32
              * @description 품질이 확인된 장비 수. 품질이 적용되지 않는 장비는 제외
@@ -551,7 +552,7 @@ export interface components {
             /** @description 품질 그룹별 집계. WEAPON_ARMOR(무기·투구·상의·하의·장갑·어깨), ACCESSORY(목걸이·귀걸이·반지) 순서로 항상 두 항목입니다. */
             qualityGroups: components["schemas"]["QualityGroupResponse"][];
         };
-        LevelCountResponse: {
+        CharacterLevelCountResponse: {
             /** Format: int32 */
             level: number;
             /** Format: int32 */
@@ -578,7 +579,7 @@ export interface components {
             minLevel: number | null;
             maxLevel: number | null;
             averageLevel: number | null;
-            levelDistribution: components["schemas"]["LevelCountResponse"][];
+            levelDistribution: components["schemas"]["CharacterLevelCountResponse"][];
             /**
              * Format: int32
              * @description 보석 스킬 효과가 "피해 N% 증가"인 개수

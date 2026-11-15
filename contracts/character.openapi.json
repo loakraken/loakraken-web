@@ -653,6 +653,17 @@
             "items": {
               "$ref": "#/components/schemas/AvatarTendencyResponse"
             }
+          },
+          "overlay": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "description": "덧입기 칸에 입어 효과가 적용되지 않는 아바타면 true(공식 툴팁의 '아래 능력들이 적용되지 않는 상태입니다.(덧입기 슬롯에 착용 중)' 줄). 줄이 없으면 false, 툴팁을 읽지 못했으면 null. 배포 순서 때문에 계약에서는 아직 선택 필드"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -3085,7 +3096,7 @@
           "refineDistribution": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LevelCountResponse"
+              "$ref": "#/components/schemas/CharacterLevelCountResponse"
             }
           },
           "qualityCount": {
@@ -3156,7 +3167,7 @@
           "refineDistribution"
         ]
       },
-      "LevelCountResponse": {
+      "CharacterLevelCountResponse": {
         "type": "object",
         "properties": {
           "level": {
@@ -3303,7 +3314,7 @@
           "levelDistribution": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LevelCountResponse"
+              "$ref": "#/components/schemas/CharacterLevelCountResponse"
             }
           },
           "damageEffectCount": {
