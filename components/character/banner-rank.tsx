@@ -51,7 +51,7 @@ export function BannerRank({ name }: { name: string }) {
                 </>
               )}
             </span>
-            <span className="sr-only">{`, ${rank.label} 순위. ${rank.note}`}</span>
+            <span className={styles.srOnly}>{`, ${rank.label} 순위. ${rank.note}`}</span>
           </TooltipTrigger>
           <TooltipContent>{rank.note}</TooltipContent>
         </Tooltip>
