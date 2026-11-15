@@ -106,7 +106,10 @@ function withSimulatorGear(data) {
  */
 function withArkSimulator(data) {
   withSimulatorGear(data);
-  data.loadout.arkPassive.points.push({ name: "도약", value: 60, description: "포인트 설명" });
+  data.loadout.arkPassive.points.push(
+    { name: "깨달음", value: 95, description: "포인트 설명" },
+    { name: "도약", value: 60, description: "포인트 설명" },
+  );
   data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
   return data;
 }

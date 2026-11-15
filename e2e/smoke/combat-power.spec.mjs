@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤·연마·팔찌·팔 보호구·코어는 바꾸고, 방어구 재련·아크 패시브 진화는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·연마·팔찌·팔 보호구·코어·아크 패시브 진화는 바꾸고, 방어구 재련은 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -76,10 +76,10 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(changes.getByText("4 → 3")).toBeVisible();
     for (const name of ["투구 재련 단계", "투구 상급 재련 단계"])
       await expect(page.getByRole("combobox", { name })).toHaveCount(0);
-    // api #838: the core opens (PM 총괄 11-15); api #842 opens 도약 only, so 진화 stays locked.
+    // api #838: the core opens (PM 총괄 11-15); api #965 opens 진화 (PM 총괄 11-16).
     await expect(page.getByRole("combobox", { name: "테스트 코어 등급" })).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "아크 패시브", exact: true })).toContainText("포인트 120P · 준비 중");
+    await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트", exact: true })).toHaveValue("120");
+    await expect(page.getByRole("region", { name: "아크 패시브", exact: true })).not.toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
@@ -91,7 +91,9 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
     // The guidance under the editors says the weapon is open and armour is not (PM 총괄 11-13).
-    await expect(page.getByText(/무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요\. 방어구 재련·/)).toBeVisible();
+    await expect(
+      page.getByText(/무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수 있어요\. 방어구 재련·상급 재련·아크 패시브 깨달음·/),
+    ).toBeVisible();
     const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
     // Exactly the weapon's refine change goes to the api: index 0 is the mock's weapon.
