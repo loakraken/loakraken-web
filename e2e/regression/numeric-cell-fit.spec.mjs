@@ -12,6 +12,8 @@ for (const width of [320, 360, 399, 400])
     const overflows = [];
     for (const path of ROUTES) {
       await gotoReady(page, path);
+      // Measured with whichever face this visit settled on (the site font is display:optional).
+      await page.evaluate(() => document.fonts.ready);
       const found = await page.evaluate(() => {
         const out = [];
         for (const el of document.querySelectorAll("main th, main td, main dd")) {

@@ -185,11 +185,19 @@
   text-align: right !important;
 }
 /* With the 더보기 column a gold cell had 4.5px too little at 320 for '11,500G'
-   (A37, 11-16). The gate column keeps its 22% ('보스 처치'); the gold columns give
-   up most of their left gap below 400px instead. */
+   (A37, 11-16). Below 400px the gold columns give up most of their left gap and
+   the gate column narrows to 18%, its label free to wrap ('보스 처치' on two lines
+   for an extreme raid), so a wider system face (the site font missed its window)
+   still fits the gold (~7px spare at 320). */
 @media (max-width: 399px) {
   .num {
     padding-left: var(--space-1) !important;
+  }
+  .colGate {
+    width: 18%;
+  }
+  .table tbody th {
+    white-space: normal;
   }
 }
 .table td[data-empty] {
