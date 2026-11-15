@@ -909,7 +909,8 @@ createServer(async (req, res) => {
     }
   };
   const powerTo = (change) =>
-    change.kind === "POLISH" ? `${change.option} ${change.grade}`
+    // api #951: a line with no scoring option (NONE, no grade) reads in words, as the api says it.
+    change.kind === "POLISH" ? (change.option === "NONE" ? "점수 옵션 없는 줄" : `${change.option} ${change.grade}`)
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
     : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
@@ -990,6 +991,27 @@ createServer(async (req, res) => {
       }));
       d.steps.push(...more);
       Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
+    }
+    // A 연마 step (api #951): another 목걸이 for the simulator gear's one, a line per change; its second line
+    // has no scoring option (NONE, grade null), and `change` is the first (a named option).
+    if (who === "스펙순서연마") {
+      const index = withSimulatorGear(read("character-full-data.json")).loadout.equipment.findIndex((item) => item.type === "목걸이");
+      const line = (n, option, grade) => ({ ...d.steps[0].change, kind: "POLISH", slot: null, level: null, index, line: n, option, grade });
+      const changes = [line(0, "적에게 주는 피해 %", "HIGH"), line(1, "NONE", null)];
+      d.steps.push({
+        ...structuredClone(d.steps[0]),
+        order: d.steps.length + 1,
+        candidateId: `POLISH:${index}:H`,
+        kind: "POLISH",
+        target: "테스트 목걸이",
+        from: "추가 피해 중 · 적에게 주는 피해 하",
+        to: "적에게 주는 피해 상",
+        change: changes[0],
+        changes,
+        deltaCombatPower: 21.4,
+        combatPowerAfter: Math.round((d.finalCombatPower + 21.4) * 100) / 100,
+      });
+      d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
     }
     return send(envelope);
   }
@@ -1212,7 +1234,7 @@ createServer(async (req, res) => {
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
-    if (computed || request.characterName === "전투력계산저재련" || request.characterName === "스펙업무기재련") withSimulatorGear(search);
+    if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -2664,7 +2686,7 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (name === "전투력계산" || name === "전투력계산저재련" || name === "스펙업무기재련") withSimulatorGear(envelope.data);
+  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
