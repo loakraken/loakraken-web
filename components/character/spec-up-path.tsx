@@ -17,6 +17,7 @@ import { SpecUpQueryError, fetchSpecUpPath } from "@/lib/spec-up/client";
 import { simulatorPath, stepKindLabel } from "@/lib/spec-up/goal";
 import {
   PATH_FIRST_ROWS,
+  PATH_KRAKEN_SORT,
   PATH_SORTS,
   extraCosts,
   pathFigures,
@@ -227,6 +228,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
             ? "계산 시간이 다 되어 여기까지 골랐어요."
             : path.stopReason}
       </p>
+      {/* The order's rule in words (PM 총괄 · PM-프론트 #1734 P2): per 100,000 gold, not the raw gain. */}
+      {figures.scored && <p className={styles.note}>{PATH_KRAKEN_SORT.describe}</p>}
       <div className={detail.tableWrap}>
         <table className={`${detail.table} ${detail.specUpTable}`}>
           <caption className={detail.sr}>

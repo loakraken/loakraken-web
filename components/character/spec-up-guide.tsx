@@ -374,16 +374,25 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
               data-off={!pathShown || undefined}
             >
               {pathSorts.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="hit-44"
-                  aria-pressed={pathSort === item.id}
-                  tabIndex={pathShown ? undefined : -1}
-                  onClick={() => setPathSort(item.id)}
-                >
-                  {item.label}
-                </button>
+                // The short name stays the button's; the rule is its description (as the chips above),
+                // beside it, not in it. A KRAKEN answer also says it in its own note (spec-up-path).
+                <Fragment key={item.id}>
+                  <button
+                    type="button"
+                    className="hit-44"
+                    aria-pressed={pathSort === item.id}
+                    aria-describedby={item.describe ? `${sortsId}-path-${item.id}` : undefined}
+                    tabIndex={pathShown ? undefined : -1}
+                    onClick={() => setPathSort(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                  {item.describe && (
+                    <span id={`${sortsId}-path-${item.id}`} className={styles.sr} hidden>
+                      {item.describe}
+                    </span>
+                  )}
+                </Fragment>
               ))}
             </span>
           )}

@@ -20,8 +20,17 @@ export const PATH_SORTS: readonly { id: PathSort; label: string }[] = [
   { id: "EFFICIENCY", label: "효율 우선" },
   { id: "DELTA", label: "전투력 우선" },
 ];
-/** 크라켄 점수 (서포터는 서포터 점수) order, api #967; shown only where the api says it runs (api #971). */
-export const PATH_KRAKEN_SORT = { id: "KRAKEN", label: "점수 우선" } as const satisfies { id: PathSort; label: string };
+/**
+ * 크라켄 점수 (서포터는 서포터 점수) order, api #967; shown only where the api says it runs (api #971).
+ * Named for what the api ranks by, score per 100,000 gold with steps that cost nothing more first
+ * (extra cost ≤ 0, a cheaper gem listing included; 백엔드 11-16, api 29a1fd11 SpecUpGoalService.free),
+ * not the raw gain (PM 총괄 · PM-프론트 #1734 P2). Same rule for dealers and supporters.
+ */
+export const PATH_KRAKEN_SORT = {
+  id: "KRAKEN",
+  label: "점수 효율",
+  describe: "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없는 단계가 먼저 와요.",
+} as const satisfies { id: PathSort; label: string; describe: string };
 export const isPathSort = (value: unknown): value is PathSort =>
   value === "EFFICIENCY" || value === "DELTA" || value === "KRAKEN";
 
@@ -31,7 +40,10 @@ export const isPathSort = (value: unknown): value is PathSort =>
  * to find out, 백엔드 11-15). A supporter has no combat-power order, so their
  * path is the score one or none at all.
  */
-export function pathSortsFor(supportOrder: boolean, supporter: boolean): readonly { id: PathSort; label: string }[] {
+export function pathSortsFor(
+  supportOrder: boolean,
+  supporter: boolean,
+): readonly { id: PathSort; label: string; describe?: string }[] {
   if (supporter) return supportOrder ? [PATH_KRAKEN_SORT] : [];
   return supportOrder ? [...PATH_SORTS, PATH_KRAKEN_SORT] : PATH_SORTS;
 }
