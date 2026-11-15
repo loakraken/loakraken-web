@@ -356,6 +356,13 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* A field's note ("최대 70", or the longer clamp note): wraps instead of
+   pushing the row past 320. */
+.note {
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+}
 .rowSub {
   display: block;
   color: var(--muted-foreground);

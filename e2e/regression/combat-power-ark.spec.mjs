@@ -65,4 +65,49 @@ for (const width of [320, 1280]) {
     expect(sent.filter((body) => body.includes('"points":71'))).toEqual([]);
     await expectNoHorizontalOverflow(page);
   });
+
+  // QA P2-1 (v0.3.13 delta): typed key by key, "71" passes through 7 and "100" through 10. fill() is one
+  // change event and never saw it; real key presses do. Over the maximum the field is held to 70, said beside it.
+  test(`도약 칸에 키를 하나씩 눌러 71·100을 넣으면 70으로 맞추고 알린다 (${width})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent(NAME)}`);
+    const passive = page.getByRole("region", { name: "아크 패시브", exact: true });
+    const field = passive.getByRole("textbox", { name: "아크 패시브 도약 포인트", exact: true });
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    const note = "최대 70까지 넣을 수 있어 70에 맞췄어요";
+    const sent = [];
+    page.on("request", (r) => {
+      if (simulate(r)) sent.push(r.postData() ?? "");
+    });
+
+    for (const typed of ["71", "100"]) {
+      // From 65 each time, so landing on 70 is a change the api is asked about.
+      const at65 = page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":65'));
+      await field.selectText();
+      await field.pressSequentially("65");
+      await at65;
+      await expect(passive.getByText(note, { exact: true })).toHaveCount(0);
+
+      const at70 = page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":70'));
+      await field.selectText();
+      await field.pressSequentially(typed);
+      // Held at 70 while still focused, with the note read as the field's description.
+      await expect(field).toHaveValue("70");
+      await expect(passive.getByText(note, { exact: true })).toBeVisible();
+      await expect(field).toHaveAccessibleDescription(note);
+      await field.press("Tab");
+      await expect(field).toHaveValue("70");
+      expect((await at70).postDataJSON().changes).toEqual([{ kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 }]);
+      await expect(changes.getByText("60 → 70")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
+    // Nothing above 70 went out (the prefixes 7 and 10 sit inside the request debounce, so not asserted).
+    expect(sent.filter((body) => /"points":(71|100)[,}]/.test(body))).toEqual([]);
+
+    // Back under the maximum, the note goes back to the plain one.
+    await field.selectText();
+    await field.pressSequentially("68");
+    await expect(field).toHaveAccessibleDescription("최대 70");
+    await expect(passive.getByText(note, { exact: true })).toHaveCount(0);
+  });
 }
