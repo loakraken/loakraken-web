@@ -54,8 +54,7 @@ const drawn = (row) =>
     let over = 0;
     const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      // Not drawn: the hidden sentence, and text kept only for the name (a 1px clipped box).
-      if (!n.textContent.trim() || n.parentElement.closest(".sr-only") || n.parentElement.getBoundingClientRect().width <= 1) continue;
+      if (!n.textContent.trim()) continue;
       const range = document.createRange();
       range.selectNodeContents(n);
       for (const r of range.getClientRects()) {
@@ -78,7 +77,8 @@ test.describe("배너 순위 길이: 5자리는 한 줄 전체 @A37 @regression"
         await gotoReady(page, characterPath("상세"));
         expect(await drawnFace(page), "그리는 글꼴").toBe(face);
         const row = rowOf(page, "상세");
-        const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6%, 전투력 순위\. .*공식 순위가 아니에요\.$/ });
+        // The name: what is shown, then what is not (WCAG 2.5.3).
+        const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6% 전투력 순위, .*공식 순위가 아니에요\.$/ });
         await expect(badge).toBeVisible();
         await expect(badge.locator("[class*=bannerRankText]")).toHaveText("대양 4,120위 · 상위 22.6%", { useInnerText: true });
         const d = await drawn(row);
@@ -108,7 +108,7 @@ test.describe("배너 순위 길이: 6자리는 400px 아래 두 줄 @A37 @regre
       expect(used, "넓은 대체 글꼴(DejaVu Sans·Verdana)이 실제로 쓰였다").toBe(true);
       const row = rowOf(page, "순위큰수");
       // The name starts with the two lines as shown, then says the rest.
-      const badge = row.getByRole("button", { name: /^연안 123,456위\s+상위 49\.98%, 전투력 순위\. / });
+      const badge = row.getByRole("button", { name: /^연안 123,456위\s+상위 49\.98% 전투력 순위, / });
       await expect(badge).toBeVisible();
       await expect(badge.locator("[class*=bannerRankText]")).toHaveText(/^연안 123,456위\s*\n\s*상위 49\.98%$/, { useInnerText: true });
       const d = await drawn(row);
@@ -128,7 +128,7 @@ test.describe("배너 순위 길이: 6자리는 400px 아래 두 줄 @A37 @regre
       await gotoReady(page, characterPath("순위큰수"));
       expect(await drawnFace(page), "그리는 글꼴").toBe("site");
       const row = rowOf(page, "순위큰수");
-      const badge = row.getByRole("button", { name: /123,456위 · 상위 49\.98%, 전투력 순위/ });
+      const badge = row.getByRole("button", { name: /123,456위 · 상위 49\.98% 전투력 순위, / });
       await expect(badge).toContainText("123,456위 · 상위 49.98%", { useInnerText: true });
       const d = await drawn(row);
       expect(d.lines, "한 줄").toBe(1);
@@ -147,12 +147,12 @@ test.describe("배너 순위 길이: 늦게 온 6자리는 한 줄 자리에 짧
       // The mock answers after the page's 1s wait: the first HTML has the empty one-line row.
       await page.goto(characterPath("순위큰수늦음"), { waitUntil: "domcontentloaded" });
       const row = rowOf(page, "순위큰수늦음");
-      const badge = row.getByRole("button", { name: /^연안 123,456위 · 상위 49\.98%, 전투력 순위\. / });
+      // Shown without 상위; the name then says the full rank.
+      const badge = row.getByRole("button", { name: /^연안 123,456위 · 49\.98% 전투력 123,456위 · 상위 49\.98%, / });
       await expect(badge).toBeVisible({ timeout: 10_000 });
       expect(await drawnFace(page), "그리는 글꼴").toBe("site");
-      // 상위 stays in the name but is not drawn (a 1px clipped box).
-      await expect(badge.locator("[class*=bannerRankText]")).toContainText("연안 123,456위 · ", { useInnerText: true });
-      expect((await badge.locator("[class*=bannerRankTopWord]").boundingBox())?.width ?? 0, "'상위'를 그리지 않음").toBeLessThanOrEqual(1);
+      await expect(badge.locator("[class*=bannerRankText]")).toHaveText("연안 123,456위 · 49.98%", { useInnerText: true });
+      await expect(badge.locator("[class*=bannerRankTopWord]")).toBeHidden();
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const d = await drawn(row);
       expect(d.lines, "한 줄").toBe(1);

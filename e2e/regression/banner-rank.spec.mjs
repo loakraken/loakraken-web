@@ -72,7 +72,7 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
           const banner = page.getByRole("region", { name: "순위늦음 캐릭터 요약" });
           const row = banner.locator("p[class*=bannerRank]");
           // Phones leave the metric's name out of the badge; the name says it after the shown text.
-          const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6%, 전투력 순위/ });
+          const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6% 전투력 순위, / });
           await expect(row).toBeVisible();
           await expect(row.getByRole("button")).toHaveCount(0);
           await expect.poll(() => rankRequested).toBe(true);
