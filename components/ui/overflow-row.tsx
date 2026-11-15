@@ -15,6 +15,8 @@ import styles from "./overflow-row.module.css"
 //   each shown only while items are hidden past its end; a press scrolls about one row.
 // - Dragging with the mouse scrolls the row. Past a few px it is a drag, and the press then
 //   chooses nothing (its click is swallowed); a press that stays put is an ordinary click.
+//   Navigation rows only (chips, tabs): a row of content people copy from (compare cards) passes
+//   drag={false} and keeps text selection; it still has ‹ ›, the fades and native scrolling.
 // - A tab reached by keyboard rests clear of the end fades (clearOfFade).
 // - With `reveal`, the chosen item is in view from the first HTML (a tiny inline script right
 //   after the row, every browser) and again whenever `revealKey` changes.
@@ -43,6 +45,8 @@ type OverflowRowProps = React.HTMLAttributes<HTMLElement> & {
    * only the browser draws (read from storage): a script React adds there never runs.
    */
   revealScript?: boolean
+  /** Mouse drag scrolls the row (navigation rows). false: a row of text to select and copy. */
+  drag?: boolean
 }
 
 // The chosen item, clear of the row's scroll-padding (its end fades). Runs as the server's HTML
@@ -64,7 +68,16 @@ function revealChosen(row: Element | null, selector: string) {
 const REVEAL = (selector: string) =>
   `(${revealChosen.toString()})(document.currentScript.parentElement.firstElementChild,${JSON.stringify(selector)})`
 
-function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, className, children, ...props }: OverflowRowProps) {
+function OverflowRow({
+  as: Tag = "div",
+  reveal,
+  revealKey,
+  revealScript = true,
+  drag: draggable = true,
+  className,
+  children,
+  ...props
+}: OverflowRowProps) {
   const box = React.useRef<HTMLElement>(null)
   const nonce = useNonce()
 
@@ -119,7 +132,7 @@ function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, 
       event.stopImmediatePropagation()
     }
     const down = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse" || event.button !== 0 || row.scrollWidth <= row.clientWidth + 1) return
+      if (!draggable || event.pointerType !== "mouse" || event.button !== 0 || row.scrollWidth <= row.clientWidth + 1) return
       drag = { id: event.pointerId, x: event.clientX, left: row.scrollLeft, moved: false }
     }
     const move = (event: PointerEvent) => {
@@ -149,7 +162,7 @@ function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, 
     }
     // A link or image dragged out of a row that scrolls would start the browser's own drag.
     const dragstart = (event: DragEvent) => {
-      if (row.scrollWidth > row.clientWidth + 1) event.preventDefault()
+      if (draggable && row.scrollWidth > row.clientWidth + 1) event.preventDefault()
     }
     row.addEventListener("pointerdown", down)
     row.addEventListener("pointermove", move)
@@ -173,7 +186,7 @@ function OverflowRow({ as: Tag = "div", reveal, revealKey, revealScript = true, 
       row.removeEventListener("click", swallow, { capture: true })
       root.removeAttribute("data-dragging")
     }
-  }, [])
+  }, [draggable])
 
   return (
     // data-overflow-row marks the box even when the caller names its own data-slot.

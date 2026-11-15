@@ -13,7 +13,7 @@ import { OverflowRow } from "@/components/ui/overflow-row"
 // The best value in a row (the caller decides "best": higher item level,
 // lower price…) is bold with a small "최고" mark — not colour alone.
 // The strip is a named region and a tab stop only while it overflows, like
-// DataTable, so a keyboard can scroll it; a mouse has ‹ › and drags it.
+// DataTable, so a keyboard can scroll it; a mouse has ‹ › (no drag: text stays selectable).
 
 /** `note`: what the row means, as the name's tooltip (e.g. what is averaged). */
 type CompareRow = { id: string; label: string; note?: string }
@@ -58,8 +58,8 @@ function useOverflowX<T extends HTMLElement>() {
 function CompareCards({ label, rows, cards, className }: CompareCardsProps) {
   const [ref, overflowing] = useOverflowX<HTMLDivElement>()
   return (
-    // On a mouse: ‹ › and drag (OverflowRow); a drag lets go of the snapping while the hand holds it.
-    <OverflowRow>
+    // On a mouse: ‹ › (OverflowRow). No drag: the values are text to select and copy (PM 11-16).
+    <OverflowRow drag={false}>
       <div
         ref={ref}
         data-slot="compare-cards"
@@ -68,6 +68,9 @@ function CompareCards({ label, rows, cards, className }: CompareCardsProps) {
         tabIndex={overflowing ? 0 : undefined}
         className={cn(
           "flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2",
+          // On a mouse, a card's link or button reached by keyboard rests clear of the ‹ › buttons
+          // (OverflowRow). Phones have no buttons, and the padding would also move the snap point there.
+          "pointer-fine:scroll-px-10",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)",
           className
         )}

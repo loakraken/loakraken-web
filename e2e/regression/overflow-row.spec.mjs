@@ -230,3 +230,26 @@ for (const width of [1280, 360])
       await expectNoHorizontalOverflow(page);
     }
   });
+
+// PM 11-16 (#1751 리뷰): 내용 줄(멀티서치 비교 카드)은 끌어 넘기지 않는다(drag={false}). 카드 값을 마우스로 끌면 글자가
+// 골라지고 줄은 그대로다. ‹ › 와 끝 흐림은 그대로 있다.
+test("600 마우스: 비교 카드 값을 끌면 글자가 골라지고 줄은 넘어가지 않는다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 900 });
+  await gotoReady(page, "/multi-search?names=비교1,비교2,비교3,비교5");
+  await expect(page.getByText("4명을 비교하고 있어요")).toBeVisible();
+  const strip = page.locator("[data-overflow-row]").filter({ has: page.getByRole("region", { name: "캐릭터 비교 카드" }) });
+  await expect(next(strip)).toBeVisible();
+  const value = strip.getByText("1,717.5").first();
+  await value.scrollIntoViewIfNeeded();
+  const before = await scroll(strip);
+  const box = await value.boundingBox();
+  await page.mouse.move(box.x + 1, box.y + box.height / 2);
+  await page.mouse.down();
+  for (let step = 1; step <= 8; step++) await page.mouse.move(box.x + 1 + step * 12, box.y + box.height / 2);
+  await page.mouse.up();
+  expect(await page.evaluate(() => getSelection()?.toString() ?? "")).not.toBe("");
+  expect((await scroll(strip)).left).toBe(before.left);
+  // The buttons still turn it.
+  await next(strip).click();
+  await expect.poll(async () => (await scroll(strip)).left).toBeGreaterThan(before.left);
+});
