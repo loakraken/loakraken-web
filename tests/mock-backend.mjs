@@ -944,12 +944,29 @@ createServer(async (req, res) => {
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "5" });
+    // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
+    // '점수순서서폿' answers sort=KRAKEN with the api's own supporter answer (#969 test, combat power null),
+    // '점수순서딜러' with the sample in its 크라켄 점수 (combat power kept). Every other name: switch off.
+    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
+    if (who === "점수순서서폿" && sort === "KRAKEN") {
+      const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
+      Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
+      return send(real);
+    }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
     const sampleBase = d.combatPower;
     const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
     Object.assign(d, { characterName: who, sort, combatPower: base, finalCombatPower: shift(d.finalCombatPower) });
+    if (supportOrder) d.supportOrderAvailable = true;
+    // With the switch off the api answers sort=KRAKEN in EFFICIENCY with DISABLED (the web never asks then).
+    if (sort === "KRAKEN" && !supportOrder) Object.assign(d, { sort: "EFFICIENCY", krakenSortUnavailableReason: "DISABLED" });
+    if (who === "점수순서서폿") {
+      // A supporter's other orders: no combat-power model, no steps (as 상세서포터).
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
@@ -964,6 +981,13 @@ createServer(async (req, res) => {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
+    }
+    if (who === "점수순서딜러" && sort === "KRAKEN") {
+      const start = 1000;
+      d.steps.forEach((step, i) =>
+        Object.assign(step, { deltaKrakenScore: 7.5, krakenScoreAfter: start + 7.5 * (i + 1), krakenScorePer100kGold: i === 0 ? 1.25 : 0.38 }),
+      );
+      Object.assign(d, { krakenScore: start, finalKrakenScore: start + 7.5 * d.steps.length, krakenScoreRole: "DEALER", stopReason: "시세가 있는 항목 가운데 점수가 오르는 것을 모두 골랐어요." });
     }
     // A stone step as api #812 words it (two engravings each side): the longest change text.
     if (who === "스펙순서스톤") {
@@ -1146,12 +1170,15 @@ createServer(async (req, res) => {
       kraken.data.characterName = who;
       kraken.data.cooldownGemsIncluded = url.searchParams.get("includeCooldownGems") === "true";
       if (who === "서포터옛응답") kraken.data.krakenSortUnavailableReason = "SUPPORTER_PENDING";
-      if (who === "상세서포터")
+      if (who === "상세서포터" || who === "점수순서서폿")
         for (const c of kraken.data.candidates)
           Object.assign(c, { deltaCombatPower: null, combatPowerPer10kGold: null, deltaPercent: null });
+      if (who === "점수순서딜러" || who === "점수순서서폿")
+        Object.assign(kraken.data, { supportOrderAvailable: true, krakenScoreRole: who === "점수순서서폿" ? "SUPPORT" : "DEALER" });
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    if (who === "점수순서딜러") envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
     // '적용해 보기' off the armour row.
@@ -2828,7 +2855,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2998,7 +3025,7 @@ createServer(async (req, res) => {
     ];
     d.coverage.skills = "PROVIDED";
     // 서포터옛응답: the same supporter against a backend from before api #722.
-    const supportRole = name === "상세서포터" || name === "서포터옛응답";
+    const supportRole = name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿";
     d.analysis.position = supportRole ? "SUPPORT" : "DEALER";
     d.analysis.positionEvidence = supportRole ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
