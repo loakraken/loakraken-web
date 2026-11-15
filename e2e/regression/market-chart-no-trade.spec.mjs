@@ -2,7 +2,8 @@
 // 평균가 0 · 거래 0이었다. 차트가 그 조건으로 열려 0G 직선(축 1 / 0 / −1)과 '0G · 0' 행 14개를 99,555G 머리
 // 아래 보였다. 이제 거래가 가장 많은 조건으로 열고, 거래가 없는 조건을 고르면 0G 선 · 행 대신 거래가 없다고만 쓴다.
 // codex #1671: 연 조건은 기간을 바꿔도 그대로(기간마다 답의 순서 · 거래 수가 다름), 거래가 하나도 없는 품목은 어느
-// 기간이든 안내 한 번 · 표 자리 높이 그대로(흔들림 0).
+// 기간이든 안내 한 번 · 표 자리 높이 그대로(흔들림 0). codex #1671 P3: 사용자가 고른 조건은 그 조건이 없는 기간에서도
+// 그대로(그 기간엔 기록이 없다고만), 기간 쌍 모두에서 조건이 그대로, 읽는 동안의 14줄 자리는 표와 꼭 같은 높이.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -10,7 +11,7 @@ const REAL_ROWS = "table:not([aria-hidden]) tbody tr";
 const detailOf = (page) => page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
 const CHART = /^일 평균 거래가와 거래량/;
 
-for (const width of [320, 1280])
+for (const width of [320, 360, 1280])
   test(`${width}: 거래가 없는 조건이 앞에 있어도 거래가 있는 조건으로 열고, 0G 선 · 행을 그리지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     // The real 각인서 answer: a no-trade series first (every day 0 / 0), the traded one after it.
@@ -46,7 +47,7 @@ for (const width of [320, 1280])
 const HISTORY = /\/api\/markets\/items\/\d+\/history\?range=(30d|90d|365d)/;
 const secondRow = (page) => page.locator('section[aria-labelledby="board-heading"] ul li button').nth(1);
 
-for (const width of [320, 1280])
+for (const width of [320, 360, 1280])
   test(`${width}: 거래가 하나도 없는 품목은 7일 · 30일 · 3개월 · 1년 모두 안내 한 번, 표 자리 그대로 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     // Every range's answer: one terms, every day 0 / 0 (the clicked row's history is the client's own fetch).
@@ -84,31 +85,109 @@ for (const width of [320, 1280])
     await expectNoHorizontalOverflow(page);
   });
 
-test("연 거래 조건은 기간을 바꿔도 그대로다(기간마다 거래 수 · 순서가 달라도) @regression", async ({ page }) => {
+const RANGES = ["7일", "30일", "3개월", "1년"];
+
+test("연 거래 조건은 기간을 바꿔도 그대로다(기간마다 거래 수 · 순서가 달라도, 모든 기간 쌍) @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  // 3개월: the opened terms trade most; 1년: other terms trade more and come first.
-  await page.route(/\/api\/markets\/items\/\d+\/history\?range=(90d|365d)/, async (route) => {
+  // 30d (also 7일): the opened terms (the row's own) trade most; 3개월 · 1년: other terms trade more and come first.
+  // The second row's answers are the client's own fetches (the first item's 30-day answer comes with the page).
+  await page.route(HISTORY, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
     const [official] = body.envelope.data.variants;
     const scaled = (v, k) => ({ ...v, days: v.days.map((d) => ({ ...d, tradeCount: Math.round(d.tradeCount * k) + 1 })) });
-    const other = { ...official, tradeRemainCount: 1 };
-    body.envelope.data.variants = route.request().url().includes("365d")
-      ? [scaled(other, 4), scaled(official, 0.25)]
-      : [scaled(official, 1), scaled(other, 0.5)];
+    const other = { ...official, tradeRemainCount: 99 };
+    body.envelope.data.variants = route.request().url().includes("range=30d")
+      ? [scaled(official, 1), scaled(other, 0.5)]
+      : [scaled(other, 4), scaled(official, 0.25)];
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
   const detail = detailOf(page);
   const ranges = detail.getByRole("group", { name: "기간" });
   const terms = detail.getByRole("group", { name: "거래 조건" });
-  await ranges.getByRole("button", { name: "3개월" }).click();
-  await expect(terms.getByRole("button", { name: "1개" })).toHaveAttribute("aria-pressed", "true");
-  await ranges.getByRole("button", { name: "1년" }).click();
-  await expect(terms.getByRole("button")).toHaveText(["거래 1회", "1개"]);
-  await expect(terms.getByRole("button", { name: "1개" })).toHaveAttribute("aria-pressed", "true");
+  await secondRow(page).click();
+  await expect(terms.getByRole("button")).toHaveCount(2);
+  const opened = (await terms.locator('button[aria-pressed="true"]').textContent()).trim();
+  expect(opened, "열린 조건은 품목 자신의 조건").not.toBe("거래 99회");
+  // Every ordered pair: from each range to each other one.
+  for (const from of RANGES)
+    for (const to of RANGES) {
+      if (from === to) continue;
+      await ranges.getByRole("button", { name: from }).click();
+      await ranges.getByRole("button", { name: to }).click();
+      await expect(ranges.getByRole("button", { name: to })).toHaveAttribute("aria-pressed", "true");
+      await expect(terms.getByRole("button", { name: opened, exact: true }), `${from} → ${to}`).toHaveAttribute("aria-pressed", "true");
+    }
   // A press picks other terms, and they stay too.
-  await terms.getByRole("button", { name: "거래 1회" }).click();
-  await ranges.getByRole("button", { name: "3개월" }).click();
-  await expect(terms.getByRole("button", { name: "거래 1회" })).toHaveAttribute("aria-pressed", "true");
+  await terms.getByRole("button", { name: "거래 99회" }).click();
+  for (const range of ["3개월", "7일", "1년", "30일"]) {
+    await ranges.getByRole("button", { name: range }).click();
+    await expect(terms.getByRole("button", { name: "거래 99회" }), range).toHaveAttribute("aria-pressed", "true");
+  }
 });
+
+for (const width of [320, 360, 1280])
+  test(`${width}: 고른 '지난 기록'은 그 조건이 없는 기간에서도 고른 채로, 그 기간엔 기록이 없다고만 쓴다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    // 3개월 · 1년 also list terms only in stored history ('지난 기록', traded); the 30-day answer (30일, 7일) does not.
+    await page.route(HISTORY, async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const [official] = body.envelope.data.variants;
+      if (!route.request().url().includes("range=30d"))
+        body.envelope.data.variants = [official, { ...official, tradeRemainCount: null, bundleCount: null }];
+      await route.fulfill({ response, json: body });
+    });
+    await watchShifts(page);
+    await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+    const detail = detailOf(page);
+    const ranges = detail.getByRole("group", { name: "기간" });
+    const terms = detail.getByRole("group", { name: "거래 조건" });
+    await ranges.getByRole("button", { name: "3개월" }).click();
+    await terms.getByRole("button", { name: "지난 기록" }).click();
+    await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
+    await expect(detail.getByRole("img", { name: CHART })).toBeVisible();
+    for (const range of ["30일", "7일"]) {
+      const moved = await shiftsDuring(page, () => ranges.getByRole("button", { name: range }).click(), 1500);
+      await expect(ranges.getByRole("button", { name: range })).toHaveAttribute("aria-pressed", "true");
+      // The pick stays (the row keeps its two buttons), and this range says it has no record of it, once.
+      await expect(terms.getByRole("button"), range).toHaveCount(2);
+      await expect(terms.getByRole("button", { name: "지난 기록" }), range).toHaveAttribute("aria-pressed", "true");
+      await expect(detail.getByText("이 기간에는 이 조건의 기록이 없어요. 3개월을 고르면 볼 수 있어요.", { exact: true }), range).toBeVisible();
+      await expect(detail.getByText(/기록이 없어요/), `${range}: 안내는 한 번`).toHaveCount(1);
+      await expect(detail.getByRole("img", { name: CHART })).toHaveCount(0);
+      await expect(detail.locator(REAL_ROWS)).toHaveCount(0);
+      expect(moved.all, `${range} 흔들림 (${moved.moved})`).toBe(0);
+    }
+    // A range that lists it again shows it again.
+    await ranges.getByRole("button", { name: "1년" }).click();
+    await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
+    await expect(detail.getByRole("img", { name: CHART })).toBeVisible();
+    await expect(detail.getByText(/기록이 없어요/)).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
+for (const width of [320, 360, 1280])
+  test(`${width}: 30일 표를 읽는 동안의 자리는 다 읽은 14줄 표와 꼭 같은 높이 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+    const detail = detailOf(page);
+    await expect(detail.locator(REAL_ROWS)).toHaveCount(14);
+    // The box right under the caption: the table, or what holds its place while it loads. Exact, not rounded.
+    const place = () =>
+      detail.getByText(/^하루 평균 거래가와 거래량/).evaluate((caption) => caption.nextElementSibling.getBoundingClientRect().height);
+    const loaded = await place();
+    // The next item's 30-day answer is held until its place is measured.
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await secondRow(page).click();
+    await expect(detail.getByText("추이를 불러오고 있어요")).toBeVisible();
+    const loading = await place();
+    release();
+    expect(Math.abs(loading - loaded), `읽는 동안 ${loading}px · 표 ${loaded}px`).toBeLessThan(0.01);
+  });

@@ -951,12 +951,6 @@
 .dailySkeleton tbody th {
   background: color-mix(in oklab, var(--secondary) 50%, transparent);
 }
-.dailyPending {
-  height: 502px;
-  margin-top: 12px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--secondary) 50%, transparent);
-}
 .detailPending {
   min-height: 1055px;
   border-radius: 18px;

@@ -263,4 +263,47 @@ for (const width of [1280, 360])
       expect(names.length).toBeGreaterThan(0);
       expect(names.filter((name) => !name.includes("ENGRAVING_BOOK")), "각인서 표의 행").toEqual([]);
     });
+
+    // codex #1669 P3: the chart range was the detail's own state, so Back from another page (a new mount) opened
+    // 30일 again. It is in the address now, next to its item, and the first HTML already draws it.
+    test("품목의 기간(3개월)을 고르고 다른 화면에 갔다 뒤로 · 새로 고침: 같은 품목 · 같은 기간", async ({ page }) => {
+      await gotoReady(page, "/market");
+      const detail = page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
+      const ranges = detail.getByRole("group", { name: "기간" });
+      const name = await detail.getAttribute("aria-label");
+      await expect(ranges.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "true");
+      await ranges.getByRole("button", { name: "3개월" }).click();
+      await expect(page).toHaveURL(/[?&]item=\d+&range=90d(&|$)/);
+      const address = page.url();
+      await row(page).getByRole("link", { name: "보석", exact: true }).click();
+      await expect(page).toHaveURL(/\/market\/gems/);
+      await page.goBack();
+      await expect(page).toHaveURL(address);
+      await expect(detail).toHaveAttribute("aria-label", name);
+      await expect(ranges.getByRole("button", { name: "3개월" })).toHaveAttribute("aria-pressed", "true");
+      await expect(ranges.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "false");
+      // The server's own HTML (no script) already presses 3개월.
+      const html = await (await page.request.get(address)).text();
+      expect(html).toMatch(/aria-pressed="true"[^>]*>3개월</);
+      await page.reload();
+      await expect(ranges.getByRole("button", { name: "3개월" })).toHaveAttribute("aria-pressed", "true");
+      // Another item opens on 30일; the address drops the range.
+      await page.locator('section[aria-labelledby="board-heading"] ul li button').nth(1).click();
+      await expect(ranges.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "true");
+      await expect(page).not.toHaveURL(/range=/);
+    });
+
+    // codex #1669 P3: a repeated name is a list on the server (ignored: the first tab, prefetched) but the client
+    // took the last value and asked for that board instead.
+    test("같은 이름이 두 번인 주소(tab=FOOD&tab=LIFE): 서버와 같이 첫 분류, 다른 분류 요청 없음", async ({ page }) => {
+      const requests = [];
+      page.on("request", (request) => {
+        if (request.url().includes("/api/markets/board")) requests.push(new URL(request.url()).searchParams.get("tab"));
+      });
+      await gotoReady(page, "/market?tab=FOOD&tab=LIFE");
+      await expect(row(page).getByRole("link", { name: "재련 재료", exact: true })).toHaveAttribute("aria-current", "page");
+      await expect(heading(page)).toContainText("재련 재료 시세");
+      await page.waitForTimeout(800);
+      expect(requests.filter((tab) => tab !== "REFINING"), `다른 분류 요청: ${requests}`).toEqual([]);
+    });
   });
