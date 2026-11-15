@@ -276,7 +276,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
           ) : (
             <span>이 순서의 단계는 시뮬레이터에서 아직 바꿀 수 없어요.</span>
           )}
-          {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
+          {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
         </p>
       )}
       <p className={styles.note}>

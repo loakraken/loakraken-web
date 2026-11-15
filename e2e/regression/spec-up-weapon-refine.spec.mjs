@@ -85,7 +85,7 @@ for (const width of [320, 1280]) {
     // Past the weapon step (12,495.52), so the path ends on the helmet step (12,505.52).
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12500");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal).toContainText("1단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.");
+    await expect(goal).toContainText("1개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.");
     const asked = simulateRequest(page);
     await goal.getByRole("link", { name: "이 경로를 시뮬레이터에서 열기" }).click();
     const body = (await asked).postDataJSON();
