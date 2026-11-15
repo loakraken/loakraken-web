@@ -41,6 +41,16 @@ export const AVATAR_SLOTS = [
  * characters) every marked one is false with a true avatar in the same slot,
  * while the 5 lone false ones carry no mark: so a false one is the 덧입기 only
  * next to a base in its slot (65/65). `worn` is everything the character wears.
+ *
+ * Known gap: a real 덧입기 worn over an empty base slot reads as the base (0 of
+ * 65 in the saved raws). The api reads the tooltip mark but does not send it
+ * yet; until it does, pairing is all the web can go on.
+ *
+ * One-piece (한벌) avatars: the official answer sends them as "상의 아바타"
+ * (their tooltip says "상의&하의 아바타"), never as a type of their own, so
+ * they pair in 상의 like any top. The saved raws have 3: two 덧입기 over a
+ * separate 상의 and 하의 base (marked, read as 상의 덧입기) and one worn
+ * alone (unmarked, read as 상의).
  */
 export function isOverlay(avatar: Avatar, worn: readonly Avatar[]) {
   if (/덧입기/.test(avatar.type ?? "")) return true;

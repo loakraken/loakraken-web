@@ -41,6 +41,7 @@ import {
   type ScheduleCategory,
 } from "@/lib/home/schedule";
 import { Countdown, useNow } from "@/components/home/clock";
+import { FpEnd } from "@/components/ui/fp-end";
 import styles from "@/components/home/home.module.css";
 import expand from "@/components/site/expand.module.css";
 import own from "./schedule.module.css";
@@ -336,7 +337,9 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          <span className={styles.next} data-state={status.state}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
+          // line in a phone's own font.
+          <span className={styles.next} data-state={status.state} data-fp-whole="">
             {status.state === "done" && "오늘 일정 종료"}
             {status.state === "done" && status.next && " · "}
             {status.next && (
@@ -346,6 +349,7 @@ function Section({
                 {status.state !== "upcoming" && " 후"}
               </>
             )}
+            <FpEnd />
           </span>
         )}
         {status?.state === "done" && onShowTomorrow && (
@@ -357,7 +361,9 @@ function Section({
       </header>
       <ul className={styles.rows}>
         {byTimeThenLevel(items).map((item) => (
-          <li key={`${"category" in item ? item.category : ""}${item.name}`}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): in a phone's own font the name and level wrapped to
+          // two lines when the reward kinds and times came in after them, and the row grew (#1618 follow-on).
+          <li key={`${"category" in item ? item.category : ""}${item.name}`} data-fp-whole="">
             <RowIcon src={item.icon} />
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
@@ -376,6 +382,7 @@ function Section({
               gold={gold}
             />
             {withPlaces && item.places && <small className={own.placeLine}>지역 {item.places.length}곳</small>}
+            <FpEnd />
           </li>
         ))}
       </ul>

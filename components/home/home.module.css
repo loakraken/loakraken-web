@@ -261,6 +261,24 @@
   align-items: center;
   min-height: 28px;
 }
+/* 360px and narrower (#1618): heading, toggle and legend need about 275px
+   together, and the head line is 268px at 320, so whether they fit on one line
+   depended on the font (the site font is display: optional, so a phone can
+   draw with its own). There the tools take their own line under the heading
+   from the first paint, in every font, and each part stays on one line. */
+@media (max-width: 360px) {
+  .panelHead.scheduleHead {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .scheduleHead .headToolsReverse {
+    flex-basis: 100%;
+  }
+  .scheduleHead h2,
+  .scheduleHead .headTools > * {
+    white-space: nowrap;
+  }
+}
 .toggle {
   min-height: 28px;
   padding: 0 10px;
