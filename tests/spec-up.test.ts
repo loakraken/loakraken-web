@@ -197,3 +197,16 @@ test("a kind the web does not know yet reads 기타 everywhere and opens nothing
   const step = { kind: "NEW_KIND", change, changes: [change] } as unknown as Parameters<typeof simulatorPath>[0][number];
   assert.deepEqual(simulatorPath([step]), { changes: [], skipped: 1 });
 });
+
+test("연마 rows with a combat-power gain carry one fixed basis line; without one, or another kind, none (PM 총괄 11-15)", async () => {
+  const { polishBasis, POLISH_BASIS } = await import("../lib/spec-up/model");
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 12.5 }), POLISH_BASIS);
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 0 }), POLISH_BASIS);
+  // The api flag off: no ΔCP on 연마 rows, so the line stays hidden.
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: null }), null);
+  assert.equal(polishBasis({ kind: "GEM_LEVEL", deltaCombatPower: 30 }), null);
+  // 계산 검증's wording (11-15 14:05): flat-value lines dropped; in the already-both-상 case the flat line is replaced.
+  assert.match(POLISH_BASIS, /^점수에 쓰는 연마 효과 두 줄을 이 후보의 등급으로 바꾼 장신구로 셈해요\./);
+  assert.match(POLISH_BASIS, /고정값 공격력·무기 공격력 줄은 빼고/);
+  assert.match(POLISH_BASIS, /고정값 줄을 이 후보의 고정값 줄로 바꿔/);
+});

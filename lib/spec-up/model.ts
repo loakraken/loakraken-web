@@ -84,6 +84,19 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   ABILITY_STONE: "어빌리티 스톤",
 };
 export const UNKNOWN_KIND_LABEL = "기타";
+
+/**
+ * 연마 rows with a combat-power gain (api spec-up.polish-cp, PM 총괄 11-15): the gain is for the accessory with its
+ * two scoring lines at this candidate's grades; a current flat-value 공격력 / 무기 공격력 line is dropped, except
+ * when the current two scoring lines are already both 상, where the flat line becomes this candidate's flat line.
+ * One fixed line in the row's detail card says so; it shows only when the row has a ΔCP, so it stays hidden while
+ * the api flag is off.
+ */
+// 계산 검증's sentence (11-15 14:05, against api #945), verbatim: do not reword. It wraps in the card.
+export const POLISH_BASIS =
+  "점수에 쓰는 연마 효과 두 줄을 이 후보의 등급으로 바꾼 장신구로 셈해요. 지금 붙은 고정값 공격력·무기 공격력 줄은 빼고 셈해요. 다만 지금 두 줄이 이미 모두 상이면, 고정값 줄을 이 후보의 고정값 줄로 바꿔 셈해요. 그 밖의 줄은 그대로예요.";
+export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPower">) =>
+  candidate.kind === "POLISH" && candidate.deltaCombatPower != null ? POLISH_BASIS : null;
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
