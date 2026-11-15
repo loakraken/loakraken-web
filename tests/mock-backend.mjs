@@ -1686,6 +1686,10 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
+    ] : who === "순위큰수" ? [
+      // The widest banner badge in practice (PM 11-16): a 6-digit rank, a 2-letter tier and a two-decimal
+      // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
+      entry("COMBAT_POWER", "ALL", null, 123456, 247000),
     ] : who === "순위긴범위" ? [
       // The longest real server + class pair, late like 순위늦음: the
       // server-class value takes two lines in a narrow box.
