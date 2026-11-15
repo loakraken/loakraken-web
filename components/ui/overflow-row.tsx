@@ -1,11 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "cn"
 import { ArrowLeft2, ArrowRight2 } from "@/components/ui/icons"
 import { clearOfFade } from "@/components/ui/focus-clear-of-fade"
 import { useNonce } from "@/components/site/nonce"
-import styles from "./overflow-row.module.css"
 
 // One behaviour for every row of chips or tabs that scrolls sideways (user 11-16: the /market
 // category row was cut off on a desktop with no way to reach the rest). The row's FIRST element
@@ -190,14 +188,14 @@ function OverflowRow({
 
   return (
     // data-overflow-row marks the box even when the caller names its own data-slot.
-    <Tag ref={box as React.Ref<never>} data-slot="overflow-row" {...props} data-overflow-row="" className={cn(styles.row, className)}>
+    <Tag ref={box as React.Ref<never>} data-slot="overflow-row" {...props} data-overflow-row="" className={className}>
       {children}
       {reveal && revealScript && <script nonce={nonce} dangerouslySetInnerHTML={{ __html: REVEAL(reveal) }} suppressHydrationWarning />}
       {/* Mouse only, and the keyboard reaches every item by Tab (which scrolls the row), so the
           buttons stay out of the Tab order; a press never takes the focus. */}
       <button
         type="button"
-        className={cn(styles.arrow, styles.prev)}
+        data-overflow-arrow="prev"
         aria-label="이전 항목"
         tabIndex={-1}
         onMouseDown={(event) => event.preventDefault()}
@@ -207,7 +205,7 @@ function OverflowRow({
       </button>
       <button
         type="button"
-        className={cn(styles.arrow, styles.next)}
+        data-overflow-arrow="next"
         aria-label="다음 항목"
         tabIndex={-1}
         onMouseDown={(event) => event.preventDefault()}

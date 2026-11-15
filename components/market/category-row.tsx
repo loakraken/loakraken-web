@@ -130,8 +130,9 @@ export function MarketCategoryRow({
         className={cn(
           "max-w-full overflow-x-auto overscroll-x-contain scroll-fade-x [--scroll-fade-size:28px]",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          // The chosen item, and a link reached by keyboard, rest clear of the end fade (OverflowRow).
-          "scroll-px-7",
+          // The chosen item, and a link reached by keyboard, rest clear of the end fade (OverflowRow);
+          // on a mouse also clear of the ‹ › buttons (4px + 28px).
+          "scroll-px-7 pointer-fine:scroll-px-9",
         )}
       >
         <ul className="m-0 flex w-max list-none gap-1 p-1">
