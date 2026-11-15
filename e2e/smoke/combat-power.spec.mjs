@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤·연마·팔찌·팔 보호구·코어는 바꾸고, 방어구 재련·아크 패시브 진화는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·연마·팔찌·팔 보호구·코어·아크 패시브 진화는 바꾸고, 방어구 재련은 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
