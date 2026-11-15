@@ -763,11 +763,12 @@
     padding: 0 4px;
   }
 }
-/* Up to 360px the badge says "4,120위 · 22.6%" (the aria-label keeps 상위): with
+/* Up to 399px the badge says "4,120위 · 22.6%" (the aria-label keeps 상위): with
    a wider system face — the site font is display:optional, so a visit that misses
-   its load window keeps the system face — the full badge ran past the row at 320
-   and 360 (A37, PM 총괄 11-16). */
-@media (max-width: 360px) {
+   its load window keeps the system face — the full badge ran past the row up to
+   381px (sweep 320–400 under a wide face, first fit 382); 399 leaves ~11px for a
+   face wider still (A37, PM 총괄 · PM-프론트 11-16). */
+@media (max-width: 399px) {
   .bannerRankTopWord {
     display: none;
   }
