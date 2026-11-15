@@ -10,6 +10,7 @@ import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment, NOT_SPECIAL } from "@/lib/character/detail";
 import {
+  avatarEffectApplies,
   avatarEffectTotals,
   avatarSlots,
   avatarTendencyText,
@@ -347,7 +348,13 @@ export function AvatarsTab({ data }: { data: Character }) {
                   // text lines under the slot name came.
                   <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true} data-fp-whole="">
                     {avatar ? (
-                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} overlay={slot.endsWith(" 덧입기")} />}>
+                      <DetailTooltip name={avatar.name ?? "아바타"} card={
+                          <AvatarCard
+                            avatar={avatar}
+                            overlay={slot.endsWith(" 덧입기")}
+                            applies={avatarEffectApplies(avatar, avatars)}
+                          />
+                        }>
                         <GameIcon src={avatar.icon} grade={avatar.grade} size={36} />
                       </DetailTooltip>
                     ) : (

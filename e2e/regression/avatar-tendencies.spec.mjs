@@ -15,9 +15,10 @@ for (const width of [1280, 360])
     await gotoReady(page, characterPath("상세", "avatars"));
     const totals = panelOf(page, "아바타 성향");
     await expect(totals).toBeVisible();
-    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock.
+    // 지성·담력·매력·친절 in the game's order, the sums of the worn avatars in the mock, without the two
+    // 덧입기 (지성 5, 담력 5): their points do not apply either (PM 총괄 11-15).
     await expect(totals.locator("dt")).toHaveText(["지성", "담력", "매력", "친절"]);
-    await expect(totals.locator("dd")).toHaveText(["+25", "+20", "+35", "+15"]);
+    await expect(totals.locator("dd")).toHaveText(["+20", "+15", "+35", "+15"]);
     await expect(totals).toContainText("캐릭터 전체 성향은 내실 탭에 있어요.");
 
     const list = panelOf(page, "아바타 목록");
@@ -48,15 +49,13 @@ for (const width of [1280, 360])
     await expectNoHorizontalOverflow(page);
   });
 
-// 덧입기 아바타의 상세 카드는 중립 문구 한 줄만(PM 총괄 11-13 #1551: '능력 미적용'은 확인되지 않아 쓰지 않음).
-// 기본 아바타 카드에는 그 줄이 없다.
-test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아바타에는 없음 @regression", async ({ page }) => {
+// 덧입기 아바타의 상세 카드는 능력치가 적용되지 않는다고 한 줄로 말한다: 공식 툴팁의 문구가 근거이고, 아바타 효과
+// 합계도 그 효과를 뺀다(QA v0.3.13 RC P0-1, web #1708; PM 총괄 11-15). 기본 아바타 카드에는 그 줄이 없다.
+test("덧입기 아바타 상세에는 '능력치가 적용되지 않아요', 기본 아바타에는 없음 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세", "avatars"));
   await page.getByRole("button", { name: "합성 무기 덧입기 상세 보기" }).click();
   const card = page.getByRole("dialog");
-  await expect(card).toContainText("덧입기 칸에 착용 중");
-  // Any wording that says the abilities do not apply (unproven), not only the exact "능력 미적용" (codex #1589 P3).
-  await expect(card).not.toContainText(/적용되지|미적용/);
+  await expect(card).toContainText("덧입기 칸에 착용 중이라 능력치가 적용되지 않아요.");
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
   await page.getByRole("button", { name: "합성 무기 아바타 상세 보기" }).click();

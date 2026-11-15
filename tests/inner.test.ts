@@ -166,6 +166,25 @@ test("아바타 성향 (user 11-02): a line per avatar, totals in the game's ord
   assert.equal(avatarTendencyText(avatar(undefined)), "");
 });
 
+test("아바타 성향 total leaves out 덧입기 avatars, by the same rule as the effect total (PM 총괄 11-15)", () => {
+  type Avatar = Parameters<typeof avatarTendencyTotals>[0][number];
+  const avatar = (isInner: boolean, overlay: boolean | null | undefined, point: number) =>
+    ({
+      type: "상의 아바타", name: "a", icon: null, grade: "전설", isSet: false, isInner, effects: [],
+      tendencies: [{ type: "지성", point }],
+      ...(overlay === undefined ? {} : { overlay }),
+    }) as Avatar;
+  // The mark decides: the 덧입기's 지성 5 does not apply.
+  assert.deepEqual(avatarTendencyTotals([avatar(true, false, 10), avatar(false, true, 5)]), [{ type: "지성", point: 10 }]);
+  // No mark (older api) or null: the slot pairing finds the same 덧입기.
+  for (const overlay of [undefined, null])
+    assert.deepEqual(avatarTendencyTotals([avatar(true, overlay, 10), avatar(false, overlay, 5)]), [
+      { type: "지성", point: 10 },
+    ]);
+  // Never IsInner alone: a lone non-inner avatar's points apply.
+  assert.deepEqual(avatarTendencyTotals([avatar(false, false, 5)]), [{ type: "지성", point: 5 }]);
+});
+
 test("가장 희귀한 보유: lowest share among finished items, unknown shares left out", () => {
   const item = (name: string, point: number, maxPoint: number) => ({ name, point, maxPoint });
   const items = [item("가", 1, 1), item("나", 1, 1), item("다", 0, 1), item("라", 5, 5), item("마", 1, 1)];

@@ -101,11 +101,14 @@ export function avatarTendencyText(avatar: Avatar) {
 /**
  * The worn avatars' 성향 points summed by type, in the game's order (지성·담력·
  * 매력·친절, then any other); empty when none add any. Only the avatars' share,
- * not the character's total 성향 (that is the 내실 tab's).
+ * not the character's total 성향 (that is the 내실 tab's). A 덧입기 avatar's
+ * points are left out like its effects: its official tooltip puts the "아래
+ * 능력들이 적용되지 않는 상태입니다" mark above the 성향 line too (PM 총괄 11-15,
+ * official source alone by the data rule).
  */
 export function avatarTendencyTotals(avatars: Avatar[]) {
   const totals = new Map<string, number>();
-  for (const avatar of avatars)
+  for (const avatar of avatars.filter((avatar) => avatarEffectApplies(avatar, avatars)))
     for (const t of pointsOf(avatar)) totals.set(t.type, (totals.get(t.type) ?? 0) + t.point);
   return [...totals]
     .sort(([a], [b]) => tendencyRank(a) - tendencyRank(b))
