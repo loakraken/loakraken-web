@@ -34,6 +34,7 @@ import { NOTICE_KINDS, newsPath, readNewsQuery, type NewsTab } from "@/lib/home/
 import type { DevNoteMeta } from "@/lib/dev-notes/model";
 import { DevNotes } from "./dev-notes";
 import { EventItems, NoticeItem, shortDate } from "./news-parts";
+import { FpEnd } from "@/components/ui/fp-end";
 import styles from "./news.module.css";
 
 const OFFICIAL_NOTICES = "https://lostark.game.onstove.com/News/Notice/List";
@@ -68,7 +69,8 @@ function Notices({ kind }: { kind: string | null }) {
   const shown = notices.filter((notice) => !kind || notice.category === kind);
   return (
     <>
-      <div className={schedule.chips} role="group" aria-label="공지 분류">
+      {/* Drawn once whole (data-fp-whole, A7 rest sweep): the chips wrapped onto new lines as later ones came in. */}
+      <div className={schedule.chips} role="group" aria-label="공지 분류" data-fp-whole="">
         {[null, ...NOTICE_KINDS].map((k) => (
           <button
             key={k ?? "all"}
@@ -80,6 +82,7 @@ function Notices({ kind }: { kind: string | null }) {
             {query.data && <span>{count(k)}</span>}
           </button>
         ))}
+        <FpEnd />
       </div>
       {query.isPending ? (
         <p className={home.muted}>공지를 불러오고 있어요…</p>
@@ -192,7 +195,8 @@ function Events({ renderedAt }: { renderedAt?: number }) {
     <section id="events" className={`${home.panel} ${styles.anchor}`} aria-labelledby="events-heading">
       <div className={home.panelHead}>
         <h2 id="events-heading">진행 중인 이벤트</h2>
-        {events && <span className={home.count}>{events.length}개 · 끝나는 순</span>}
+        {/* One text node: a count split from its words drew the number first, and the words then pushed it left. */}
+        {events && <span className={home.count}>{`${events.length}개 · 끝나는 순`}</span>}
       </div>
       {query.isPending ? (
         <p className={home.muted}>이벤트를 불러오고 있어요…</p>
@@ -243,11 +247,14 @@ export function NewsPage({ renderedAt, devNotes }: { renderedAt?: number; devNot
           >
             <div className={home.panelHead}>
               <h2 id="notices-heading">{HEADINGS[tab]}</h2>
-              <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more}>
+              {/* Drawn once whole (data-fp-whole, A7 rest sweep): the link sits at the right end, so its words arriving moved it left. */}
+              <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more} data-fp-whole="">
                 공식 공지 <ExportCircle size={14} aria-hidden="true" />
+                <FpEnd />
               </a>
             </div>
-            <div className={`${home.noticeTabs} ${styles.kindTabs}`} role="group" aria-label="공지 종류">
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the pill grew as each tab came in. */}
+            <div className={`${home.noticeTabs} ${styles.kindTabs}`} role="group" aria-label="공지 종류" data-fp-whole="">
               <button type="button" aria-pressed={tab === "notice"} onClick={() => push("notice", null)}>
                 공지사항
               </button>
@@ -258,6 +265,7 @@ export function NewsPage({ renderedAt, devNotes }: { renderedAt?: number; devNot
               <button type="button" aria-pressed={tab === "dev"} onClick={() => push("dev", null)}>
                 LOAKraken 개발자 노트
               </button>
+              <FpEnd />
             </div>
             {/* Every list in one cell, the others hidden (not shown, focused or
                 read): the panel is always the tallest one's height, so switching

@@ -6,6 +6,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import { FpEnd } from "@/components/ui/fp-end";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import {
   CATEGORY_LABEL,
@@ -39,11 +40,14 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   const rows = Math.max(...raid.modes.map((m) => m.gates.length));
   return (
     <div className={styles.modeBody}>
-      <p className={styles.modeMeta}>
-        <span>아이템 레벨 {mode.minItemLevel} 이상</span>
+      {/* Drawn once whole (data-fp-whole, A7 rest sweep): the status pill sits at the right end, so its word
+          arriving grew it leftwards. */}
+      <p className={styles.modeMeta} data-fp-whole="">
+        <span>{`아이템 레벨 ${mode.minItemLevel} 이상`}</span>
         <span className={styles.status} data-status={mode.status}>
           {STATUS_LABEL[mode.status]}
         </span>
+        <FpEnd />
       </p>
       <div className={styles.tableScroll}>
         <table className={styles.table}>
@@ -230,15 +234,17 @@ export function RaidRewardsTable() {
                 골드 받는 규칙
               </h2>
               <ul>
-                <li>원정대에서 한 주에 {rules.goldCharactersPerRoster}캐릭터까지 골드를 받아요.</li>
+                {/* Each line one text node: split, a number drawn first sat on another line until its words came (A7). */}
+                <li>{`원정대에서 한 주에 ${rules.goldCharactersPerRoster}캐릭터까지 골드를 받아요.`}</li>
                 <li>
-                  엔드 콘텐츠 골드는 캐릭터마다 한 주에 {rules.endContentGoldClearsPerCharacter}번까지예요.
+                  {`엔드 콘텐츠 골드는 캐릭터마다 한 주에 ${rules.endContentGoldClearsPerCharacter}번까지예요.`}
                 </li>
-                <li>매주 {rules.weeklyReset}에 초기화돼요.</li>
+                <li>{`매주 ${rules.weeklyReset}에 초기화돼요.`}</li>
               </ul>
             </section>
 
-            <div className={styles.filters} role="group" aria-label="레이드 분류">
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the chips wrapped onto new lines as later ones came in. */}
+            <div className={styles.filters} role="group" aria-label="레이드 분류" data-fp-whole="">
               {FILTERS.map((f) => (
                 <button
                   key={f}
@@ -250,6 +256,7 @@ export function RaidRewardsTable() {
                   {f === "ALL" ? "전체" : CATEGORY_LABEL[f]}
                 </button>
               ))}
+              <FpEnd />
             </div>
 
             {/* A filter draws a new grid (keyed by it) instead of sliding the
