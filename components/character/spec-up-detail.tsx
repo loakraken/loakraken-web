@@ -29,7 +29,7 @@ import {
   type DetailStat,
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
-import { costPriceNote, gemTarget, kindLabel, koreanGold, notCachedText, type Candidate } from "@/lib/spec-up/model";
+import { costPriceNote, gemTarget, kindLabel, koreanGold, notCachedText, polishBasis, type Candidate } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
@@ -224,6 +224,7 @@ export function SpecUpRowDetail({
   const icon = safeGameImage(candidate.icon || data?.candidate.icon);
   // A 광휘 gem row names its role (겁화·작열), like the rest of the site.
   const target = gemTarget(candidate.target, candidate.gemType);
+  const basis = polishBasis(candidate);
   return (
     <ItemTooltip open={open} onOpenChange={(next) => setWanted(next)}>
       <ItemTooltipTrigger
@@ -249,6 +250,8 @@ export function SpecUpRowDetail({
           }
           lines={[`${kindLabel(candidate.kind)} · ${candidate.from ?? "—"} → ${candidate.to ?? "—"}`]}
         >
+          {/* What a 연마 row's combat power assumes (shown only with a ΔCP). */}
+          {basis && <ItemLine tone="muted">{basis}</ItemLine>}
           {data ? (
             <DetailBody detail={data} characterName={characterName} />
           ) : (

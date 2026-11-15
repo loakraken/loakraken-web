@@ -197,3 +197,13 @@ test("a kind the web does not know yet reads 기타 everywhere and opens nothing
   const step = { kind: "NEW_KIND", change, changes: [change] } as unknown as Parameters<typeof simulatorPath>[0][number];
   assert.deepEqual(simulatorPath([step]), { changes: [], skipped: 1 });
 });
+
+test("연마 rows with a combat-power gain carry one fixed basis line; without one, or another kind, none (PM 총괄 11-15)", async () => {
+  const { polishBasis, POLISH_BASIS } = await import("../lib/spec-up/model");
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 12.5 }), POLISH_BASIS);
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: 0 }), POLISH_BASIS);
+  // The api flag off: no ΔCP on 연마 rows, so the line stays hidden.
+  assert.equal(polishBasis({ kind: "POLISH", deltaCombatPower: null }), null);
+  assert.equal(polishBasis({ kind: "GEM_LEVEL", deltaCombatPower: 30 }), null);
+  assert.match(POLISH_BASIS, /연마 효과 두 줄 기준/);
+});

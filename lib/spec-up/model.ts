@@ -84,6 +84,16 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   ABILITY_STONE: "어빌리티 스톤",
 };
 export const UNKNOWN_KIND_LABEL = "기타";
+
+/**
+ * 연마 rows with a combat-power gain (api spec-up.polish-cp, PM 총괄 11-15): the gain assumes the accessory keeps
+ * only its two scoring lines, dropping a flat 공격력 / 무기 공격력 third line unless both main lines are already 상.
+ * One fixed line in the row's detail card says so; it shows only when the row has a ΔCP, so it stays hidden while
+ * the api flag is off.
+ */
+export const POLISH_BASIS = "연마 효과 두 줄 기준이에요. 공격력·무기 공격력 줄은 빼고 셈하고, 두 줄이 모두 상이면 그대로 둬요.";
+export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPower">) =>
+  candidate.kind === "POLISH" && candidate.deltaCombatPower != null ? POLISH_BASIS : null;
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
