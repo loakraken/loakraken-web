@@ -29,7 +29,16 @@ export function BannerRank({ name }: { name: string }) {
             {/* On a phone the label is left out so the badge stays left of the
                 render (A37); the name above and the aria-label still say it. */}
             <span className={styles.bannerRankLabel}>{rank.label}</span>
-            {rank.value}
+            {rank.rank}
+            {rank.share && (
+              <>
+                {" · "}
+                {/* Left out up to 360px: with a wider system face (the site font missed its
+                    load window) the full badge ran past the row there (A37, PM 총괄 11-16). */}
+                <span className={styles.bannerRankTopWord}>상위 </span>
+                {rank.share}
+              </>
+            )}
           </TooltipTrigger>
           <TooltipContent>{rank.note}</TooltipContent>
         </Tooltip>
