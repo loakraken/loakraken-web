@@ -23,6 +23,37 @@ for (const theme of ["light", "dark"])
       expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.join("\n")}`).toBe(0);
     });
 
+// #1618: at 360 and narrower the schedule head's tools (toggle + legend) are on their own line under the heading from
+// the first paint. With a phone's own font (the site font is display: optional, here its file is blocked) the head
+// needed ~275 of 268px at 320, so everything wrapped and the head grew when the legend came late. Each part on one
+// line, the tools below the heading, the legend text kept, and nothing in the card moves wherever the HTML is cut.
+for (const width of [320, 360])
+  test(`@A7 홈 ${width} 기기 글꼴: 일정 카드 머리의 토글·범례가 제목 아래 한 줄, 첫 HTML이 끊겨도 움직이지 않는다 @regression`, async ({ page }) => {
+    test.slow();
+    await page.route(/\.woff2(\?|$)/, (route) => route.abort());
+    await page.setViewportSize({ width, height: 1000 });
+    await gotoReady(page, "/");
+    const card = page.locator("section#schedule");
+    const heading = card.getByRole("heading", { name: "주간 일정표" });
+    const toggle = card.getByRole("button", { name: "지난 회차 숨김" });
+    const legend = card.locator('[data-fp-label="골드 섬"]');
+    await expect(heading).toBeVisible();
+    await expect(legend).toBeVisible();
+    // The font really is the fallback (the test means nothing on the site font).
+    expect(await page.evaluate(() => [...document.fonts].some((font) => font.status === "loaded" && /kraken/i.test(font.family)))).toBe(false);
+    const box = async (locator) => (await locator.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+    const [h, t, l] = [await box(heading), await box(toggle), await box(legend)];
+    expect(t.y, "토글이 제목 아래 줄").toBeGreaterThanOrEqual(h.y + h.height);
+    expect(Math.abs(l.y + l.height / 2 - (t.y + t.height / 2)), "범례와 토글이 한 줄").toBeLessThan(2);
+    // One line each (a wrapped part is two lines tall): the heading 17px text, the 28px toggle, the 12px legend.
+    expect(h.height).toBeLessThan(30);
+    expect(t.height).toBeLessThan(32);
+    expect(l.height).toBeLessThan(20);
+    const cut = await cutEverywhere(page, "section#schedule|");
+    expect(cut.probed, cut.moved.join(" / ")).toBeGreaterThan(10);
+    expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.join("\n")}`).toBe(0);
+  });
+
 // 1280: the width bot-notes:22 failed at. On phones a long name wraps and makes its row taller than the
 // reserved two lines, so a centred icon still moves there; that needs a design call (follow-up).
 for (const width of [1280])
