@@ -9,7 +9,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
-import { SpecUpQueryError, fetchSpecUpGoal } from "@/lib/spec-up/client";
+import { SpecUpQueryError, fetchSpecUpGoal, seatRetry, seatRetryDelay } from "@/lib/spec-up/client";
 import {
   PATH_STOPS,
   parseTarget,
@@ -60,7 +60,9 @@ export function SpecUpGoal({ data }: { data: Character }) {
     // Same character snapshot and target: the backend caches it for 10 minutes.
     staleTime: 600_000,
     placeholderData: keepPreviousData,
-    retry: false,
+    // A new target while the last one is still computing: this client's seat is taken (api #989), asked again.
+    retry: seatRetry,
+    retryDelay: seatRetryDelay,
     refetchOnWindowFocus: false,
   });
   const simulator = useContext(SimulatorEnabled);
