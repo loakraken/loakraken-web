@@ -415,7 +415,10 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                 판매 중인 패키지
               </h2>
               <p className={styles.small}>
-                공식 상점 공지 기준 · 확인 {SHOP_DATA.checkedAt}. {SHOP_DATA.unknown.join(" · ")}은 {UNKNOWN}이에요.
+                {/* The unknown sentence only while there is something unknown (an empty list read "… 은 미확인이에요."). */}
+                {`공식 상점 공지 기준 · 확인 ${SHOP_DATA.checkedAt}.${
+                  SHOP_DATA.unknown.length ? ` ${SHOP_DATA.unknown.join(" · ")}은 ${UNKNOWN}이에요.` : ""
+                }`}
               </p>
               {/* Here, in the wide column: in the narrow settings column the
                   row did not fit and turned into a list after the fonts came,
