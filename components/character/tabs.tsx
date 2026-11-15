@@ -152,7 +152,7 @@ import {
 } from "./parts";
 import styles from "./detail.module.css";
 import { useTallest } from "@/components/ui/use-tallest";
-import { focusClearOfFade } from "@/components/ui/focus-clear-of-fade";
+import { OverflowRow } from "@/components/ui/overflow-row";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -300,34 +300,37 @@ export function TabBar({
       {/* Drawn once whole (A7 character sweep): the tabs and the tools share one row, so the row took its
           height from whichever came last (29 → 51 px at 320) and each tab's tap area moved with it. */}
       <div className={styles.tabInner} data-fp-whole="">
-        <nav
-          ref={pillNav}
-          // Fades at an end where tabs are hidden (A35).
-          className={`${styles.tabs} scroll-fade-x`}
-          aria-label="캐릭터 정보 탭"
-          onKeyDown={pillKey}
-          onPointerDown={pillPointer}
-          onFocus={focusClearOfFade}
-        >
-          {tabs.map((item) => (
-            <Link
-              key={item.id}
-              href={item.id === "combat" ? "?" : `?tab=${item.id}`}
-              replace
-              aria-current={tab === item.id ? "page" : undefined}
-            >
-              <TabLabel id={item.id} label={item.label} />
-            </Link>
-          ))}
-          {/* The selected style, clipped to the current tab (tab-pill.ts). */}
-          <span ref={pillLayer} className={styles.pillLayer} aria-hidden="true">
+        {/* ‹ › on a mouse, drag, a keyboard focus clear of the fades (OverflowRow); the current tab is
+            revealed by the pill (tab-pill.ts). */}
+        <OverflowRow className={styles.tabsRow}>
+          <nav
+            ref={pillNav}
+            // Fades at an end where tabs are hidden (A35).
+            className={`${styles.tabs} scroll-fade-x`}
+            aria-label="캐릭터 정보 탭"
+            onKeyDown={pillKey}
+            onPointerDown={pillPointer}
+          >
             {tabs.map((item) => (
-              <span key={item.id} data-current={tab === item.id || undefined}>
+              <Link
+                key={item.id}
+                href={item.id === "combat" ? "?" : `?tab=${item.id}`}
+                replace
+                aria-current={tab === item.id ? "page" : undefined}
+              >
                 <TabLabel id={item.id} label={item.label} />
-              </span>
+              </Link>
             ))}
-          </span>
-        </nav>
+            {/* The selected style, clipped to the current tab (tab-pill.ts). */}
+            <span ref={pillLayer} className={styles.pillLayer} aria-hidden="true">
+              {tabs.map((item) => (
+                <span key={item.id} data-current={tab === item.id || undefined}>
+                  <TabLabel id={item.id} label={item.label} />
+                </span>
+              ))}
+            </span>
+          </nav>
+        </OverflowRow>
         <div className={styles.tabActions}>
           <AnalysisMenu
             name={name}

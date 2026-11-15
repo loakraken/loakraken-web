@@ -1488,3 +1488,108 @@
 [data-fp-end] {
   display: none !important;
 }
+
+/* OverflowRow (components/ui/overflow-row.tsx): a box round a row that scrolls sideways. It takes
+   no room of its own. The ‹ › buttons are overlays on the row's ends, not drawn at all (display:
+   none) until the row is measured as hiding items past that end, so they never move anything while
+   a page arrives (A7). A row whose scroller sits off this box's edges (negative margins for its
+   focus room) sets --row-start / --row-end / --row-top / --row-bottom in its own CSS.
+   Here, not in a CSS module: a module shared by this many client components became a stylesheet
+   chunk of its own and reordered the others, flipping equal-specificity rules on unrelated pages
+   (#1751 CI: /rankings class select 12px → 14px). The box's own base rule is in the components layer
+   (a row's utilities win); the button rules are not, and are parent-qualified, so a page module's
+   `.x button { display: … }` can't show them. */
+@layer components {
+  [data-overflow-row] {
+    position: relative;
+    min-width: 0;
+  }
+  /* On a mouse, an item brought into view (keyboard, a click on a half-hidden item, reveal) stops
+     clear of the ‹ › button: 4px + 28px, and a little air. Layered and zero specificity, so a row
+     that sets its own scroll-padding (utility or module) keeps it. Without this an item rested
+     under › and a press on it went to the button (CI 11-16: /stats tabs at 360). */
+  @media (hover: hover) and (pointer: fine) {
+    :where([data-overflow-row]) > :where(:first-child) {
+      scroll-padding-inline: 36px;
+    }
+  }
+}
+
+[data-overflow-row] > [data-overflow-arrow] {
+  position: absolute;
+  top: var(--row-top, 0px);
+  bottom: var(--row-bottom, 0px);
+  z-index: 2;
+  display: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin-block: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 12%, transparent);
+  cursor: pointer;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    scale var(--duration-fast) var(--ease-out);
+}
+[data-overflow-row] > [data-overflow-arrow="prev"] {
+  left: calc(var(--row-start, 0px) + 4px);
+}
+[data-overflow-row] > [data-overflow-arrow="next"] {
+  right: calc(var(--row-end, 0px) + 4px);
+}
+
+/* A mouse or trackpad only: a touch screen swipes the row itself. */
+@media (hover: hover) and (pointer: fine) {
+  [data-overflow-row][data-overflow-start] > [data-overflow-arrow="prev"],
+  [data-overflow-row][data-overflow-end] > [data-overflow-arrow="next"] {
+    display: grid;
+  }
+  /* Fades in; at the row's end it goes at once. */
+  @starting-style {
+    [data-overflow-row][data-overflow-start] > [data-overflow-arrow="prev"],
+    [data-overflow-row][data-overflow-end] > [data-overflow-arrow="next"] {
+      opacity: 0;
+    }
+  }
+  [data-overflow-row] > [data-overflow-arrow]:hover {
+    background: var(--hover-surface);
+  }
+}
+[data-overflow-row] > [data-overflow-arrow]:active {
+  scale: var(--press-scale, 0.97);
+}
+[data-overflow-row] > [data-overflow-arrow]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* While the mouse drags the row: no snapping or smooth scroll under the hand,
+   no text selected, and the hand shows it holds the row. */
+[data-overflow-row][data-dragging] > :first-child {
+  cursor: grabbing;
+  user-select: none;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+[data-overflow-row][data-dragging] > :first-child * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-overflow-row] > [data-overflow-arrow] {
+    transition: none;
+  }
+}
+
+/* Forced colours: the button keeps an edge of its own. */
+@media (forced-colors: active) {
+  [data-overflow-row] > [data-overflow-arrow] {
+    border-color: ButtonText;
+  }
+}

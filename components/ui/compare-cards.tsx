@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "cn"
+import { OverflowRow } from "@/components/ui/overflow-row"
 
 // Characters side by side (PM 총괄 10-12 04:58 ⑤ — multi-search K37). Each
 // card is one character; every card lists the same rows in the same order and
@@ -12,7 +13,7 @@ import { cn } from "cn"
 // The best value in a row (the caller decides "best": higher item level,
 // lower price…) is bold with a small "최고" mark — not colour alone.
 // The strip is a named region and a tab stop only while it overflows, like
-// DataTable, so a keyboard can scroll it.
+// DataTable, so a keyboard can scroll it; a mouse has ‹ › (no drag: text stays selectable).
 
 /** `note`: what the row means, as the name's tooltip (e.g. what is averaged). */
 type CompareRow = { id: string; label: string; note?: string }
@@ -57,61 +58,67 @@ function useOverflowX<T extends HTMLElement>() {
 function CompareCards({ label, rows, cards, className }: CompareCardsProps) {
   const [ref, overflowing] = useOverflowX<HTMLDivElement>()
   return (
-    <div
-      ref={ref}
-      data-slot="compare-cards"
-      role="region"
-      aria-label={label}
-      tabIndex={overflowing ? 0 : undefined}
-      className={cn(
-        "flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2",
-        "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)",
-        className
-      )}
-    >
-      {cards.map((card) => (
-        <article
-          key={card.id}
-          aria-label={typeof card.title === "string" ? card.title : undefined}
-          className="grid w-[15rem] shrink-0 snap-start content-start gap-3 rounded-(--radius-xl) bg-(--card) p-4"
-        >
-          <header className="flex min-w-0 items-center gap-3">
-            {card.image && (
-              <span aria-hidden className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-secondary">
-                {card.image}
+    // On a mouse: ‹ › (OverflowRow). No drag: the values are text to select and copy (PM 11-16).
+    <OverflowRow drag={false}>
+      <div
+        ref={ref}
+        data-slot="compare-cards"
+        role="region"
+        aria-label={label}
+        tabIndex={overflowing ? 0 : undefined}
+        className={cn(
+          "flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2",
+          // On a mouse, a card's link or button reached by keyboard rests clear of the ‹ › buttons
+          // (OverflowRow). Phones have no buttons, and the padding would also move the snap point there.
+          "pointer-fine:scroll-px-10",
+          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)",
+          className
+        )}
+      >
+        {cards.map((card) => (
+          <article
+            key={card.id}
+            aria-label={typeof card.title === "string" ? card.title : undefined}
+            className="grid w-[15rem] shrink-0 snap-start content-start gap-3 rounded-(--radius-xl) bg-(--card) p-4"
+          >
+            <header className="flex min-w-0 items-center gap-3">
+              {card.image && (
+                <span aria-hidden className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-secondary">
+                  {card.image}
+                </span>
+              )}
+              <span className="grid min-w-0">
+                <strong className="truncate font-semibold">{card.title}</strong>
+                {card.sub && <span className="truncate text-(length:--text-caption) text-muted-foreground">{card.sub}</span>}
               </span>
-            )}
-            <span className="grid min-w-0">
-              <strong className="truncate font-semibold">{card.title}</strong>
-              {card.sub && <span className="truncate text-(length:--text-caption) text-muted-foreground">{card.sub}</span>}
-            </span>
-          </header>
-          <dl className="grid">
-            {rows.map((row) => {
-              const best = card.best?.includes(row.id)
-              return (
-                <div
-                  key={row.id}
-                  data-best={best || undefined}
-                  className="flex min-h-9 items-center justify-between gap-3 border-t border-border py-1.5"
-                >
-                  <dt className="truncate text-(length:--text-caption) text-muted-foreground" title={row.note}>{row.label}</dt>
-                  <dd className={cn("flex shrink-0 items-center gap-1.5 tabular-nums whitespace-nowrap", best && "font-semibold")}>
-                    {best && (
-                      <span className="rounded-full bg-secondary px-1.5 text-[11px] leading-[18px] font-medium text-foreground">
-                        최고
-                      </span>
-                    )}
-                    {card.values[row.id] ?? <span className="text-muted-foreground">—</span>}
-                  </dd>
-                </div>
-              )
-            })}
-          </dl>
-          {card.footer && <footer>{card.footer}</footer>}
-        </article>
-      ))}
-    </div>
+            </header>
+            <dl className="grid">
+              {rows.map((row) => {
+                const best = card.best?.includes(row.id)
+                return (
+                  <div
+                    key={row.id}
+                    data-best={best || undefined}
+                    className="flex min-h-9 items-center justify-between gap-3 border-t border-border py-1.5"
+                  >
+                    <dt className="truncate text-(length:--text-caption) text-muted-foreground" title={row.note}>{row.label}</dt>
+                    <dd className={cn("flex shrink-0 items-center gap-1.5 tabular-nums whitespace-nowrap", best && "font-semibold")}>
+                      {best && (
+                        <span className="rounded-full bg-secondary px-1.5 text-[11px] leading-[18px] font-medium text-foreground">
+                          최고
+                        </span>
+                      )}
+                      {card.values[row.id] ?? <span className="text-muted-foreground">—</span>}
+                    </dd>
+                  </div>
+                )
+              })}
+            </dl>
+            {card.footer && <footer>{card.footer}</footer>}
+          </article>
+        ))}
+      </div>
+    </OverflowRow>
   )
 }
 

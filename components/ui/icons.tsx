@@ -54,6 +54,12 @@ export const ArrowLeft = /*#__PURE__*/ icon("arrow-right3", <><g transform="matr
 /** Iconsax "arrow-right3" (Linear). */
 export const ArrowRight = /*#__PURE__*/ icon("arrow-right3", <><path d="M14.4302 5.92969L20.5002 11.9997L14.4302 18.0697" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/><path d="M3.5 12H20.33" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/></>)
 
+/** Iconsax "arrow-left-2" (Linear). */
+export const ArrowLeft2 = /*#__PURE__*/ icon("arrow-left-2", <><path d="M15.0001 19.92L8.48009 13.4C7.71009 12.63 7.71009 11.37 8.48009 10.6L15.0001 4.08" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/></>)
+
+/** Iconsax "arrow-right-2" (Linear). */
+export const ArrowRight2 = /*#__PURE__*/ icon("arrow-right-2", <><path d="M8.91016 19.92L15.4302 13.4C16.2002 12.63 16.2002 11.37 15.4302 10.6L8.91016 4.08" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/></>)
+
 /** Iconsax "arrow-up" (Linear). */
 export const ArrowUp = /*#__PURE__*/ icon("arrow-up", <><path d="M12.0002 18.0003H9.33017C6.02017 18.0003 4.66017 15.6503 6.32017 12.7803L7.66017 10.4703L9.00017 8.16031C10.6602 5.29031 13.3702 5.29031 15.0302 8.16031L16.3702 10.4703L17.7102 12.7803C19.3702 15.6503 18.0102 18.0003 14.7002 18.0003H12.0002Z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/></>)
 
