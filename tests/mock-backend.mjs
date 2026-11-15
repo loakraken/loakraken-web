@@ -1685,7 +1685,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음" || who === "순위긴범위" || who === "순위큰수늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (["순위늦음", "순위긴범위", "순위큰수늦음", "순위일곱자리늦음"].includes(who)) await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1721,6 +1721,12 @@ createServer(async (req, res) => {
       // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
       // 순위큰수늦음: the same, after the page's 1s wait (the late path keeps a one-line row).
       entry("COMBAT_POWER", "ALL", null, 123456, 247000),
+    ] : who === "순위다섯자리" ? [
+      // The longest rank that stays one line (5 digits): '12,345위 · 상위 30.86%'.
+      entry("COMBAT_POWER", "ALL", null, 12345, 40000),
+    ] : who === "순위일곱자리" || who === "순위일곱자리늦음" ? [
+      // A 7-digit rank, longer than any server has today: '1,234,567위 · 상위 61.73%' (no tier above 50%).
+      entry("COMBAT_POWER", "ALL", null, 1234567, 2000000),
     ] : who === "순위긴범위" ? [
       // The longest real server + class pair, late like 순위늦음: the
       // server-class value takes two lines in a narrow box.
