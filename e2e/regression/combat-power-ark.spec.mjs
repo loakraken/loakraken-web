@@ -1,6 +1,6 @@
 // 전투력 시뮬레이터 아크 그리드 코어(api #838)·아크 패시브 도약(api #842) 열기(PM 총괄 11-15).
 // 도약 입력의 상한은 게임 안 최대값 70(공식 가이드 '아크 패시브', 2026-06-24): 71은 보내지 않는다.
-// 목 캐릭터 '전투력코어도약': 진화 120P와 도약 60P, 테스트 코어(유물 14P)와 api가 아직 계산하지 않는
+// 목 캐릭터 '전투력코어도약': 진화 120P·깨달음 95P·도약 60P, 테스트 코어(유물 14P)와 api가 아직 계산하지 않는
 // 혼돈의 별 코어 : 무기(유물 17P). 바꾼 값은 api에 그대로 보내고, 웹은 전투력을 계산하지 않는다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
 
@@ -8,7 +8,7 @@ const NAME = "전투력코어도약";
 const simulate = (r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST";
 
 for (const width of [320, 1280]) {
-  test(`코어 등급·포인트와 도약 포인트(최대 70)를 바꿔 보내고, 진화·무기 코어는 '준비 중'으로 남는다 (${width})`, async ({ page }) => {
+  test(`코어 등급·포인트와 도약 포인트(최대 70)를 바꿔 보내고, 무기 코어는 '준비 중'으로 남는다 (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent(NAME)}`);
 
@@ -25,8 +25,9 @@ for (const width of [320, 1280]) {
     // The in-game maximum beside the field, read as its description (review P3 #1706); the name stays the label.
     await expect(passive.getByText("최대 70", { exact: true })).toBeVisible();
     await expect(field).toHaveAccessibleDescription("최대 70");
-    await expect(passive.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
-    await expect(passive.getByRole("listitem").filter({ hasText: "진화" })).toContainText("포인트 120P · 준비 중");
+    // 진화 and 깨달음 open too (api #965, PM 총괄 11-16), each with its own maximum.
+    await expect(passive.getByRole("textbox", { name: "아크 패시브 진화 포인트", exact: true })).toHaveValue("120");
+    await expect(passive.getByRole("textbox", { name: "아크 패시브 깨달음 포인트", exact: true })).toHaveValue("95");
     // The card is open (one tree is), so no card-wide "준비 중" badge.
     await expect(passive.locator("header")).not.toContainText("준비 중");
 

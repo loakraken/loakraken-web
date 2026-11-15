@@ -50,10 +50,10 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
 
 /**
- * Ark passive trees the simulator takes, one by one: 도약 (api #842). 진화·깨달음
- * come back UNSUPPORTED until their formula is confirmed, so they stay "준비 중".
+ * Ark passive trees the simulator takes, one by one: 도약 (api #842), 진화 and 깨달음 (api #965, PM 총괄
+ * 11-16). 깨달음 above 100 still comes back not computed (see ENLIGHTENMENT_COMPUTED_MAX).
  */
-export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>(["도약"]);
+export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>(["도약", "진화", "깨달음"]);
 export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || OPEN_ARK_PASSIVE_TREES.has(tree);
 
 /**
@@ -62,8 +62,30 @@ export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") ||
  * 고대 +18, 전투 레벨 51 이상 +40, 카르마 랭크 +12. Source: official game guide
  * '아크 패시브', https://m-lostark.game.onstove.com/GameGuide/Pages/아크%20패시브
  * (최근수정일 2026-06-24), read by 레퍼런스 and 계산 검증 11-15.
+ * 진화 140 = 고대 방어구 24 × 5 + 전투 레벨 20: official notice no. 13307 (2025-12-10, 4티어 추가·진화
+ * 포인트 상향) and a public analysis post (2025-12-11); the api holds the same cap (api #965,
+ * combat-power/ark-passive-coefficients.json evolutionMaxPoints). PM 총괄 11-16.
+ * 깨달음 101 = 장신구 61 + 전투 레벨 20 + 카르마 6 + 물약 14: official guides '아크 패시브' (2026-06-24) and
+ * '장신구 연마' (2025-06-24), 물약 from a public tip post (2025-01-20); 계산 검증 record '전투력 시뮬레이터 남은 4종
+ * 기준 정리' (2026-11-15: 27 of 28 official characters at 101, none above). The api computes 깨달음 only at 100 or
+ * less (now and new value); 101 comes back not computed (api #965 enlightenmentMaxPoints 100, limit 101).
  */
-export const ARK_PASSIVE_TREE_MAX: Readonly<Record<string, number>> = { 도약: 70 };
+export const ARK_PASSIVE_TREE_MAX: Readonly<Record<string, number>> = { 도약: 70, 진화: 140, 깨달음: 101 };
+/** 깨달음 above this is not computed by the api (now or new value), api #965; the field says so. */
+export const ENLIGHTENMENT_COMPUTED_MAX = 100;
+
+/**
+ * The note beside a tree's points field: its in-game maximum, and for 깨달음 over 100 (the character's
+ * value now or the one typed) that it is not computed (PM 총괄 11-16: say it plainly, never a number;
+ * the change row shows '계산 준비 중' with the api's sentence). None for a tree without a known maximum.
+ */
+export function arkPassiveNote(tree: string, now: number, next: number): string | undefined {
+  if (!(tree in ARK_PASSIVE_TREE_MAX)) return undefined;
+  const max = `최대 ${arkPassiveMax(tree)}`;
+  if (tree === "깨달음" && Math.max(now, next) > ENLIGHTENMENT_COMPUTED_MAX)
+    return `${max} · 지금이나 바꾼 값이 ${ENLIGHTENMENT_COMPUTED_MAX}을 넘으면 계산식을 확인하고 있어 계산하지 않아요`;
+  return max;
+}
 export const arkPassiveMax = (tree: string) => ARK_PASSIVE_TREE_MAX[tree] ?? ARK_PASSIVE_MAX;
 
 /**

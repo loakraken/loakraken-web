@@ -14,6 +14,7 @@ import {
   POLISH_NONE,
   ARK_PASSIVE_MAX,
   arkPassiveMax,
+  arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
   isOpen,
@@ -289,13 +290,29 @@ test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", 
   );
 });
 
-test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
+test("ark passive opens 도약 (api #842), 진화 and 깨달음 (api #965), each to its in-game maximum; the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
   assert.deepEqual(
     ["도약", "진화", "깨달음"].map((tree) => isArkPassiveOpen(tree)),
-    [true, false, false],
+    [true, true, true],
   );
-  // The in-game maximum (official guide 2026-06-24): 도약 70; other trees keep the api range.
-  assert.deepEqual([arkPassiveMax("도약"), arkPassiveMax("진화")], [70, ARK_PASSIVE_MAX]);
+  // The in-game maxima (PM 총괄 11-16, sources in model.ts): 도약 70, 진화 140, 깨달음 101; a tree without one keeps the api range.
+  assert.deepEqual(
+    [arkPassiveMax("도약"), arkPassiveMax("진화"), arkPassiveMax("깨달음"), arkPassiveMax("모르는 트리")],
+    [70, 140, 101, ARK_PASSIVE_MAX],
+  );
+  const trees = {
+    ...current,
+    arkPassive: [
+      { tree: "진화", points: 120 },
+      { tree: "깨달음", points: 95 },
+    ],
+  };
+  // At the maximum it goes out (깨달음 101 too: the api answers it as not computed); one over never does.
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 진화: 140, 깨달음: 101 } }, trees), [
+    { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 },
+    { kind: "ARK_PASSIVE_POINT", tree: "깨달음", points: 101 },
+  ]);
+  assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 진화: 141, 깨달음: 102 } }, trees), []);
   const leap = { ...current, arkPassive: [{ tree: "도약", points: 60 }] };
   assert.deepEqual(toChanges({ ...NO_EDITS, arkPassive: { 도약: 70 } }, leap), [
     { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
@@ -330,10 +347,21 @@ test("ark passive opens for 도약 only (api #842), capped at 70; the 혼돈의 
       worn,
     ),
     [
+      { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 },
       { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
       { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
     ],
   );
+});
+
+test("the note beside a tree's field: its maximum, and 깨달음 over 100 (now or typed) is said not computed (api #965)", () => {
+  const over = "최대 101 · 지금이나 바꾼 값이 100을 넘으면 계산식을 확인하고 있어 계산하지 않아요";
+  assert.equal(arkPassiveNote("도약", 60, 60), "최대 70");
+  assert.equal(arkPassiveNote("진화", 120, 140), "최대 140");
+  assert.equal(arkPassiveNote("깨달음", 95, 100), "최대 101", "computed at 100 or less");
+  assert.equal(arkPassiveNote("깨달음", 95, 101), over, "typed 101");
+  assert.equal(arkPassiveNote("깨달음", 101, 90), over, "now 101: the api does not compute a change either way");
+  assert.equal(arkPassiveNote("모르는 트리", 1, 2), undefined);
 });
 
 test("refine opens for the weapon only (api #884 weapon OK, armour UNSUPPORTED; PM 총괄 11-12)", () => {
