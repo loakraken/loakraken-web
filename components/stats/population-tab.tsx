@@ -6,7 +6,7 @@
 import { useId, useState, type CSSProperties } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { coarsen } from "@/lib/stats/bins";
-import { classColor } from "@/lib/stats/class-groups";
+import { classColor, classGroup } from "@/lib/stats/class-groups";
 import { fetchPopulation } from "@/lib/stats/client";
 import { whole, share } from "@/lib/stats/model";
 import { snapshotText, type PopulationCount } from "@/lib/stats/population";
@@ -136,7 +136,7 @@ export function PopulationTab({
         <CountList rows={data.servers} total={serverTotal} current={data.server ?? undefined} />
       ) : view === "classes" ? (
         <>
-          <GroupLegend />
+          <GroupLegend other={data.classes.some((row) => classGroup(row.name) === "기타")} />
           <CountList rows={data.classes} total={data.total} icons />
         </>
       ) : (
