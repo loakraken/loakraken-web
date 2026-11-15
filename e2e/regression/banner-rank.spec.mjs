@@ -29,7 +29,7 @@ test("배너 순위: 순위가 없으면 빈 줄로 자리만 @regression", asyn
 test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smoke @regression", () => {
   test.use({ reducedMotion: "reduce" });
 
-  for (const width of [320, 360, 390]) {
+  for (const width of [320, 360, 390, 400]) {
     for (const theme of ["light", "dark"]) {
       test(`${width}px ${theme}: 순위가 다 보이고 첫 그림부터 자리가 같다`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
@@ -81,8 +81,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 
           await expect(badge).toBeVisible();
           await expect(badge).toContainText("대양");
-          // Up to 360px the badge leaves out "상위" (PM 총괄 11-16); what is drawn, not the DOM text.
-          if (width <= 360) {
+          // Up to 399px the badge leaves out "상위" (PM 11-16); what is drawn, not the DOM text.
+          if (width <= 399) {
             await expect(badge).toContainText("4,120위 · 22.6%", { useInnerText: true });
             await expect(badge).not.toContainText("상위", { useInnerText: true });
           } else await expect(badge).toContainText("4,120위 · 상위 22.6%", { useInnerText: true });
@@ -151,9 +151,16 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 // full badge past the row at 320 and 360 (CI flaky 170 > 167, A37; PM 총괄 11-16). Here every element
 // is set to such a face, so the layout is the fallback one on any machine that has it, and the row must
 // hold the badge. The face must really be in use, or the test says so instead of passing on the site font.
+// The breakpoint's edges (sweep 320–400: the full badge overflowed up to 381) and the widest badge in
+// practice, a 6-digit rank with a tier and a two-decimal share (mock '순위큰수', PM 11-16).
+const WIDE_CASES = [
+  { who: "상세", name: /전투력 4,120위 · 상위 22\.6%/, widths: [320, 360, 361, 381, 399, 400] },
+  { who: "순위큰수", name: /전투력 123,456위 · 상위 49\.98%/, widths: [320, 360, 399, 400] },
+];
 test.describe("배너 순위: 넓은 시스템 글꼴에서도 순위 줄 안에 @A37 @regression", () => {
-  for (const width of [320, 360, 390]) {
-    test(`${width}px: 사이트 글꼴을 못 받은 방문(넓은 대체 글꼴)에서도 넘치지 않는다`, async ({ page }) => {
+  for (const { who, name, widths } of WIDE_CASES)
+  for (const width of widths) {
+    test(`${who} ${width}px: 사이트 글꼴을 못 받은 방문(넓은 대체 글꼴)에서도 넘치지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.addInitScript(() => {
         const style = document.createElement("style");
@@ -163,10 +170,13 @@ test.describe("배너 순위: 넓은 시스템 글꼴에서도 순위 줄 안에
           html, body, body * { font-family: "WideFallback", "Malgun Gothic", "Noto Sans CJK KR", "WenQuanYi Zen Hei", sans-serif !important; }`;
         document.addEventListener("DOMContentLoaded", () => document.head.append(style));
       });
-      await gotoReady(page, characterPath("상세"));
-      const row = page.getByRole("region", { name: "상세 캐릭터 요약" }).locator("p[class*=bannerRank]");
-      const badge = row.getByRole("button", { name: /전투력 4,120위 · 상위 22\.6%/ });
+      await gotoReady(page, characterPath(who));
+      const row = page.getByRole("region", { name: `${who} 캐릭터 요약` }).locator("p[class*=bannerRank]");
+      const badge = row.getByRole("button", { name });
       await expect(badge).toBeVisible();
+      // Up to 399px without "상위", from 400 with it.
+      if (width <= 399) await expect(badge).not.toContainText("상위", { useInnerText: true });
+      else await expect(badge).toContainText("상위", { useInnerText: true });
       const used = await page.evaluate(async () => {
         await Promise.all([document.fonts.load("12px WideFallback"), document.fonts.load("700 12px WideFallback")]);
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
