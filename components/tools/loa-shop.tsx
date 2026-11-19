@@ -321,7 +321,7 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
   // Which packages are on sale is decided from the server's render time until
   // the client clock starts, so the first HTML already folds the ended ones
   // away and nothing moves after it (A6).
-  const { current, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
+  const { current, unconfirmed, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
   const card = (pkg: ShopPackage) => (
     <PackageCard
       key={pkg.id}
@@ -448,6 +448,17 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
               ) : (
                 // Nothing on sale by the official notices: said plainly, the ended ones stay folded below.
                 <p className={styles.empty}>{shopEmptyCopy(past.length)}</p>
+              )}
+              {/* Not ended by any notice, but not on the official shop screen either: its own group under the
+                  list, never counted as on sale (11-19 recheck). From the data alone, so the first HTML has it. */}
+              {unconfirmed.length > 0 && (
+                <section className={styles.unconfirmed} aria-labelledby="unconfirmed-heading">
+                  <h3 id="unconfirmed-heading" className={styles.groupTitle}>
+                    판매 여부를 확인하지 못한 패키지
+                  </h3>
+                  <p className={styles.small}>공식 상점 화면에서 찾지 못했고, 판매가 끝났다는 공지도 없어요.</p>
+                  <div className={styles.cards}>{unconfirmed.map(card)}</div>
+                </section>
               )}
               {/* Ended sales, folded by default below the list: opening it only adds below (A7). */}
               {past.length > 0 && (

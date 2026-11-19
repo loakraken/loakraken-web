@@ -270,6 +270,15 @@
   word-break: keep-all;
   text-wrap: pretty;
 }
+/* Packages whose sale the official shop screen did not show (no end notice): their own group under the
+   list, with a smaller heading than the section's. */
+.unconfirmed {
+  margin-top: var(--space-6);
+}
+.groupTitle {
+  font-size: var(--text-body);
+  font-weight: 700;
+}
 .past {
   margin-top: var(--space-4);
 }

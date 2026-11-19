@@ -209,10 +209,15 @@ export function parseRate(value: string): number | null {
 /** Whether the package is still on sale at `now` (epoch ms). */
 export const onSale = (pkg: ShopPackage, now: number) => pkg.endsAt == null || now < Date.parse(pkg.endsAt);
 
-/** Packages on sale at `now`, and those whose sale has ended (kept, folded away on screen). */
+/**
+ * Packages on sale at `now`; those not ended but whose sale the official shop screen did not show
+ * (saleUnconfirmed: no end notice either), in their own group rather than listed as on sale (11-19
+ * recheck); and those whose sale has ended (kept, folded away on screen).
+ */
 export function splitBySale(packages: ShopPackage[], now: number) {
   return {
-    current: packages.filter((p) => onSale(p, now)),
+    current: packages.filter((p) => onSale(p, now) && p.saleUnconfirmed === undefined),
+    unconfirmed: packages.filter((p) => onSale(p, now) && p.saleUnconfirmed !== undefined),
     past: packages.filter((p) => !onSale(p, now)),
   };
 }
@@ -227,7 +232,7 @@ export const shopEmptyCopy = (pastCount: number) =>
  * runs this against the real clock, so a forgotten weekly update fails it.
  */
 export function staleShopData(data: ShopData, now: number): string | null {
-  if (!data.packages.length || splitBySale(data.packages, now).current.length) return null;
+  if (!data.packages.length || data.packages.some((p) => onSale(p, now))) return null;
   const lastEnd = Math.max(...data.packages.map((p) => Date.parse(p.endsAt as string)));
   const checked = Date.parse(`${data.checkedAt}T23:59:59+09:00`);
   return checked < lastEnd
