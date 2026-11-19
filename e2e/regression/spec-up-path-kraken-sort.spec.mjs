@@ -13,8 +13,9 @@ const pathTable = (page) => page.getByRole("table", { name: /^추천 순서, / }
 const rows = (page) => pathTable(page).locator("tbody tr:not([data-collapsed])");
 const pathAsked = (r) => r.url().includes("/api/characters/spec-up/path?");
 const sortOf = (r) => new URL(r.url()).searchParams.get("sort");
-// The api's rule for sort=KRAKEN in words (api 29a1fd11: extra cost ≤ 0 first, then score per 100,000 gold).
-const RULE = "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없는 단계가 먼저 와요.";
+// The api's rule for sort=KRAKEN in words (api #993: score per 100,000 gold, then steps with no rate,
+// costing nothing more or an unknown cost).
+const RULE = "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없거나 비용을 모르는 단계는 그 뒤에 와요.";
 
 /** Every path request's sort, from before the page opens. */
 const watchPathSorts = (page) => {

@@ -1031,6 +1031,45 @@ createServer(async (req, res) => {
       d.steps.push(...more);
       Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
     }
+    // api #993 (PM 총괄 11-19): EFFICIENCY and KRAKEN add the steps whose cost is unknown after the
+    // priced ones (cost UNKNOWN, cumulativeCost/extraCost/per-gold null), totalCost null, no unpriced list,
+    // and the known part beside it (knownCostTotal, unknownCostSteps). '스펙순서비용모름' is the sample with its
+    // quality step taken in; '…긴' adds 12 more and a 12억 known total (the widest total line at 320, not
+    // the rows' sum); '…옛' is the same answer from an api before the two fields.
+    if (who?.startsWith("스펙순서비용모름")) {
+      const known = d.totalCost;
+      const unknownStep = (order, i) => ({
+        ...structuredClone(d.steps[0]),
+        order,
+        candidateId: i === 0 ? "EQUIPMENT_QUALITY:0:100" : `ENGRAVING_LEVEL:원한${i}:1`,
+        kind: i === 0 ? "EQUIPMENT_QUALITY" : "ENGRAVING_LEVEL",
+        target: i === 0 ? "+20 테스트 무기" : `시험 각인 ${i}`,
+        from: i === 0 ? "품질 90" : "0단계",
+        to: i === 0 ? "품질 100" : "1단계",
+        change:
+          i === 0
+            ? { ...d.steps[0].change, kind: "EQUIPMENT_QUALITY", slot: null, index: 0, level: null, quality: 100 }
+            : { ...d.steps[0].change, kind: "ENGRAVING_LEVEL", slot: null, level: 1, name: `원한${i}` },
+        deltaCombatPower: i === 0 ? 90.33 : 5,
+        combatPowerAfter: 0,
+        cost: { ...structuredClone(d.unpriced[0].cost) },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+        extraCost: null,
+      });
+      const count = who === "스펙순서비용모름긴" ? 13 : 1;
+      let after = d.finalCombatPower;
+      for (let i = 0; i < count; i++) {
+        const step = unknownStep(d.steps.length + 1, i);
+        after = Math.round((after + step.deltaCombatPower) * 100) / 100;
+        step.combatPowerAfter = after;
+        d.steps.push(step);
+      }
+      Object.assign(d, { finalCombatPower: after, totalCost: null, unpriced: [], ruleVersion: "spec-up-path-v6" });
+      if (who === "스펙순서비용모름긴") Object.assign(d, { stopReasonCode: "STEP_LIMIT", limit: d.steps.length });
+      if (who !== "스펙순서비용모름옛")
+        Object.assign(d, { knownCostTotal: who === "스펙순서비용모름긴" ? 1_234_567_890 : known, unknownCostSteps: count });
+    }
     // A 연마 step (api #951): another 목걸이 for the simulator gear's one, a line per change; its second line
     // has no scoring option (NONE, grade null), and `change` is the first (a named option).
     if (who === "스펙순서연마") {
