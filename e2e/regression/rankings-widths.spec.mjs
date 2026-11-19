@@ -2,7 +2,7 @@
 // 분포: 이름 p99 12자, 서버 5자, 직업 6자, 직업 각인 p95 7자 / p99 9자 / 최대 10자)이 잘리지 않는다. 진화·깨달음·도약은
 // 제목이 뜻을 말하고 칸은 숫자만, 늘 그 순서로(없는 값은 '-'), 이름은 칸의 이름표(aria-label)·title에. 직업 각인만
 // 드문 긴 값이 '…'로 끝나고 title을 가진다. 320·768은 표 상자 안에서 밀린다(같은 꼴). 값은 자리표시 글자(실제 이름 없음).
-import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow, fixtureIgnoresConsole } from "../support/fixtures.mjs";
 import { drawnFace } from "../support/fonts.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
@@ -56,9 +56,8 @@ for (const [width, blocked] of LEGS)
       if (message.type() !== "error") return;
       const source = message.location().url ?? "";
       if (blocked && /\.woff2(\?|$)/.test(source) && message.text().includes("net::ERR_FAILED")) return;
-      // The shared fixture's other allowances (blocked third-party requests, local socket exhaustion, /api/ 4xx).
-      if (source && !/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(source)) return;
-      if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
+      // The shared fixture's own allowances, the same rule (blocked third-party requests, local socket exhaustion, /api/ 4xx).
+      if (fixtureIgnoresConsole(message)) return;
       errors.push(message.text());
     });
     page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
