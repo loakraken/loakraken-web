@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathCostNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -227,4 +227,19 @@ test("the total line (api #993): known gold plus unknown steps; an older api's n
   assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000, unknownCostSteps: 1.5 }), { gold: null, unknownSteps: 0 });
   // A known total wins over the fields.
   assert.deepEqual(pathTotal({ ...base, knownCostTotal: 1, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 0 });
+});
+
+test("the cost note follows the order's rule (api #993 paidCost, PM 총괄 11-20 P1)", () => {
+  // 효율 우선 and 점수 효율: a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its whole new
+  // price each step; only a tradeable one takes the step before off.
+  const perStep =
+    "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
+  assert.equal(pathCostNote("EFFICIENCY"), perStep);
+  assert.equal(pathCostNote("KRAKEN"), perStep);
+  // 전투력 우선 is unchanged: the old sentence.
+  assert.equal(pathCostNote("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
+  // An answer without a sort reads as the api's default order (EFFICIENCY).
+  assert.equal(pathCostNote(undefined), perStep);
+  // The old sentence never shows under an order that pays per step.
+  assert.ok(!perStep.includes("보석은 같은 칸의 앞 단계 비용을 빼고"));
 });
