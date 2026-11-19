@@ -780,9 +780,26 @@
 .bannerRank > .bannerRankBadge {
   line-height: 16px;
 }
-/* A row first drawn empty stays one line (its height is fixed): the halves never wrap there. */
-.bannerRank:not(.bannerRankWraps) .bannerRankHalves {
+/* After the first paint the line count is kept (banner-rank.tsx): one line never wraps, two lines are a
+   fixed 42px (16px lines + 5px above and below, as the first paint drew them), one half per line. */
+.bannerRank:not(.bannerRankWraps):not(.bannerRankTwo) .bannerRankHalves {
   flex-wrap: nowrap;
+}
+.bannerRankTwo {
+  height: 42px;
+}
+/* As wide as the first paint drew it: a wrapped badge fills the row; the fixed column would shrink it to its
+   wider half (167 → 98px at 320, PM-프론트 #1759 P2). */
+.bannerRankTwo .bannerRankBadge {
+  width: 100%;
+}
+.bannerRankTwo .bannerRankHalves {
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* The last short step: also without the tier (the name still says it). */
+.bannerRankShorter .bannerRankTier {
+  display: none;
 }
 .bannerRankText {
   --rank-gap: 0.9em;

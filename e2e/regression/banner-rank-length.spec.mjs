@@ -25,7 +25,7 @@ const useFace = async (page, face) => {
   else await page.route(/\.woff2(\?|$)/, (route) => route.abort());
 };
 
-/** Every frame's row box from the first paint, and whether the badge was in it. */
+/** Every frame's row box from the first paint, whether the badge was in it, and the badge's own box. */
 const recordRowFrames = (page) =>
   page.addInitScript(() => {
     window.__rowFrames = [];
@@ -33,20 +33,36 @@ const recordRowFrames = (page) =>
       const row = document.querySelector('[aria-label$="캐릭터 요약"] p[class*=bannerRank]');
       if (row) {
         const r = row.getBoundingClientRect();
+        const b = row.querySelector("button")?.getBoundingClientRect();
         if (r.width > 0 && r.height > 0)
-          window.__rowFrames.push({ x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, loaded: !!row.querySelector("button") });
+          window.__rowFrames.push({
+            x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height, loaded: !!b,
+            ...(b && { bx: b.x + scrollX, bwidth: b.width, bheight: b.height }),
+          });
       }
       requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
   });
 
-const expectSteadyRow = async (page) => {
+/**
+ * The row never moves or resizes from the first paint. With `badge`, the badge's own box (left, width, height)
+ * also stays the same from its first drawn frame: the pill does not jump when the line count is fixed after
+ * hydration (PM-프론트 #1759 P2). Leave it out where the badge's words change on purpose.
+ */
+const expectSteadyRow = async (page, { badge = false } = {}) => {
   const frames = await page.evaluate(() => window.__rowFrames);
   expect(frames.some((f) => f.loaded), "순위가 그려진 그림").toBe(true);
   for (const key of ["x", "y", "width", "height"]) {
     const drift = Math.max(...frames.map((f) => Math.abs(f[key] - frames[0][key])));
     expect(drift, `순위 줄 ${key} 변화(px)`).toBe(0);
+  }
+  if (badge) {
+    const drawn = frames.filter((f) => f.loaded);
+    for (const key of ["bx", "bwidth", "bheight"]) {
+      const values = drawn.map((f) => Math.round(f[key] * 10) / 10);
+      expect(Math.max(...values) - Math.min(...values), `배지 ${key} 변화(px): ${[...new Set(values)].join(" → ")}`).toBe(0);
+    }
   }
   return frames;
 };
@@ -107,6 +123,10 @@ test.describe("배너 순위 맞춤: 티어 × 자릿수 × 비율 꼴 @A37 @reg
             for (const share of SHARES) {
               // The same badge with other words: tier, rank and share swapped in place (layout as drawn).
               await row.evaluate((el, [tier, rank, share]) => {
+                // The browser's own fit, as at a first paint: the row after it keeps its line count, so the
+                // grid lets it wrap again (height and wrapping as the first paint has them).
+                Object.assign(el.style, { height: "auto", minHeight: "26px" });
+                el.querySelector("[class*=bannerRankHalves]").style.flexWrap = "wrap";
                 const [first, second] = el.querySelector("[class*=bannerRankHalves]").children;
                 const b = first.querySelector("b");
                 b.style.display = tier ? "" : "none";
@@ -126,22 +146,25 @@ test.describe("배너 순위 맞춤: 티어 × 자릿수 × 비율 꼴 @A37 @reg
 });
 
 test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바꿈 @A6 @A37 @regression", () => {
-  test.use({ reducedMotion: "reduce" });
+  // The matched-fallback case blocks the font files (their failed requests log by design).
+  test.use({ reducedMotion: "reduce", allowConsoleErrors: true });
 
+  for (const face of ["site", "matched"])
   for (const width of [320, 360])
-    test(`${width}px 사이트 글꼴: 안 맞는 6자리 순위는 첫 그림부터 두 줄, 움직이지 않는다`, async ({ page }) => {
+    test(`${width}px ${face === "site" ? "사이트 글꼴" : "맞춘 대체 글꼴"}: 안 맞는 6자리 순위는 첫 그림부터 두 줄, 배지도 움직이지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await warmSiteFont(page);
+      await useFace(page, face);
       await recordRowFrames(page);
       await gotoReady(page, characterPath("순위큰수"));
-      expect(await drawnFace(page), "그리는 글꼴").toBe("site");
+      expect(await drawnFace(page), "그리는 글꼴").toBe(face);
       const row = rowOf(page, "순위큰수");
       await expect(row.getByRole("button", { name: /^연안 123,456위 · 상위 49\.98% 전투력 순위, / })).toBeVisible();
       const m = await measure(row);
       expect(m.fits, "한 줄로는 안 들어감").toBe(false);
       expect(m.lines, "두 줄").toBe(2);
       expect(m.over, "줄 밖으로 나간 글자(px)").toBeLessThanOrEqual(0.5);
-      const frames = await expectSteadyRow(page);
+      // The row and the pill itself, from the first paint through hydration (when the line count is fixed).
+      const frames = await expectSteadyRow(page, { badge: true });
       expect(frames[0].height, "첫 그림부터 두 줄 높이").toBe(m.height);
       expect(m.height).toBeGreaterThan(26);
       // The two-line badge keeps a 44px press area each way (hit-44 rule on phones).
@@ -160,7 +183,7 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
       // The mock answers after the page's 1s wait: the first HTML has the empty one-line row.
       await page.goto(characterPath("순위큰수늦음"), { waitUntil: "domcontentloaded" });
       const row = rowOf(page, "순위큰수늦음");
-      const name = full ? /^연안 123,456위 · 상위 49\.98% 전투력 순위, / : /^연안 123,456위 · 49\.98% 전투력 123,456위 · 상위 49\.98%, /;
+      const name = full ? /^연안 123,456위 · 상위 49\.98% 전투력 순위, / : /^연안 123,456위 · 49\.98% 연안 전투력 123,456위 · 상위 49\.98%, /;
       const badge = row.getByRole("button", { name });
       await expect(badge).toBeVisible({ timeout: 10_000 });
       expect(await drawnFace(page), "그리는 글꼴").toBe("site");
@@ -170,7 +193,7 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
       expect(m.height, "줄 높이").toBe(26);
       expect(m.topWord, "'상위'를 그림").toBe(full);
       expect(m.over, "줄 밖으로 나간 글자(px)").toBeLessThanOrEqual(0.5);
-      const frames = await expectSteadyRow(page);
+      const frames = await expectSteadyRow(page, { badge: true });
       expect(frames.some((f) => !f.loaded), "순위 전 빈 줄로 먼저 그림").toBe(true);
     });
 
@@ -214,6 +237,70 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
       expect(Math.abs(two[i].height - one[i].height), `${one[i].el}: 높이 그대로`).toBeLessThanOrEqual(0.5);
     }
   });
+});
+
+/** The words drawn past the badge's text box (the halves clipped there), in px. */
+const clipped = (row) =>
+  row.evaluate((el) => {
+    const halves = el.querySelector("[class*=bannerRankHalves]");
+    return halves.scrollWidth - halves.clientWidth;
+  });
+
+test.describe("배너 순위 맞춤: 첫 그림 뒤 줄 수 그대로, 짧은 꼴 @A6 @A37 @regression", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("320px 넓은 시스템 글꼴: 늦게 온 6자리 순위가 한 줄 자리에 잘린 글자 없이(티어까지 빼서) 들어간다", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.addInitScript((css) => {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(css);
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    }, WIDE);
+    await recordRowFrames(page);
+    await page.goto(characterPath("순위큰수늦음"), { waitUntil: "domcontentloaded" });
+    const row = rowOf(page, "순위큰수늦음");
+    // Shown as far as it fits; the name says the full rank, tier included.
+    const badge = row.getByRole("button", { name: /^.*49\.98% 연안 전투력 123,456위 · 상위 49\.98%, / });
+    await expect(badge).toBeVisible({ timeout: 10_000 });
+    const used = await page.evaluate(() =>
+      [...document.fonts].some((f) => f.family.replace(/"/g, "") === "WideFallback" && f.status === "loaded"),
+    );
+    expect(used, "넓은 대체 글꼴(DejaVu Sans·Verdana)이 실제로 쓰였다").toBe(true);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const m = await measure(row);
+    expect(m.lines, "한 줄").toBe(1);
+    expect(m.height, "줄 높이").toBe(26);
+    expect(await clipped(row), "잘린 글자(px)").toBeLessThanOrEqual(0.5);
+    expect(m.over, "줄 밖으로 나간 글자(px)").toBeLessThanOrEqual(0.5);
+    await expectSteadyRow(page);
+  });
+
+  // The rank asked again later (here a tab switch: the page asks the server again) comes back another length.
+  for (const [who, before, after, lines, height] of [
+    ["순위바뀜", /^대양 4,120위 · 상위 22\.6% 전투력 순위, /, /123,456위.* 전투력 123,456위 · 상위 49\.98%, /, 1, 26],
+    ["순위줄어듦", /^연안 123,456위 · 상위 49\.98% 전투력 순위, /, /^대양 4,120위 · 상위 22\.6% 전투력 순위, /, 2, 42],
+  ])
+    test(`360px ${who}: 다시 받은 순위의 길이가 달라도 첫 그림의 ${lines}줄 그대로, 배너가 움직이지 않는다`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width: 360, height: 900 });
+      await warmSiteFont(page);
+      await recordRowFrames(page);
+      // Its own name: the mock counts the asks per name.
+      const name = `${who}${testInfo.workerIndex}${testInfo.retry}${testInfo.repeatEachIndex}${Date.now()}`;
+      await gotoReady(page, characterPath(name));
+      const row = rowOf(page, name);
+      await expect(row.getByRole("button", { name: before })).toBeVisible();
+      expect((await measure(row)).lines, "첫 그림").toBe(lines);
+      await page.getByRole("navigation", { name: "캐릭터 정보 탭" }).getByRole("link", { name: "스킬", exact: true }).click();
+      await expect(row.getByRole("button", { name: after })).toBeVisible({ timeout: 10_000 });
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const m = await measure(row);
+      expect(m.lines, "줄 수 그대로").toBe(lines);
+      expect(m.height, "줄 높이 그대로").toBe(height);
+      expect(await clipped(row), "잘린 글자(px)").toBeLessThanOrEqual(0.5);
+      expect(m.over, "줄 밖으로 나간 글자(px)").toBeLessThanOrEqual(0.5);
+      const frames = await expectSteadyRow(page);
+      expect(frames[0].height).toBe(height);
+    });
 });
 
 test.describe("배너 순위 맞춤: 넓은 글꼴·긴 값 @A37 @regression", () => {
