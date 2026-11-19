@@ -458,7 +458,7 @@ function Detail({
       </dl>
 
       <div className={styles.trendHead}>
-        <div className={styles.trendTitle}>
+        <div className={`${styles.trendTitle} ${styles.countedTitle} ${styles.changedTitle}`}>
           <h3>시세 추이</h3>
           <PeriodChange
             range={view}

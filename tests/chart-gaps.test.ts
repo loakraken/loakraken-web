@@ -27,6 +27,21 @@ test("daySlots: every day from first to last, missing days without a reading", (
   assert.deepEqual(daySlots([t("2026-10-18")]), [{ t: t("2026-10-18"), reading: 0 }]);
 });
 
+test("daySlots · gapBridges: times out of order or a day twice → one slot per reading, no bridge", () => {
+  const unsorted = ["2026-10-22", "2026-10-18", "2026-10-19"].map(t);
+  assert.deepEqual(
+    daySlots(unsorted).map((s) => s.reading),
+    [0, 1, 2],
+  );
+  assert.deepEqual(gapBridges(unsorted), []);
+  const twice = ["2026-10-18", "2026-10-18", "2026-10-21"].map(t);
+  assert.equal(daySlots(twice).length, 3);
+  assert.ok(daySlots(twice).every((s) => s.reading != null));
+  assert.deepEqual(gapBridges(twice), []);
+  // Not a midnight (a stray timestamp): same fallback.
+  assert.deepEqual(gapBridges([t("2026-10-18"), t("2026-10-21") + 3_600_000]), []);
+});
+
 test("gapBridges: one per gap, joining the readings on either side", () => {
   assert.deepEqual(gapBridges(times), [
     [1, 2],

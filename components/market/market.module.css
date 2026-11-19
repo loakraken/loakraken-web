@@ -722,13 +722,20 @@
   color: var(--slate);
   font-size: 12px;
 }
-/* A title with the count line under it: both lines' height from the title's start tag (21 + 1 gap + 16), so a
-   first HTML cut after the heading does not grow the head when the count line comes (A7 first-paint sweep). */
+/* A title with the count line under it: one fixed row per line from the title's start tag (21, then 16), so a
+   first HTML cut after the heading neither grows the head nor stretches a row when the next line comes (A7
+   first-paint sweep). Fixed rows, not a min-height: a taller grid spread its spare height over the rows already
+   there, and the period line sat 8–9px low in a 25px row until the count line came (#1791 e2e). */
 .countedTitle {
-  min-height: 38px;
+  grid-template-rows: 21px 16px;
+  align-content: start;
 }
 .countedTitle h3 {
   line-height: 21px;
+}
+/* …and with the period change line between them (the market item head): 21, 16, 16. */
+.countedTitle.changedTitle {
+  grid-template-rows: 21px 16px 16px;
 }
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
