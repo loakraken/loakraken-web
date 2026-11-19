@@ -208,10 +208,9 @@ function PeriodChange({ range, points }: { range: ChartRange; points: { value: n
       <span className="sr-only">
         {label} 동안 {amount}% {said}
       </span>
-      <span aria-hidden="true">
-        {label} {arrow}
-        {amount}%
-      </span>
+      {/* One text node: split ones ('3개월', ' ', '▲', '12.3', '%') moved left when the label narrowed on a
+          range switch (3개월 → 1년), a layout shift @360. */}
+      <span aria-hidden="true">{`${label} ${arrow}${amount}%`}</span>
     </small>
   );
 }
@@ -465,6 +464,11 @@ function Detail({
             range={view}
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
+          {/* How many days the range has on record, by the period buttons so it is read before the chart
+              (user 11-16); held from the first paint. */}
+          <small className={`${styles.periodChange} ${styles.recordCount}`}>
+            {short != null ? `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록` : " "}
+          </small>
         </div>
         {/* The row's width is set from its labels too, so a first HTML cut before the buttons draws it at its
             final width (rangeRowWidth). */}
@@ -559,7 +563,7 @@ function Detail({
       <p className={styles.chartCaption}>
         {range === "hour"
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
-          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
+          : "하루 평균 거래가와 거래량"}
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
