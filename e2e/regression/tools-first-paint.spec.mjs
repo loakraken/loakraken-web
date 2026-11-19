@@ -39,7 +39,7 @@ for (const width of [360, 390, 768, 1280])
   test(`@A7 ${width} /tools/crit-speed: 가정이 먼저 오고 결과 칸이 늦게 와도 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/tools/crit-speed");
-    await expect(page.getByRole("heading", { name: "가정" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "가정", exact: true })).toBeVisible();
     const r = await page.evaluate(async () => {
       const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       // On a copy of <body> once React has claimed it, as cutEverywhere does (React's commits land on the original).
