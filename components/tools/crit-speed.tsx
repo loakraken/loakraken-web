@@ -850,7 +850,10 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
               )}
             </form>
 
-            <div className={styles.columns}>
+            {/* Drawn once whole (data-fp-whole, A6 flake 11-19): the HTML has the settings before the output,
+                and at ≤900px the output (a screen tall) is drawn above them. A first paint with the settings in
+                and the output not yet showed them on screen, then the output pushed them down (360: 0.503). */}
+            <div className={styles.columns} data-fp-whole="">
               <SettingsPanel
                 key={resetKey}
                 onReset={() => {
@@ -922,6 +925,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                   )}
                 </div>
               </div>
+              <FpEnd />
             </div>
           </div>
         </div>
