@@ -21,6 +21,7 @@ import {
   PATH_SORTS,
   extraCosts,
   pathFigures,
+  pathTotal,
   stepCandidate,
   stepFigures,
   type PathSort,
@@ -38,9 +39,12 @@ const BUSY = "SPEC_UP_BUSY";
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** One step's extra gold: 0 or less (a gem whose next level sells for less) adds nothing. */
+/**
+ * One step's extra gold: 0 or less (a gem whose next level sells for less) adds nothing.
+ * Unknown reads '비용 모름', the word the total line counts (api #993, PM 총괄 11-19).
+ */
 const stepGold = (amount: number | null) =>
-  amount === null ? "비용 미확인" : amount <= 0 ? "추가 비용 없음" : `+${koreanGold(amount)}G`;
+  amount === null ? "비용 모름" : amount <= 0 ? "추가 비용 없음" : `+${koreanGold(amount)}G`;
 
 function failureText(code: string, limit?: "client") {
   switch (code) {
@@ -189,7 +193,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   // A KRAKEN answer is told in its score; on a supporter's the combat power is null (api #967).
   const figures = pathFigures(path, supporter);
   const { start, final } = figures;
-  const sim = simulatorPath(steps, gearTypeOf(data));
+  const total = pathTotal(path);
+  const sim =simulatorPath(steps, gearTypeOf(data));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
   // steps keep their own place instead of folding under the first one.
@@ -219,8 +224,13 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
       <p className={styles.summary}>
         <b>{steps.length}단계</b>를 차례로 올리면 {figures.name} {two(start)} → <b>{two(final)}</b>(+{two(final - start)})
         {" · "}
-        합계 <b>{path.totalCost != null ? `${koreanGold(path.totalCost)}G` : "미정"}</b>
-        {path.totalCost == null && "(비용을 모르는 단계가 있어요)"}
+        합계 <b>{total.gold != null ? `${koreanGold(total.gold)}G` : "미정"}</b>
+        {/* api #993: the known gold plus the steps with no cost; an older api's null total keeps the old words. */}
+        {total.unknownSteps > 0 ? (
+          <span className={styles.unknownSteps}> + 비용 모름 {total.unknownSteps}단계</span>
+        ) : (
+          total.gold == null && "(비용을 모르는 단계가 있어요)"
+        )}
       </p>
       <p className={styles.note}>
         {/* Codes the screen words itself; any other (NO_CANDIDATE, a new one) reads the backend's sentence. */}
