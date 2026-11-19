@@ -150,15 +150,16 @@ type KnownCostParts = { knownCostTotal?: number | null; unknownCostSteps?: numbe
 /**
  * The path's total line (api #993, PM 총괄 11-19). KRAKEN and EFFICIENCY now add
  * the steps whose cost is unknown at the end, so totalCost is null on many paths.
- * Then the total is the known gold plus a count of the unknown steps; without
- * the new fields (an older api) it stays unknown, as before.
- * gold null = no total to show; unknownSteps 0 = nothing to add after it.
+ * Then the total is the known gold plus a count of the unknown steps; when every
+ * step's cost is unknown there is no gold to show, only the count (never 0G,
+ * PM 총괄 11-19). Without the new fields (an older api) it stays unknown, as before.
+ * gold null = no total to show; unknownSteps 0 = no count to show.
  */
 export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | null; unknownSteps: number } {
   if (path.totalCost != null) return { gold: path.totalCost, unknownSteps: 0 };
   const known = path.knownCostTotal;
   const unknown = path.unknownCostSteps;
   if (typeof known === "number" && Number.isFinite(known) && known >= 0 && Number.isInteger(unknown) && unknown! > 0)
-    return { gold: known, unknownSteps: unknown! };
+    return { gold: unknown! >= path.steps.length ? null : known, unknownSteps: unknown! };
   return { gold: null, unknownSteps: 0 };
 }

@@ -225,9 +225,12 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         <b>{steps.length}단계</b>를 차례로 올리면 {figures.name} {two(start)} → <b>{two(final)}</b>(+{two(final - start)})
         {" · "}
         합계 <b>{total.gold != null ? `${koreanGold(total.gold)}G` : "미정"}</b>
-        {/* api #993: the known gold plus the steps with no cost; an older api's null total keeps the old words. */}
+        {/* api #993: the known gold plus the steps with no cost, or only their count when no step has a cost
+            (PM 총괄 11-19); an older api's null total keeps the old words. */}
         {total.unknownSteps > 0 ? (
-          <span className={styles.unknownSteps}>{` + 비용 모름 ${total.unknownSteps}단계`}</span>
+          <span className={styles.unknownSteps}>
+            {total.gold != null ? ` + 비용 모름 ${total.unknownSteps}단계` : ` (비용 모름 ${total.unknownSteps}단계)`}
+          </span>
         ) : (
           total.gold == null && "(비용을 모르는 단계가 있어요)"
         )}
