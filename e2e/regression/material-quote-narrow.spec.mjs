@@ -3,7 +3,7 @@
 // (넓은 화면도 입력칸 폭 규칙이 바뀐 뒤 넘치지 않는지 함께 본다).
 // 또 '가격 기준' 칸은 한 줄이 들어가지 않는 폭(320)에서 처음 HTML부터 세로라, 글꼴이 온 뒤 접히며
 // 아래를 미는 일이 없다(첫 로드 흔들림 0, 측정 0.1216에서 발견).
-import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow, fixtureIgnoresConsole } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 import { drawnFace } from "../support/fonts.mjs";
 
@@ -42,9 +42,8 @@ test.describe("재료 견적 첫 로드: 글꼴을 받든 막든", () => {
           if (message.type() !== "error") return;
           const source = message.location().url ?? "";
           if (/\.woff2(\?|$)/.test(source) && message.text().includes("net::ERR_FAILED")) return;
-          // The shared fixture's other allowances (blocked third-party requests, local socket exhaustion, /api/ 4xx).
-          if (source && !/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(source)) return;
-          if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
+          // The shared fixture's own allowances, the same rule (blocked third-party requests, local socket exhaustion, /api/ 4xx).
+          if (fixtureIgnoresConsole(message)) return;
           errors.push(message.text());
         });
         page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));

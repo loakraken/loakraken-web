@@ -1,7 +1,7 @@
 // 회귀 지킴(A37): 휴대폰 320·360에서 랭킹 조건 칸은 반 줄씩이라 '직업' 선택 상자의 글자 자리가 좁다(320에서 약 75px).
 // 가장 긴 직업 이름(디스트로이어·가디언나이트, 6글자)도 말줄임 없이 다 보여야 한다. 웹 글꼴이 오지 않아 더 넓은 대체
 // 글꼴로 그려질 때도 같다. 칸 폭·글자 크기·안쪽 여백을 바꿔 이 이름이 잘리면 여기서 걸린다.
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, fixtureIgnoresConsole } from "../support/fixtures.mjs";
 import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
 
 const NAMES = ["디스트로이어", "가디언나이트"];
@@ -45,9 +45,8 @@ test.describe("대체 글꼴", () => {
           if (message.type() !== "error") return;
           const source = message.location().url ?? "";
           if (/\.woff2(\?|$)/.test(source) && message.text().includes("net::ERR_FAILED")) return;
-          // The shared fixture's other allowances (blocked third-party requests, local socket exhaustion, /api/ 4xx).
-          if (source && !/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(source)) return;
-          if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
+          // The shared fixture's own allowances, the same rule (blocked third-party requests, local socket exhaustion, /api/ 4xx).
+          if (fixtureIgnoresConsole(message)) return;
           errors.push(message.text());
         });
         page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));

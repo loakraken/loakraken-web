@@ -76,6 +76,35 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
       if (r.top > innerHeight || r.bottom < 0 || r.width === 0) continue;
       nodes.push(n);
     }
+    // Blocks drawn in another order than the HTML's (#1772; crit-speed 11-19, 0.503 at 360): when a flex or grid
+    // parent reorders its children (CSS order), an earlier child can be on screen while a later one, drawn above it,
+    // has not arrived yet; then it pushes the earlier one down. The cut that shows it ends an earlier child, and that
+    // child may sit below the finished screen, so the on-screen rule above never picks it: add those cuts here.
+    const cuttable = (n) => {
+      if (n.nodeType === 3 && !n.textContent.trim()) return false;
+      if (serverHtml && !known.has(sign(n))) return false;
+      const el = n.nodeType === 1 ? n : n.parentElement;
+      return !!el && !el.closest("svg,script,style,canvas");
+    };
+    const lastCuttable = (el) => {
+      let last = cuttable(el) ? el : null;
+      const inner = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+      for (let n = inner.nextNode(); n; n = inner.nextNode()) if (cuttable(n)) last = n;
+      return last;
+    };
+    const chosen = new Set(nodes);
+    for (const parent of [root, ...root.querySelectorAll("*")]) {
+      const kids = [...parent.children];
+      if (kids.length < 2 || !/flex|grid/.test(getComputedStyle(parent).display)) continue;
+      if (!kids.some((kid) => getComputedStyle(kid).order !== "0")) continue;
+      for (const kid of kids.slice(0, -1)) {
+        const n = lastCuttable(kid);
+        if (n && !chosen.has(n)) {
+          chosen.add(n);
+          nodes.push(n);
+        }
+      }
+    }
     let value = 0;
     const moved = [];
     for (const n of nodes) {

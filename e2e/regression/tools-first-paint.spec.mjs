@@ -11,6 +11,8 @@ const CASES = [
   ["/tools/loa-shop", 360, (page) => page.getByText("로열 크리스탈", { exact: true }).first()],
   ["/tools/combat-power", 320, (page) => page.getByRole("button", { name: "불러오기", exact: true })],
   ["/tools/crit-speed", 1280, (page) => page.getByRole("button", { name: "계산하기", exact: true })],
+  // 360: the output is drawn above the settings (CSS order), the cut that ends the settings (#1772) must hold.
+  ["/tools/crit-speed", 360, (page) => page.getByRole("button", { name: "계산하기", exact: true })],
   ["/tools/refining", 1280, (page) => page.getByRole("button", { name: "장비 불러오기" })],
   ["/tools/hell-reward", 1280, (page) => page.getByRole("button", { name: "지금 시세로 다시 정렬" })],
   ["/tools/more-reward", 1280, (page) => page.getByRole("columnheader", { name: "레이드", exact: true })],
