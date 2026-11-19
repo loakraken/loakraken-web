@@ -5,7 +5,6 @@
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { cutEverywhere } from "../support/first-paint.mjs";
 import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
-import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const DAY = 86_400_000;
 const kstNow = () => new Date(Date.now() + 9 * 3_600_000);
@@ -65,14 +64,6 @@ for (const [width, clock, face] of LEGS)
     expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.slice(0, 8).join("\n")}`).toBe(0);
   });
 
-test("@A7 320 23:30 홈 첫 로드 흔들림 0(일정 끝남, 내일 일정 보기) @regression", async ({ page }) => {
-  await page.clock.setFixedTime(kstAt("23:30"));
-  await page.setViewportSize({ width: 320, height: 800 });
-  await watchShifts(page);
-  await gotoReady(page, "/");
-  await expect(islands(page).getByRole("button", { name: "내일 일정 보기" })).toBeVisible();
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(600);
-  const loaded = await shiftsSince(page);
-  expect(loaded.all, `첫 로드 흔들림 (${loaded.moved})`).toBe(0);
-});
+// No whole-page first-load shift check here: page.clock pins the browser only, while the server renders the first HTML
+// at its own hour, so such a check would depend on when it runs again. The cuts above run after the page woke, on the
+// pinned clock's state (serverHtml: false), and the real-clock first-load checks stay in home-first-paint-sweep.
