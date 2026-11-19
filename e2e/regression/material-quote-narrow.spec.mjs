@@ -30,10 +30,11 @@ for (const width of [320, 360, 390, 1280])
 // PM 총괄 11-19: CI once saw the 2nd card's title move 1px up at 152ms @320 (before waking); no font, cut,
 // stylesheet or scrollbar reproduced it here. The boxes above it now sit on whole pixels (line heights in px), so
 // a sub-pixel change above cannot round it a whole pixel. Checked with the site font served and blocked (the
-// matched fallback draws): no first-load shift, and the title's top is a whole pixel.
+// matched fallback draws): no first-load shift, the title's top is a whole pixel, and wide screens keep their
+// heading lines (only the 18px phone heading is pinned).
 test.describe("재료 견적 첫 로드: 글꼴을 받든 막든", () => {
   test.use({ allowConsoleErrors: true });
-  for (const width of [320, 360])
+  for (const width of [320, 360, 1280])
     for (const blocked of [false, true])
       test(`@견적좁은폭 ${width} 글꼴 ${blocked ? "막음" : "받음"}: 첫 로드 흔들림 0, 둘째 카드 제목은 정수 위치 @regression`, async ({ page }) => {
         const errors = [];
@@ -61,6 +62,13 @@ test.describe("재료 견적 첫 로드: 글꼴을 받든 막든", () => {
         );
         expect(top, "둘째 카드 제목을 찾지 못함").not.toBeNull();
         expect(Math.abs(top - Math.round(top)), `둘째 카드 제목 위치 ${top}px가 정수가 아님`).toBeLessThan(0.01);
+        // Wide screens keep their heading lines (20px heading: 1.3 = 26px, 1.1 = 22px; PM-프론트 #1776 P2): only
+        // the 18px phone heading is pinned (24 / 20px).
+        const lines = await page.evaluate(() => ({
+          h1: getComputedStyle(document.querySelector("main h1")).lineHeight,
+          h2: getComputedStyle(document.querySelector("main [class*='workspace'] > section h2")).lineHeight,
+        }));
+        expect(lines, "제목 줄 높이").toEqual(width > 700 ? { h1: "26px", h2: "22px" } : { h1: "24px", h2: "20px" });
         expect(errors, "웹 글꼴 막음 외의 콘솔 오류가 없어야 한다").toEqual([]);
       });
 });
