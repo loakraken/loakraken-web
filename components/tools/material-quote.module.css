@@ -154,23 +154,29 @@
   background: var(--muted);
   color: var(--link);
 }
+/* Whole-pixel line boxes down to the cards (PM 총괄 11-19, a 1px first-load move of the 2nd card's title on CI
+   @320 that no font, cut, stylesheet or scrollbar reproduced): the page's 1.43 gave 17.16 / 20.02px lines and
+   the heading 23.4, so every box below sat at a fraction (the 2nd card's title at 533.406), and a sub-pixel
+   change above it could round it a whole pixel. Each value is within 0.6px of the ratio it replaces. */
 .heroKicker {
   grid-column: 2;
   color: var(--slate);
   font-size: var(--text-caption);
   font-weight: 600;
+  line-height: 17px;
 }
 .hero h1 {
   grid-column: 2;
   font-size: var(--text-heading);
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 24px;
   letter-spacing: -0.02em;
 }
 .heroCopy {
   grid-column: 2;
   color: var(--slate);
   font-size: var(--text-body);
+  line-height: 20px;
 }
 .back {
   grid-column: 3;
@@ -207,7 +213,8 @@
   margin-top: 6px;
   font-size: var(--text-heading);
   font-weight: 700;
-  line-height: 1.1;
+  /* Whole pixels (was 1.1 = 19.8px), see .heroKicker. */
+  line-height: 20px;
   letter-spacing: 0;
 }
 .countLabel {
@@ -225,7 +232,8 @@
 .caption {
   color: var(--slate);
   font-size: var(--text-body);
-  line-height: 1.43;
+  /* Whole pixels (was 1.43 = 20.02px), see .heroKicker. */
+  line-height: 20px;
   letter-spacing: -0.016em;
 }
 .hint {
