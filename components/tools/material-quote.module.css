@@ -169,7 +169,8 @@
   grid-column: 2;
   font-size: var(--text-heading);
   font-weight: 700;
-  line-height: 24px;
+  /* 1.3 is whole above 700px (20px → 26px); the 18px phone heading pins its own (@media max-width 700px). */
+  line-height: 1.3;
   letter-spacing: -0.02em;
 }
 .heroCopy {
@@ -213,8 +214,8 @@
   margin-top: 6px;
   font-size: var(--text-heading);
   font-weight: 700;
-  /* Whole pixels (was 1.1 = 19.8px), see .heroKicker. */
-  line-height: 20px;
+  /* 1.1 is whole above 700px (20px → 22px); the 18px phone heading pins its own (@media max-width 700px). */
+  line-height: 1.1;
   letter-spacing: 0;
 }
 .countLabel {
@@ -612,6 +613,14 @@
 }
 
 @media (max-width: 700px) {
+  /* The phone heading is 18px (--text-heading), so the ratios give 23.4 / 19.8px lines: whole pixels here
+     (see .heroKicker), within 0.6px of them. Above 700px 1.3 / 1.1 of 20px are already whole (26 / 22). */
+  .hero h1 {
+    line-height: 24px;
+  }
+  .card h2 {
+    line-height: 20px;
+  }
   .header {
     gap: 16px;
     padding: 0 20px;
