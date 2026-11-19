@@ -20,6 +20,7 @@ import {
   PATH_KRAKEN_SORT,
   PATH_SORTS,
   extraCosts,
+  pathCostNote,
   pathFigures,
   pathTotal,
   stepCandidate,
@@ -308,8 +309,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         </p>
       )}
       <p className={styles.note}>
-        {figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. 비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞
-        단계 비용을 빼고 셌어요.
+        {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
+        {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path.sort)}`}
       </p>
       <Unpriced items={path.unpriced} scored={figures.scored} />
     </div>
