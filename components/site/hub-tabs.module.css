@@ -41,6 +41,9 @@
   border-radius: 980px;
   color: var(--foreground);
   font-size: 14px;
+  /* A whole-pixel line (the pages' 1.43 gave 20.02px, so the row and everything below it sat at a fraction;
+     PM 총괄 11-19, material-quote @320 1px first-load move). */
+  line-height: 20px;
   letter-spacing: -0.016em;
   text-decoration: none;
   white-space: nowrap;
