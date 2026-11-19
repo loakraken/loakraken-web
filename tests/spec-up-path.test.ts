@@ -228,3 +228,26 @@ test("the total line (api #993): known gold plus unknown steps; an older api's n
   // A known total wins over the fields.
   assert.deepEqual(pathTotal({ ...base, knownCostTotal: 1, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 0 });
 });
+
+test("the backend's #993 sample (SpecUpIntegrationTest, api develop 7f9aff63) passes the contract and reads as 260만G + 비용 모름 1단계", async () => {
+  const v6 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-v6.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(v6) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.ruleVersion, "spec-up-path-v6");
+  // EFFICIENCY takes the unknown-cost step at the end and sends no unpriced list (api #993).
+  assert.deepEqual(
+    path.steps.map((s) => [s.order, s.kind, s.cost.status, s.cumulativeCost, s.extraCost]),
+    [
+      [1, "GEM_LEVEL", "OK", 600_000, 600_000],
+      [2, "GEM_LEVEL", "OK", 2_600_000, 2_000_000],
+      [3, "EQUIPMENT_QUALITY", "UNKNOWN", null, null],
+    ],
+  );
+  assert.deepEqual(path.unpriced, []);
+  assert.equal(path.totalCost, null);
+  assert.deepEqual([path.knownCostTotal, path.unknownCostSteps], [2_600_000, 1]);
+  assert.deepEqual(pathTotal(path), { gold: 2_600_000, unknownSteps: 1 });
+  // The step costs the row shows: the api's extraCost, null for the unknown one ('비용 모름').
+  assert.deepEqual(extraCosts(path.steps), [600_000, 2_000_000, null]);
+});

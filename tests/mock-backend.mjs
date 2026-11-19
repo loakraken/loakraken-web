@@ -960,6 +960,17 @@ createServer(async (req, res) => {
     }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
     const d = envelope.data;
+    // api #993: every path answer carries knownCostTotal (the gold of the steps whose cost is known, their extraCost)
+    // and unknownCostSteps (how many have none); 0 and 0 with no steps. Answers that set their own ('스펙순서비용모름…')
+    // keep them, and '스펙순서비용모름옛' stays an answer from an api before #993.
+    const withCostParts = (env) => {
+      const data = env.data;
+      if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
+      const extras = (data.steps ?? []).map((step) => step.extraCost ?? null);
+      data.knownCostTotal = extras.reduce((sum, extra) => sum + (extra ?? 0), 0);
+      data.unknownCostSteps = extras.filter((extra) => extra === null).length;
+      return env;
+    };
     const base = read("character-full-data.json").combatPower;
     const sampleBase = d.combatPower;
     const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
@@ -970,17 +981,17 @@ createServer(async (req, res) => {
     if (who === "점수순서서폿") {
       // A supporter's other orders: no combat-power model, no steps (as 상세서포터).
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     // QA 11-01 P3: no step because every candidate is unpriced (gem prices missing).
     if (who === "스펙순서시세없음") {
       const unpriced = Array.from({ length: 3 }, (_, i) => ({ ...structuredClone(d.unpriced[0]), candidateId: `GEM_LEVEL:${i}:9`, target: `보석 ${i + 1}` }));
       Object.assign(d, { steps: [], unpriced, finalCombatPower: base, totalCost: 0, stopReasonCode: "NO_CANDIDATE", stopReason: "시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     for (const step of d.steps) {
       step.combatPowerAfter = shift(step.combatPowerAfter);
@@ -1096,7 +1107,7 @@ createServer(async (req, res) => {
       });
       d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
     }
-    return send(envelope);
+    return send(withCostParts(envelope));
   }
   if (url.pathname === "/api/v1/characters/spec-up/goal") {
     const who = url.searchParams.get("characterName");
