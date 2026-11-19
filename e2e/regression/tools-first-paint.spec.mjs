@@ -29,3 +29,54 @@ for (const [path, width, gated] of CASES)
     expect(cut.probed, cut.moved.join(" / ")).toBeGreaterThan(20);
     expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.slice(0, 8).join("\n")}`).toBe(0);
   });
+
+// A6 flake (11-19, CI 0.503 on section.settings at 112ms, /tools/crit-speed @360): the HTML has the settings
+// before the output, and at ≤900px the output (a screen tall, CSS order -1) is drawn above them. A first
+// paint with the settings in and the output not yet put them on screen, then the output pushed them down.
+// cutEverywhere never makes that cut: its cut points are nodes on screen in the finished page, and the
+// settings end up below it. So this one cut by hand: the settings section in, everything after it not yet.
+for (const width of [360, 390, 768, 1280])
+  test(`@A7 ${width} /tools/crit-speed: 가정이 먼저 오고 결과 칸이 늦게 와도 움직이지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/tools/crit-speed");
+    await expect(page.getByRole("heading", { name: "가정" })).toBeVisible();
+    const r = await page.evaluate(async () => {
+      const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // On a copy of <body> once React has claimed it, as cutEverywhere does (React's commits land on the original).
+      const claimed = () => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$"));
+      for (let tries = 0; !claimed() && tries < 100; tries++) await new Promise((resolve) => setTimeout(resolve, 50));
+      const live = document.body;
+      const copy = live.cloneNode(true);
+      document.documentElement.replaceChild(copy, live);
+      try {
+        const settings = copy.querySelector('section[aria-labelledby="settings-heading"]');
+        if (!settings) return { found: false };
+        const after = [];
+        for (let node = settings; node && node !== copy; node = node.parentNode) {
+          const siblings = [];
+          for (let next = node.nextSibling; next; next = next.nextSibling) siblings.push(next);
+          after.push([node.parentNode, siblings]);
+        }
+        for (const [, siblings] of after) for (const s of siblings) s.remove();
+        await frame();
+        const entries = [];
+        const observer = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+        observer.observe({ type: "layout-shift" });
+        for (const [parent, siblings] of after) parent.append(...siblings);
+        await frame();
+        await frame();
+        entries.push(...observer.takeRecords());
+        observer.disconnect();
+        const box = (b) => `${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}`;
+        return {
+          found: true,
+          value: +entries.reduce((sum, entry) => sum + entry.value, 0).toFixed(4),
+          moved: entries.flatMap((e) => e.sources.map((s) => `${s.node?.nodeName}.${String(s.node?.className ?? "").split(" ")[0]} ${box(s.previousRect)}→${box(s.currentRect)}`)),
+        };
+      } finally {
+        document.documentElement.replaceChild(live, document.body);
+      }
+    });
+    expect(r.found, "가정 칸을 찾지 못함").toBe(true);
+    expect(r.value, `결과 칸이 온 뒤 움직인 것: ${r.moved?.slice(0, 4).join(" | ")}`).toBe(0);
+  });
