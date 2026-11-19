@@ -3,11 +3,13 @@
 // 제목이 뜻을 말하고 칸은 숫자만, 늘 그 순서로(없는 값은 '-'), 이름은 칸의 이름표(aria-label)·title에. 직업 각인만
 // 드문 긴 값이 '…'로 끝나고 title을 가진다. 320·768은 표 상자 안에서 밀린다(같은 꼴). 값은 자리표시 글자(실제 이름 없음).
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { drawnFace } from "../support/fonts.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const LONGEST = [
   {
-    rank: 1069,
+    // Page 200's last row (MAX_PAGE × PAGE_SIZE), the longest rank (PM-프론트 #1787 P3).
+    rank: 10000,
     characterName: "가".repeat(12),
     serverName: "아브렐슈드",
     className: "홀리나이트",
@@ -34,14 +36,40 @@ const stubLongest = (page) =>
 
 const table = (page) => page.locator("main table").first();
 
-for (const width of [320, 768, 1280])
-  test(`@A37 ${width} 캐릭터 랭킹: 가장 긴 값도 잘리지 않고, 잘리는 것은 title이 있는 직업 각인뿐 @regression`, async ({ page }) => {
+// 1280 also with the site font blocked: display: optional draws the metric-matched fallback on many visits, and
+// the columns leave ~5px of slack in all (PM-프론트 #1787 P2). The face that drew is proven, not assumed.
+const LEGS = [
+  [320, false],
+  [768, false],
+  [1280, false],
+  [1280, true],
+];
+
+// Console errors are collected here (the blocked leg's woff2 failures are the only ones allowed), so the fixture's
+// own check is off for this group; every leg still fails on any other console error.
+test.describe("캐릭터 랭킹 열 폭", () => {
+  test.use({ allowConsoleErrors: true });
+for (const [width, blocked] of LEGS)
+  test(`@A37 ${width}${blocked ? " 글꼴 막음" : ""} 캐릭터 랭킹: 가장 긴 값도 잘리지 않고, 잘리는 것은 title이 있는 직업 각인뿐 @regression`, async ({ page }) => {
+    const errors = [];
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      const source = message.location().url ?? "";
+      if (blocked && /\.woff2(\?|$)/.test(source) && message.text().includes("net::ERR_FAILED")) return;
+      // The shared fixture's other allowances (blocked third-party requests, local socket exhaustion, /api/ 4xx).
+      if (source && !/^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/)/.test(source)) return;
+      if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
+      errors.push(message.text());
+    });
+    page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+    if (blocked) await page.route(/\.woff2(\?|$)/, (route) => route.abort());
     await page.setViewportSize({ width, height: 900 });
     await stubLongest(page);
     await gotoReady(page, "/rankings");
     await expect(table(page)).toBeVisible();
     await expect(table(page).locator("tbody tr").first()).toContainText("가".repeat(12));
-    await page.evaluate(() => document.fonts.ready);
+    if (!blocked) await page.evaluate(() => document.fonts.ready);
+    expect(await drawnFace(page), blocked ? "맞춘 대체 글꼴로 그림" : "사이트 글꼴로 그림").toBe(blocked ? "matched" : "site");
     const scan = await table(page).evaluate((t) => {
       const heads = [...t.querySelectorAll("thead th")].map((th) => th.textContent.trim());
       const cut = [];
@@ -66,10 +94,15 @@ for (const width of [320, 768, 1280])
     const ark = (i) => table(page).locator("tbody tr").nth(i).locator("td").nth(6);
     await expect(ark(0)).toHaveText("140 · 101 · 70");
     await expect(ark(0)).toHaveAttribute("aria-label", "진화 140, 깨달음 101, 도약 70");
-    await expect(ark(0)).toHaveAttribute("title", "진화 140, 깨달음 101, 도약 70");
+    // The hover text is on the numbers, hidden from screen readers, so the label is read once (#1787 P3).
+    await expect(ark(0)).not.toHaveAttribute("title", /./);
+    await expect(ark(0).locator("span[title]")).toHaveAttribute("title", "진화 140, 깨달음 101, 도약 70");
+    await expect(ark(0).locator("span[title]")).toHaveAttribute("aria-hidden", "true");
     await expect(ark(2)).toHaveText("- · 90 · -");
     await expect(ark(2)).toHaveAttribute("aria-label", "진화 정보 없음, 깨달음 90, 도약 정보 없음");
+    expect(errors, "웹 글꼴 막음 외의 콘솔 오류가 없어야 한다").toEqual([]);
   });
+});
 
 test("@A7 320 캐릭터 랭킹 첫 로드 흔들림 0(가장 긴 값) @regression", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
