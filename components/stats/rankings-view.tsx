@@ -34,7 +34,9 @@ const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단"
 // p99 of real names) and every value whole but 직업 각인, which keeps p95 (7 characters) and ends rarer ones in
 // "…": 순위 '1,069', 캐릭터 12 Hangul, 서버 '아브렐슈드', 직업 '홀리나이트 · 서포터', 전투력 '11,170.05' bold,
 // 진화·깨달음·도약 as numbers, 에스더 '+25 · 엘라 2단계', 상위 '0.11% 크라켄' (cells padded 8px a side, tightCells).
-const COLUMNS = rankingColumns([4.6, 14, 6.6, 10.7, 7, 7.5, 7.1, 9.5, 9.7, 9.7, 8.3]);
+// 순위 holds '10,000' (page 200's last row, MAX_PAGE × PAGE_SIZE). The sum is 94.4em, ~5px under the box, so the
+// metric-matched fallback (display: optional, #1753) fits as well (PM-프론트 #1787 P2).
+const COLUMNS = rankingColumns([5.3, 14, 6.6, 10.7, 7, 7.5, 7.1, 9.5, 8.7, 9.7, 8.3]);
 
 /**
  * Ranking (backend #100): combat power or item level, filtered
@@ -255,9 +257,16 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                     <td
                       className={`${styles.left} ${styles.k32} ${styles.arkNumbers}`}
                       aria-label={arkPassiveLabel(row.arkPassivePoints) ?? undefined}
-                      title={arkPassiveLabel(row.arkPassivePoints) ?? undefined}
                     >
-                      {arkPassiveNumbers(row.arkPassivePoints) ?? "-"}
+                      {/* The hover text sits on the numbers, hidden from screen readers: the cell's label already says
+                          it, and a title on the cell would be read a second time (PM-프론트 #1787 P3). */}
+                      {arkPassiveNumbers(row.arkPassivePoints) ? (
+                        <span title={arkPassiveLabel(row.arkPassivePoints) ?? undefined} aria-hidden="true">
+                          {arkPassiveNumbers(row.arkPassivePoints)}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
                       {row.classEngraving?.trim() || "-"}
