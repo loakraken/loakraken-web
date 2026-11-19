@@ -194,7 +194,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const figures = pathFigures(path, supporter);
   const { start, final } = figures;
   const total = pathTotal(path);
-  const sim =simulatorPath(steps, gearTypeOf(data));
+  const sim = simulatorPath(steps, gearTypeOf(data));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
   // steps keep their own place instead of folding under the first one.
