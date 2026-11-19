@@ -5,7 +5,8 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 test("캐릭터 랭킹에 K32 열 4개, 값이 없으면 '-' @regression", async ({ page }) => {
   await gotoReady(page, "/rankings");
   const table = page.getByRole("table");
-  for (const name of ["최고 전투력", "아크 패시브", "직업 각인", "에스더 무기"])
+  // The 아크 패시브 column is headed '진화·깨달음·도약' and shows the three numbers (#1138, PM 총괄 11-19 A안).
+  for (const name of ["최고 전투력", "진화·깨달음·도약", "직업 각인", "에스더 무기"])
     await expect(table.getByRole("columnheader", { name, exact: true })).toBeVisible();
   // 목: 5위는 에스더 +25·엘라 2단계, 3위는 관측 없음
   const fifth = table.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "랭커5", exact: true }) });
@@ -13,7 +14,9 @@ test("캐릭터 랭킹에 K32 열 4개, 값이 없으면 '-' @regression", async
   const third = table.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "랭커3", exact: true }) });
   await expect(third.getByRole("cell", { name: "-", exact: true })).toHaveCount(4);
   const first = table.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "랭커1", exact: true }) });
-  await expect(first).toContainText(/진화 140 · 깨달음 \d+ · 도약 70/);
+  // Numbers in 진화·깨달음·도약 order; the cell's name says them in full (aria-label).
+  await expect(first).toContainText(/140 · \d+ · 70/);
+  await expect(first.getByRole("cell", { name: /^진화 140, 깨달음 \d+, 도약 70$/ })).toHaveCount(1);
 });
 
 for (const [type, title, column] of [

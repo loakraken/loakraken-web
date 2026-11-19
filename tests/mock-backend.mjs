@@ -952,17 +952,10 @@ createServer(async (req, res) => {
     // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
     // '점수순서서폿' answers sort=KRAKEN with the api's own supporter answer (#969 test, combat power null),
     // '점수순서딜러' with the sample in its 크라켄 점수 (combat power kept). Every other name: switch off.
-    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
-    if (who === "점수순서서폿" && sort === "KRAKEN") {
-      const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
-      Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
-      return send(real);
-    }
-    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
-    const d = envelope.data;
     // api #993: every path answer carries knownCostTotal (the gold of the steps whose cost is known, their extraCost)
     // and unknownCostSteps (how many have none); 0 and 0 with no steps. Answers that set their own ('스펙순서비용모름…')
-    // keep them, and '스펙순서비용모름옛' stays an answer from an api before #993.
+    // keep them, and '스펙순서비용모름옛' stays an answer from an api before #993. The supporter KRAKEN answer (the api's
+    // #969 test answer, from before #993) gets them too, as today's api sends them (PM-프론트 #1778 P3).
     const withCostParts = (env) => {
       const data = env.data;
       if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
@@ -971,6 +964,14 @@ createServer(async (req, res) => {
       data.unknownCostSteps = extras.filter((extra) => extra === null).length;
       return env;
     };
+    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
+    if (who === "점수순서서폿" && sort === "KRAKEN") {
+      const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
+      Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
+      return send(withCostParts(real));
+    }
+    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
+    const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
     const sampleBase = d.combatPower;
     const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;

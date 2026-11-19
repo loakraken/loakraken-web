@@ -15,7 +15,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
 import { conditionsKey, fixed, percent, sampleText } from "@/lib/stats/model";
-import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
+import { MAX_PAGE, PAGE_SIZE, arkPassiveLabel, arkPassiveNumbers, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { LevelPresets } from "./level-presets";
@@ -30,7 +30,14 @@ const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단"
 
 // Numbers get room for real data's longest (A37, QA 10-17: "11,170.05" in bold,
 // "0.11% 크라켄"); text columns may end in "…" with the whole text on hover.
-const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 8.5, 8, 16, 7, 9.5, 9.5]);
+// #1138 (PM 총괄 11-19): no scroll at 1280 (a 1,232px box = 94.7em) with a 12-character name (the game's limit,
+// p99 of real names) and every value whole but 직업 각인, which keeps p95 (7 characters) and ends rarer ones in
+// "…": 순위 '1,069', 캐릭터 12 Hangul, 서버 '아브렐슈드', 직업 '홀리나이트 · 서포터', 전투력 '11,170.05' bold,
+// 진화·깨달음·도약 as numbers, 에스더 '+25 · 엘라 2단계', 상위 '0.11% 크라켄' (cells padded 8px a side, tightCells).
+// 순위 holds '10,000' (page 200's last row, MAX_PAGE × PAGE_SIZE): 42.4px drawn in the cell, 58.4 with its
+// padding, in 4.6em = 59.8px (PM-프론트 #1787 P3, measured with both faces). The sum is 94.4em, ~5px under the
+// box, so the metric-matched fallback (display: optional, #1753) fits as well (#1787 P2).
+const COLUMNS = rankingColumns([4.6, 14, 6.6, 10.7, 7, 7.5, 7.1, 9.5, 9.4, 9.7, 8.3]);
 
 /**
  * Ranking (backend #100): combat power or item level, filtered
@@ -206,7 +213,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
           ) : (
             <DataTable
               label={`${metricLabel} 랭킹 ${query.page}쪽`}
-              className={styles.table}
+              className={`${styles.table} ${styles.tightCells}`}
               {...COLUMNS.tableProps}
               {...pendingProps(list)}
             >
@@ -223,7 +230,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                   <th scope="col">아이템 레벨</th>
                   <th scope="col">전투력</th>
                   <th scope="col">최고 전투력</th>
-                  <th scope="col" className={styles.left}>아크 패시브</th>
+                  <th scope="col" className={styles.left}>진화·깨달음·도약</th>
                   <th scope="col" className={styles.left}>직업 각인</th>
                   <th scope="col" className={styles.left}>에스더 무기</th>
                   <th scope="col">상위</th>
@@ -248,8 +255,19 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                     {/* K32 · L37 (api #446·#449): '-' when not observed; the
                         columns stay so every row lines up. */}
                     <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
-                    <td className={`${styles.left} ${styles.k32}`} title={arkPassiveText(row.arkPassivePoints) ?? undefined}>
-                      {arkPassiveText(row.arkPassivePoints) ?? "-"}
+                    <td
+                      className={`${styles.left} ${styles.k32} ${styles.arkNumbers}`}
+                      aria-label={arkPassiveLabel(row.arkPassivePoints) ?? undefined}
+                    >
+                      {/* The hover text sits on the numbers, hidden from screen readers: the cell's label already says
+                          it, and a title on the cell would be read a second time (PM-프론트 #1787 P3). */}
+                      {arkPassiveNumbers(row.arkPassivePoints) ? (
+                        <span title={arkPassiveLabel(row.arkPassivePoints) ?? undefined} aria-hidden="true">
+                          {arkPassiveNumbers(row.arkPassivePoints)}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
                       {row.classEngraving?.trim() || "-"}

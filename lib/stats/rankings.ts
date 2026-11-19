@@ -102,13 +102,23 @@ export function estherText(weapon: RankedCharacter["estherWeapon"] | undefined) 
   return parts.length ? parts.join(" · ") : null;
 }
 
-/** "진화 140 · 깨달음 101 · 도약 70" (missing ones left out) or null. */
-export function arkPassiveText(points: RankedCharacter["arkPassivePoints"] | undefined) {
-  if (!points) return null;
-  const parts = [
-    points.evolution != null ? `진화 ${points.evolution}` : null,
-    points.enlightenment != null ? `깨달음 ${points.enlightenment}` : null,
-    points.leap != null ? `도약 ${points.leap}` : null,
-  ].filter(Boolean);
-  return parts.length ? parts.join(" · ") : null;
+// The ranking table's 아크 패시브 column (#1138, PM 총괄 11-19): its header says 진화·깨달음·도약 and every cell
+// shows the three numbers in that order, so a 12-character name and every other value fit at 1280 without a
+// scroll. The names stay in the header (touch has no hover); the cell's label and title say them in full.
+const ARK_PASSIVE_SLOTS = [
+  ["evolution", "진화"],
+  ["enlightenment", "깨달음"],
+  ["leap", "도약"],
+] as const;
+
+/** "140 · 101 · 70": always three slots in 진화·깨달음·도약 order, "-" for a missing one; null when none is known. */
+export function arkPassiveNumbers(points: RankedCharacter["arkPassivePoints"] | undefined) {
+  if (!points || ARK_PASSIVE_SLOTS.every(([key]) => points[key] == null)) return null;
+  return ARK_PASSIVE_SLOTS.map(([key]) => (points[key] == null ? "-" : String(points[key]))).join(" · ");
+}
+
+/** The same in words for the cell's label and title: "진화 140, 깨달음 101, 도약 70" ("정보 없음" for a missing one). */
+export function arkPassiveLabel(points: RankedCharacter["arkPassivePoints"] | undefined) {
+  if (!points || ARK_PASSIVE_SLOTS.every(([key]) => points[key] == null)) return null;
+  return ARK_PASSIVE_SLOTS.map(([key, name]) => `${name} ${points[key] == null ? "정보 없음" : points[key]}`).join(", ");
 }
