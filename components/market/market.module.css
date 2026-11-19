@@ -722,6 +722,14 @@
   color: var(--slate);
   font-size: 12px;
 }
+/* A title with the count line under it: both lines' height from the title's start tag (21 + 1 gap + 16), so a
+   first HTML cut after the heading does not grow the head when the count line comes (A7 first-paint sweep). */
+.countedTitle {
+  min-height: 38px;
+}
+.countedTitle h3 {
+  line-height: 21px;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;

@@ -208,10 +208,9 @@ function PeriodChange({ range, points }: { range: ChartRange; points: { value: n
       <span className="sr-only">
         {label} 동안 {amount}% {said}
       </span>
-      <span aria-hidden="true">
-        {label} {arrow}
-        {amount}%
-      </span>
+      {/* One text node: split ones ('3개월', ' ', '▲', '12.3', '%') moved left when the label narrowed on a
+          range switch (3개월 → 1년), a layout shift @360. */}
+      <span aria-hidden="true">{`${label} ${arrow}${amount}%`}</span>
     </small>
   );
 }

@@ -75,7 +75,7 @@ export function CellTrend({
   return (
     <section className={market.cellTrend} aria-label={name ? `${name} 최저가 추이` : "최저가 추이"}>
       <div className={market.trendHead}>
-        <div className={market.trendTitle}>
+        <div className={`${market.trendTitle} ${market.countedTitle}`}>
           <h3>최저가 추이</h3>
           <small className={`${market.periodChange} ${market.recordCount}`}>
             {short != null ? `${CELL_RANGE_LABEL[range]} 중 ${short}일치 기록` : " "}
