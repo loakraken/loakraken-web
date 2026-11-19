@@ -22,14 +22,15 @@ export const PATH_SORTS: readonly { id: PathSort; label: string }[] = [
 ];
 /**
  * 크라켄 점수 (서포터는 서포터 점수) order, api #967; shown only where the api says it runs (api #971).
- * Named for what the api ranks by, score per 100,000 gold with steps that cost nothing more first
- * (extra cost ≤ 0, a cheaper gem listing included; 백엔드 11-16, api 29a1fd11 SpecUpGoalService.free),
- * not the raw gain (PM 총괄 · PM-프론트 #1734 P2). Same rule for dealers and supporters.
+ * Named for what the api ranks by, score per 100,000 gold, not the raw gain (PM 총괄 · PM-프론트
+ * #1734 P2). Since api #993 (PM 총괄 11-19) steps with no rate, costing nothing more (extra cost
+ * ≤ 0) or an unknown cost, come after the rated ones (SpecUpGoalService.krakenPreferred); before
+ * it they came first. Same rule for dealers and supporters.
  */
 export const PATH_KRAKEN_SORT = {
   id: "KRAKEN",
   label: "점수 효율",
-  describe: "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없는 단계가 먼저 와요.",
+  describe: "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없거나 비용을 모르는 단계는 그 뒤에 와요.",
 } as const satisfies { id: PathSort; label: string; describe: string };
 export const isPathSort = (value: unknown): value is PathSort =>
   value === "EFFICIENCY" || value === "DELTA" || value === "KRAKEN";
@@ -137,4 +138,28 @@ export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
     if (before === undefined) return own;
     return before === null ? null : own - before;
   });
+}
+
+/**
+ * The fields api #993 adds beside totalCost: the gold of the steps whose cost is
+ * known and how many steps have no cost. Optional here until the contract sync
+ * after #993 merges; an api before it never sends them.
+ */
+type KnownCostParts = { knownCostTotal?: number | null; unknownCostSteps?: number | null };
+
+/**
+ * The path's total line (api #993, PM 총괄 11-19). KRAKEN and EFFICIENCY now add
+ * the steps whose cost is unknown at the end, so totalCost is null on many paths.
+ * Then the total is the known gold plus a count of the unknown steps; when every
+ * step's cost is unknown there is no gold to show, only the count (never 0G,
+ * PM 총괄 11-19). Without the new fields (an older api) it stays unknown, as before.
+ * gold null = no total to show; unknownSteps 0 = no count to show.
+ */
+export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | null; unknownSteps: number } {
+  if (path.totalCost != null) return { gold: path.totalCost, unknownSteps: 0 };
+  const known = path.knownCostTotal;
+  const unknown = path.unknownCostSteps;
+  if (typeof known === "number" && Number.isFinite(known) && known >= 0 && Number.isInteger(unknown) && unknown! > 0)
+    return { gold: unknown! >= path.steps.length ? null : known, unknownSteps: unknown! };
+  return { gold: null, unknownSteps: 0 };
 }
