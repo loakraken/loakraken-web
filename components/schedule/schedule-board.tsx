@@ -329,7 +329,11 @@ function Section({
       : items.length;
   return (
     <section className={styles.section} aria-label={title}>
-      <header>
+      {/* Drawn once whole (data-fp-whole, QA v0.3.14 RC P1-2): after a day's last round the head ends in the
+          '내일 일정 보기' button; a first HTML cut inside it drew the empty button (its 44px press area) at the end of
+          the status line, then its text wrapped it under the line and the status re-laid (CLS 0.006–0.0076 at
+          320/390, 23:00–24:00 KST). Holding the head until its end mark keeps the parts from placing each other. */}
+      <header data-fp-whole="">
         <h3>{title}</h3>
         {/* Drawn anew when it changes: a different count rewritten in place
             moves what follows it in the head (A7). */}
@@ -360,6 +364,7 @@ function Section({
             내일 일정 보기
           </button>
         )}
+        <FpEnd />
       </header>
       <ul className={styles.rows}>
         {byTimeThenLevel(items).map((item) => (
