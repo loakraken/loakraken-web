@@ -210,8 +210,13 @@ test("the total line (api #993): known gold plus unknown steps; an older api's n
   assert.deepEqual(pathTotal(base), { gold: 2_600_000, unknownSteps: 0 });
   // #993: totalCost null with the known part beside it.
   assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 1 });
-  // Known part 0 (every priced step free) still counts the unknown steps.
-  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 0, unknownCostSteps: 3 }), { gold: 0, unknownSteps: 3 });
+  // PM 총괄 11-19: every step unknown → no gold (미정), only the count; never 0G.
+  assert.equal(base.steps.length, 2);
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 0, unknownCostSteps: 2 }), { gold: null, unknownSteps: 2 });
+  // A known step that costs nothing more plus an unknown one: 0G + the count (a cost is known).
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 0, unknownCostSteps: 1 }), { gold: 0, unknownSteps: 1 });
+  // Only free steps: the api's own total, 0G.
+  assert.deepEqual(pathTotal({ ...base, totalCost: 0 }), { gold: 0, unknownSteps: 0 });
   // An api before #993 (fields absent or null): no total, as today.
   assert.deepEqual(pathTotal({ ...base, totalCost: null }), { gold: null, unknownSteps: 0 });
   assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: null, unknownCostSteps: null }), { gold: null, unknownSteps: 0 });

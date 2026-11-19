@@ -1035,9 +1035,11 @@ createServer(async (req, res) => {
     // priced ones (cost UNKNOWN, cumulativeCost/extraCost/per-gold null), totalCost null, no unpriced list,
     // and the known part beside it (knownCostTotal, unknownCostSteps). '스펙순서비용모름' is the sample with its
     // quality step taken in; '…긴' adds 12 more and a 12억 known total (the widest total line at 320, not
-    // the rows' sum); '…옛' is the same answer from an api before the two fields.
+    // the rows' sum); '…옛' is the same answer from an api before the two fields; '…전부' has only unknown
+    // steps (knownCostTotal 0, PM 총괄 11-19: 합계 미정, never 0G).
     if (who?.startsWith("스펙순서비용모름")) {
-      const known = d.totalCost;
+      const all = who === "스펙순서비용모름전부";
+      const known = all ? 0 : d.totalCost;
       const unknownStep = (order, i) => ({
         ...structuredClone(d.steps[0]),
         order,
@@ -1057,14 +1059,17 @@ createServer(async (req, res) => {
         combatPowerPer10kGold: null,
         extraCost: null,
       });
-      const count = who === "스펙순서비용모름긴" ? 13 : 1;
-      let after = d.finalCombatPower;
+      const count = who === "스펙순서비용모름긴" ? 13 : all ? 2 : 1;
+      const priced = all ? 0 : d.steps.length;
+      let after = all ? d.combatPower : d.finalCombatPower;
+      const added = [];
       for (let i = 0; i < count; i++) {
-        const step = unknownStep(d.steps.length + 1, i);
+        const step = unknownStep(priced + i + 1, i);
         after = Math.round((after + step.deltaCombatPower) * 100) / 100;
         step.combatPowerAfter = after;
-        d.steps.push(step);
+        added.push(step);
       }
+      d.steps = all ? added : [...d.steps, ...added];
       Object.assign(d, { finalCombatPower: after, totalCost: null, unpriced: [], ruleVersion: "spec-up-path-v6" });
       if (who === "스펙순서비용모름긴") Object.assign(d, { stopReasonCode: "STEP_LIMIT", limit: d.steps.length });
       if (who !== "스펙순서비용모름옛")

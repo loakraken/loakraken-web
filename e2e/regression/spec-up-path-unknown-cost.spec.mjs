@@ -3,7 +3,7 @@
 // (knownCostTotal) and the count (unknownCostSteps) beside it. The line reads 'X G + 비용 모름 N단계', each
 // such row '비용 모름' with no number; an api before the fields keeps today's '미정(…)'.
 // Mock: '스펙순서비용모름' (보석 2단계 260만G + 품질 비용 모름), '…옛' (same, no fields), '…긴' (13 unknown
-// steps, a 12억 known total: the widest line at 320).
+// steps, a 12억 known total: the widest line at 320), '…전부' (only unknown steps: 합계 미정, never 0G).
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 const answer = (page) => page.getByRole("region", { name: "추천 순서", exact: true });
@@ -41,6 +41,15 @@ for (const width of [320, 1280])
       await expect(summary(page)).toContainText("합계 미정(비용을 모르는 단계가 있어요)");
       await expect(summary(page)).not.toContainText("+ 비용 모름");
       await expect(rows(page).nth(2).locator('[data-cell="cost"]')).toHaveText("비용 모름");
+    });
+
+    test("모든 단계의 비용을 모르면 0G가 아니라 '합계 미정 (비용 모름 N단계)'(PM 총괄 11-19)", async ({ page }) => {
+      await page.goto(characterPath("스펙순서비용모름전부", "specup"));
+      await expect(rows(page)).toHaveCount(2);
+      await expect(summary(page)).toContainText("합계 미정 (비용 모름 2단계)");
+      await expect(summary(page)).not.toContainText("0G");
+      await expect(rows(page).locator('[data-cell="cost"]')).toHaveText(["비용 모름", "비용 모름"]);
+      await expectNoHorizontalOverflow(page);
     });
 
     test("가장 긴 합계 줄: '+ 비용 모름 N단계'는 한 덩어리로 줄바꿈되고 문단 밖으로 나가지 않음", async ({ page }) => {
