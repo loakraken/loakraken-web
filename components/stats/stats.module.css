@@ -892,6 +892,10 @@
 .table.tightCells :is(th, td) {
   padding-inline: 8px;
 }
+/* 진화·깨달음·도약 as numbers (#1138): a left-aligned column of numbers, so each row's digits line up. */
+.table .arkNumbers {
+  font-variant-numeric: tabular-nums;
+}
 /* Numbers line up and never end in "…": their columns are sized for real
    data's longest values (A37, QA 10-17); text columns carry a title instead. */
 .table[data-fixed] td:not(.left) {

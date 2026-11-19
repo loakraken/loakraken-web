@@ -253,7 +253,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                         columns stay so every row lines up. */}
                     <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
                     <td
-                      className={`${styles.left} ${styles.k32}`}
+                      className={`${styles.left} ${styles.k32} ${styles.arkNumbers}`}
                       aria-label={arkPassiveLabel(row.arkPassivePoints) ?? undefined}
                       title={arkPassiveLabel(row.arkPassivePoints) ?? undefined}
                     >
