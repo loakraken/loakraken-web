@@ -80,9 +80,13 @@ test(`키보드 ← 는 빈 날에도 멈추고 '${GAP}'를 읽는다 @regressio
   await svg.focus();
   // One step per calendar day from the newest completed day: the hole is 20–24 days back.
   const seen = [];
+  let before = await readout.textContent();
   for (let i = 0; i < 26; i++) {
     await svg.press("ArrowLeft");
-    seen.push((await readout.textContent()).includes(GAP));
+    // Every day reads its own date: wait for this step's line (a retrying check), then read it.
+    await expect(readout).not.toHaveText(before);
+    before = await readout.textContent();
+    seen.push(before.includes(GAP));
   }
   // One step per day: exactly the hole's five days read as having no record, in a row.
   expect(seen.filter(Boolean).length, "빈 날 수(구멍 5일)").toBe(5);
