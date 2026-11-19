@@ -100,7 +100,7 @@ test("앞뒤가 빈 하루 기록은 8px 점으로 보인다 @regression", async
   const marker = await lone.evaluate((dot) => {
     const style = getComputedStyle(dot);
     const r = Number(dot.getAttribute("r"));
-    return { fill: (r - Number.parseFloat(style.strokeWidth) / 2) * 2, color: style.fill, line: getComputedStyle(dot.ownerSVGElement.querySelector("path")).stroke };
+    return { fill: (r - Number.parseFloat(style.strokeWidth) / 2) * 2, color: style.fill, line: getComputedStyle(dot.ownerSVGElement.querySelector("path.k-draw")).stroke };
   });
   expect(marker.fill, "점 지름(테두리 안)").toBeGreaterThanOrEqual(8);
   expect(marker.color, "선과 같은 색").toBe(marker.line);

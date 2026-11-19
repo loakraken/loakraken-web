@@ -19,6 +19,7 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchAccessoryBoard, fetchAccessoryHistory, fetchAccessoryListings } from "@/lib/market/client";
 import { CellTrend } from "./cell-trend";
+import { accessoryGapNote } from "@/lib/market/warmup-since";
 import {
   ACCESSORY_LISTING_MAX_PAGE,
   GRADES,
@@ -304,6 +305,7 @@ export function AccessoryBoardView({
           name={pickedCell ? pickedCell.optionLabels.join(" · ") : null}
           queryKey={["accessory-history", filter, pick?.slot, pick?.levels.join(",")]}
           load={pick ? (range, signal) => fetchAccessoryHistory(filter, pick, range, signal) : null}
+          note={(times) => accessoryGapNote(filter, times)}
         />
 
         <section className={gems.listings} aria-labelledby="accessory-listings-heading" {...pendingProps(listings)}>

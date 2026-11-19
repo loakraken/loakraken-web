@@ -4,6 +4,7 @@ import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
 import { curve } from "@/components/ui/bencho/balance-curve";
 import { ChartTooltip, useChartScrub } from "@/components/ui/chart-scrub";
 import { niceTicks } from "@/lib/character/history";
+import { GAP_TEXT, daySlots, gapBridges, slotDate } from "@/lib/market/chart-gaps";
 import type { DailyStat } from "@/lib/market/board";
 import { minuteLabel, type MinutePoint } from "@/lib/market/minutes";
 import styles from "./market.module.css";
@@ -180,6 +181,17 @@ export function MarketChart({
     const breaks = (i: number) => dated && i > 0 && days[i].t! - days[i - 1].t! > 86_400_000;
     const alone = (i: number) => (i === 0 || breaks(i)) && (i === days.length - 1 || breaks(i + 1));
     const lone = gaps ? days.flatMap((_, i) => (alone(i) ? [i] : [])) : [];
+    // With gaps, the crosshair stops on every calendar day, a day with no record too (it says so), and a
+    // faint dashed bridge joins the readings around each gap: visibly not the data line (user 11-16).
+    const times = gaps ? days.map((d) => d.t!) : [];
+    const slots = gaps ? daySlots(times) : null;
+    const slotX = (s: number) =>
+      slots ? PAD.left + ((slots[s].t - frame![0]) / (frame![1] - frame![0] || 1)) * plotW : x(s);
+    const bridges = gaps
+      ? gapBridges(times).map(
+          ([a, b]) => `M${x(a).toFixed(1)} ${y(days[a].value).toFixed(1)} L${x(b).toFixed(1)} ${y(days[b].value).toFixed(1)}`,
+        )
+      : [];
     const curved = timed || gaps
       ? days.length > 1
         ? {
@@ -199,18 +211,31 @@ export function MarketChart({
     const barW = Math.max(3, Math.min(18, (step || plotW) * 0.55));
     const volumeTop = PAD.top + PRICE_H + GAP;
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
-    return { ticks, x, y, curved, barW, volumeTop, bar, timed, lone };
+    return { ticks, x, y, curved, barW, volumeTop, bar, timed, lone, slots, slotX, bridges };
   }, [days, W, span, byDate]);
-  // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← →.
+  // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← →: over the readings, or over every
+  // day when the chart has gaps.
   const { active, svgProps } = useChartScrub({
-    count: days.length,
-    xOf: geometry.x,
+    count: geometry.slots?.length ?? days.length,
+    xOf: geometry.slotX,
     viewWidth: W,
   });
   if (!days.length) return null;
-  const { ticks, x, y, curved, barW, volumeTop, bar, timed, lone } = geometry;
+  const { ticks, x, y, curved, barW, volumeTop, bar, timed, lone, slots, slotX, bridges } = geometry;
   const last = days.length - 1;
-  const shown = active ?? last;
+  // The reading under the crosshair; null on a day with no record (a gap slot).
+  const reading = active == null ? null : slots ? slots[active].reading : active;
+  const gapDay = active != null && reading == null ? slotDate(slots![active].t) : null;
+  const shown = reading ?? last;
+  // A gap's tooltip sits on its bridge, where the dashed line crosses that day.
+  let gapY = 0;
+  if (gapDay != null && slots) {
+    let before = active!;
+    while (slots[before].reading == null) before--;
+    const a = slots[before].reading!;
+    const f = (slots[active!].t - days[a].t!) / (days[a + 1].t! - days[a].t! || 1);
+    gapY = y(days[a].value + (days[a + 1].value - days[a].value) * f);
+  }
   const priceWidth = Math.max(...days.map((d) => fmt(d.value).length + 1));
   const { direction } = periodChange(days);
 
@@ -255,6 +280,9 @@ export function MarketChart({
             wash makes the line the edge of a shape). Red when the window
             rose, blue when it fell, as Korean market screens do. Draws itself
             on every entry (CSS .k-draw; user rule 10-10). */}
+          {bridges.length > 0 && (
+            <path d={bridges.join(" ")} className={styles.bridge} data-bridge={bridges.length} aria-hidden="true" />
+          )}
           {curved && (
             <path
               d={curved.d}
@@ -273,7 +301,7 @@ export function MarketChart({
                 height={Math.max(1, bar(d.volume))}
                 rx={2}
                 className={`${styles.volume} k-grow`}
-                data-active={i === shown || undefined}
+                data-active={(gapDay == null && i === shown) || undefined}
                 // Grows from the base on every entry; later bars start later but all
                 // finish with the line, within --duration-draw (PM #253).
                 style={{
@@ -305,40 +333,46 @@ export function MarketChart({
           </text>
           {active != null && (
             <line
-              x1={x(active)}
-              x2={x(active)}
+              x1={slotX(active)}
+              x2={slotX(active)}
               y1={PAD.top}
               y2={volumeTop + VOLUME_H}
               className={styles.crosshair}
               aria-hidden="true"
             />
           )}
-          <circle
-            cx={x(shown)}
-            cy={y(days[shown].value)}
-            r={4.5}
-            className={styles.dot}
-          />
+          {gapDay == null && (
+            <circle
+              cx={x(shown)}
+              cy={y(days[shown].value)}
+              r={4.5}
+              className={styles.dot}
+            />
+          )}
         </svg>
         {/* The reading next to the point while scrubbing; the line below
           (a polite live region) is what a screen reader hears. */}
-        {active != null && (
-          <ChartTooltip
-            x={x(active)}
-            y={y(days[active].value) - 8}
-            boxWidth={W}
-          >
-            <strong>{fmt(days[active].value)}G</strong> · {days[active].axis}
+        {gapDay != null ? (
+          <ChartTooltip x={slotX(active!)} y={gapY - 8} boxWidth={W}>
+            <span data-gap-tip="">
+              {short(gapDay)} · {GAP_TEXT}
+            </span>
           </ChartTooltip>
+        ) : (
+          reading != null && (
+            <ChartTooltip x={x(reading)} y={y(days[reading].value) - 8} boxWidth={W}>
+              <strong>{fmt(days[reading].value)}G</strong> · {days[reading].axis}
+            </ChartTooltip>
+          )
         )}
       </div>
       <p id={`${id}-readout`} className={styles.readout} aria-live="polite">
         {/* As wide as the longest price, so the date after it stays put while
             scrubbing (PM-프론트 #591: the G moved, a 0.0001 shift at 360). */}
         <strong style={{ minWidth: `${priceWidth}ch` }}>
-          {fmt(days[shown].value)}G
+          {gapDay != null ? "—" : `${fmt(days[shown].value)}G`}
         </strong>
-        {days[shown].detail}
+        {gapDay != null ? `${gapDay} · ${GAP_TEXT}` : days[shown].detail}
       </p>
     </figure>
   );

@@ -706,6 +706,22 @@
   stroke: var(--background);
   stroke-width: 2;
 }
+/* Across a day with no record (by date): a faint dashed bridge in the axis ink, never the line's colour
+   or weight, so it reads as a join and not as prices (user 11-16). Under the line; drawn at once. */
+.bridge {
+  fill: none;
+  stroke: var(--muted-foreground);
+  stroke-opacity: 0.6;
+  stroke-width: 1.5;
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+}
+/* How many days the range has on record, under the chart's title beside the period buttons (seen
+   before the chart, user 11-16); held from the first paint so nothing moves when it lands. */
+.recordCount {
+  color: var(--slate);
+  font-size: 12px;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
