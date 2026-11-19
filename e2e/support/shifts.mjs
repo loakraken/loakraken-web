@@ -57,7 +57,21 @@ export async function watchShifts(page) {
         const moves = (entry.sources ?? []).map(({ previousRect: a, currentRect: b }) =>
           a && b ? Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.width - b.width), Math.abs(a.height - b.height)) : Infinity,
         );
-        window.__shiftLog.push({ t: entry.startTime, v: entry.value, input: entry.hadRecentInput, sources, boxes, moves });
+        // What the page was like when the shift was seen, so a rare CI shift says which kind it was (material-quote
+        // @320 11-19: 1px, before waking, not reproduced by fonts, cuts, late CSS or scrollbars): how far the HTML
+        // had got (readyState, elements in main so far; shiftsSince adds the final count), the fonts (status and
+        // the families loaded), the stylesheets, the window, and the largest raw (unrounded) move. Read when the
+        // observer runs, a moment after the shift itself (seen = that moment).
+        const ctx = {
+          seen: Math.round(performance.now()),
+          ready: document.readyState,
+          nodes: document.querySelectorAll("main *").length,
+          fonts: `${document.fonts.status}:${[...new Set([...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family.replace(/["']/g, "")))].join("+") || "-"}`,
+          sheets: document.styleSheets.length,
+          win: `${document.documentElement.clientWidth}x${innerHeight}`,
+          raw: +Math.max(0, ...moves.filter(Number.isFinite)).toFixed(3),
+        };
+        window.__shiftLog.push({ t: entry.startTime, v: entry.value, input: entry.hadRecentInput, sources, boxes, moves, ctx });
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
@@ -74,8 +88,12 @@ export const shiftMark = (page) => page.evaluate(() => performance.now());
  * ("깨기 전" if it had not woken yet).
  */
 export async function shiftsSince(page, mark = 0) {
-  const { entries, hydratedAt } = await page.evaluate(
-    (from) => ({ entries: window.__shiftLog.filter((entry) => entry.t >= from), hydratedAt: window.__hydratedAt ?? null }),
+  const { entries, hydratedAt, nodes } = await page.evaluate(
+    (from) => ({
+      entries: window.__shiftLog.filter((entry) => entry.t >= from),
+      hydratedAt: window.__hydratedAt ?? null,
+      nodes: document.querySelectorAll("main *").length,
+    }),
     mark,
   );
   const sum = (list) => +list.reduce((total, entry) => total + entry.v, 0).toFixed(4);
@@ -89,7 +107,19 @@ export async function shiftsSince(page, mark = 0) {
     all: sum(entries),
     input: sum(entries.filter((entry) => entry.input)),
     quiet: sum(entries.filter((entry) => !entry.input)),
-    moved: [...new Set(entries.flatMap((entry) => (entry.boxes ?? entry.sources).map((what) => `${what} (${when(entry.t)})`)))].join(", "),
+    moved: [
+      ...new Set(
+        entries.map((entry) => {
+          const what = [...new Set(entry.boxes ?? entry.sources)].join(", ");
+          const c = entry.ctx;
+          // e.g. "(152ms, 깨기 64ms 전; 본 때 153ms, loading, main 41/120, 글꼴 loading:-, 시트 6, 창 320x800, 실제 0.91px)"
+          const page = c
+            ? `; 본 때 ${c.seen}ms, ${c.ready}, main ${c.nodes}/${nodes}, 글꼴 ${c.fonts}, 시트 ${c.sheets}, 창 ${c.win}, 실제 ${c.raw}px`
+            : "";
+          return `${what} (${when(entry.t)}${page})`;
+        }),
+      ),
+    ].join(", "),
   };
 }
 

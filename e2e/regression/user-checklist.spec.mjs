@@ -133,8 +133,15 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         // answer" shows or is ruled out.
         const detail = shifts.all
           ? await page.evaluate(() => {
+              // With the boxes (before → after) and the page's state when it was seen (shifts.mjs ctx), so a rare
+              // CI shift names its kind (11-19: crit-speed 0.503, material-quote 1px).
+              const total = document.querySelectorAll("main *").length;
               const moved = window.__shiftLog
-                .map((e) => `${Math.round(e.t)}ms ${e.v.toFixed(4)}${e.input ? " (input)" : ""} ${e.sources.join("+")}`)
+                .map((e) => {
+                  const c = e.ctx;
+                  const page = c ? ` [${c.ready}, main ${c.nodes}/${total}, 글꼴 ${c.fonts}, 시트 ${c.sheets}, 창 ${c.win}, 실제 ${c.raw}px]` : "";
+                  return `${Math.round(e.t)}ms ${e.v.toFixed(4)}${e.input ? " (input)" : ""} ${(e.boxes ?? e.sources).join(" ; ")}${page}`;
+                })
                 .join(" | ");
               const nav = performance.getEntriesByType("navigation")[0];
               const doc = nav ? `문서 ${Math.round(nav.responseStart)}~${Math.round(nav.responseEnd)}ms` : "";
