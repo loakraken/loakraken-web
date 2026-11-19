@@ -46,19 +46,31 @@ for (const width of [320, 1280])
     test("가장 긴 합계 줄: '+ 비용 모름 N단계'는 한 덩어리로 줄바꿈되고 문단 밖으로 나가지 않음", async ({ page }) => {
       await page.goto(characterPath("스펙순서비용모름긴", "specup"));
       await expect(summary(page)).toContainText("합계 12억 3,456만 7,890G + 비용 모름 13단계");
-      const box = await summary(page).evaluate((p) => {
-        const piece = [...p.querySelectorAll("span")].find((s) => s.textContent.includes("비용 모름"));
-        const lineHeight = parseFloat(getComputedStyle(piece).lineHeight) || 24;
-        const rects = [...piece.getClientRects()].filter((r) => r.width > 0);
-        const outer = p.getBoundingClientRect();
-        return {
-          // One line for the piece: every fragment on the same line top (a break inside it starts a second).
-          lines: new Set(rects.map((r) => Math.round(r.top))).size,
-          tall: Math.max(...rects.map((r) => r.height)) > lineHeight * 1.5,
-          outside: rects.some((r) => r.right > outer.right + 0.5 || r.left < outer.left - 0.5),
-        };
-      });
-      expect(box).toEqual({ lines: 1, tall: false, outside: false });
+      // Phone widths in 2px steps from 320: at one width or another a line ends inside the piece unless it
+      // is kept whole (a single 320 never broke inside it with this text, nowrap or not).
+      const widths = width === 320 ? Array.from({ length: 56 }, (_, i) => 320 + 2 * i) : [width];
+      const broken = [];
+      for (const w of widths) {
+        await page.setViewportSize({ width: w, height: 900 });
+        const box = await measure(page);
+        if (box.lines !== 1 || box.tall || box.outside) broken.push({ w, ...box });
+      }
+      expect(broken).toEqual([]);
       await expectNoHorizontalOverflow(page);
     });
+  });
+
+/** The '+ 비용 모름 N단계' piece of the total line: how many lines it spans and whether it leaves the line's box. */
+const measure = (page) =>
+  summary(page).evaluate((p) => {
+    const piece = [...p.querySelectorAll("span")].find((s) => s.textContent.includes("비용 모름"));
+    const lineHeight = parseFloat(getComputedStyle(piece).lineHeight) || 24;
+    const rects = [...piece.getClientRects()].filter((r) => r.width > 0);
+    const outer = p.getBoundingClientRect();
+    return {
+      // One line for the piece: every fragment on the same line top (a break inside it starts a second).
+      lines: new Set(rects.map((r) => Math.round(r.top))).size,
+      tall: Math.max(...rects.map((r) => r.height)) > lineHeight * 1.5,
+      outside: rects.some((r) => r.right > outer.right + 0.5 || r.left < outer.left - 0.5),
+    };
   });
