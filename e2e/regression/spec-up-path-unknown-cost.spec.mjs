@@ -52,8 +52,8 @@ for (const width of [320, 1280])
         const rects = [...piece.getClientRects()].filter((r) => r.width > 0);
         const outer = p.getBoundingClientRect();
         return {
-          // One line box for the piece (a break inside it gives two rects or a double-height rect).
-          lines: rects.length,
+          // One line for the piece: every fragment on the same line top (a break inside it starts a second).
+          lines: new Set(rects.map((r) => Math.round(r.top))).size,
           tall: Math.max(...rects.map((r) => r.height)) > lineHeight * 1.5,
           outside: rects.some((r) => r.right > outer.right + 0.5 || r.left < outer.left - 0.5),
         };

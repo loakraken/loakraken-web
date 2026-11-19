@@ -227,7 +227,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         합계 <b>{total.gold != null ? `${koreanGold(total.gold)}G` : "미정"}</b>
         {/* api #993: the known gold plus the steps with no cost; an older api's null total keeps the old words. */}
         {total.unknownSteps > 0 ? (
-          <span className={styles.unknownSteps}> + 비용 모름 {total.unknownSteps}단계</span>
+          <span className={styles.unknownSteps}>{` + 비용 모름 ${total.unknownSteps}단계`}</span>
         ) : (
           total.gold == null && "(비용을 모르는 단계가 있어요)"
         )}
