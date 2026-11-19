@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  arkPassiveText,
+  arkPassiveLabel,
+  arkPassiveNumbers,
   efficiencyDefinition,
   efficiencySearch,
   estherText,
@@ -68,9 +69,15 @@ test("K32 row fields: the older sample without them still passes; text for the c
   assert.equal(estherText({ refineLevel: 8, ellaStage: null }), "+8");
   assert.equal(estherText({ refineLevel: null, ellaStage: null }), null);
   assert.equal(estherText(null), null);
-  assert.equal(arkPassiveText({ evolution: 140, enlightenment: 101, leap: 70 }), "진화 140 · 깨달음 101 · 도약 70");
-  assert.equal(arkPassiveText({ evolution: null, enlightenment: 90, leap: null }), "깨달음 90");
-  assert.equal(arkPassiveText(undefined), null);
+  // #1138 (PM 총괄 11-19): numbers in 진화·깨달음·도약 order under that header, '-' keeps a missing one's slot.
+  assert.equal(arkPassiveNumbers({ evolution: 140, enlightenment: 101, leap: 70 }), "140 · 101 · 70");
+  assert.equal(arkPassiveNumbers({ evolution: null, enlightenment: 90, leap: null }), "- · 90 · -");
+  assert.equal(arkPassiveNumbers({ evolution: null, enlightenment: null, leap: null }), null);
+  assert.equal(arkPassiveNumbers(undefined), null);
+  // The cell's label and title say the names.
+  assert.equal(arkPassiveLabel({ evolution: 140, enlightenment: 101, leap: 70 }), "진화 140, 깨달음 101, 도약 70");
+  assert.equal(arkPassiveLabel({ evolution: null, enlightenment: 90, leap: null }), "진화 정보 없음, 깨달음 90, 도약 정보 없음");
+  assert.equal(arkPassiveLabel(null), null);
 });
 
 const efficiencySample = () => {

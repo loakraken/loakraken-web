@@ -887,6 +887,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The character ranking (#1138): eleven columns, so 8px a side instead of 10 lets a 12-character name and
+   every value but 직업 각인 fit at 1280 without a scroll (rankings-view COLUMNS). */
+.table.tightCells :is(th, td) {
+  padding-inline: 8px;
+}
 /* Numbers line up and never end in "…": their columns are sized for real
    data's longest values (A37, QA 10-17); text columns carry a title instead. */
 .table[data-fixed] td:not(.left) {
