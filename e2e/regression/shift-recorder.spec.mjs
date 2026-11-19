@@ -22,8 +22,7 @@ test("흔들림 기록: 페이지 상태를 읽다 오류가 나도 흔들림은
     box.style.height = "24px";
     document.querySelector("main")?.prepend(box);
   });
-  await page.waitForTimeout(500);
-  const shifts = await shiftsSince(page);
-  expect(shifts.all, "일부러 만든 흔들림이 기록되지 않음").toBeGreaterThan(0);
-  expect(shifts.moved).toContain("상태 읽기 실패: 글꼴 목록 읽기 실패(검사용)");
+  // The observer reports on its own schedule: wait for the entry rather than a fixed time (5 s at most).
+  await expect.poll(async () => (await shiftsSince(page)).all, { message: "일부러 만든 흔들림이 기록되지 않음", timeout: 5000 }).toBeGreaterThan(0);
+  expect((await shiftsSince(page)).moved).toContain("상태 읽기 실패: 글꼴 목록 읽기 실패(검사용)");
 });
