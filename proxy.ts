@@ -32,3 +32,4 @@ export const config = {
     },
   ],
 };
+// e2e 판정 시험(병합 안 함)
