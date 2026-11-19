@@ -141,21 +141,16 @@ export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
 }
 
 /**
- * The fields api #993 adds beside totalCost: the gold of the steps whose cost is
- * known and how many steps have no cost. Optional here until the contract sync
- * after #993 merges; an api before it never sends them.
- */
-type KnownCostParts = { knownCostTotal?: number | null; unknownCostSteps?: number | null };
-
-/**
  * The path's total line (api #993, PM 총괄 11-19). KRAKEN and EFFICIENCY now add
  * the steps whose cost is unknown at the end, so totalCost is null on many paths.
- * Then the total is the known gold plus a count of the unknown steps; when every
- * step's cost is unknown there is no gold to show, only the count (never 0G,
- * PM 총괄 11-19). Without the new fields (an older api) it stays unknown, as before.
+ * Then the total is the known gold (knownCostTotal) plus a count of the unknown
+ * steps (unknownCostSteps); when every step's cost is unknown there is no gold to
+ * show, only the count (never 0G, PM 총괄 11-19). Both fields are optional in the
+ * contract (deploy order): without them (an older api) it stays unknown, as before,
+ * and a value that cannot be a count or an amount never makes a total up.
  * gold null = no total to show; unknownSteps 0 = no count to show.
  */
-export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | null; unknownSteps: number } {
+export function pathTotal(path: SpecUpPath): { gold: number | null; unknownSteps: number } {
   if (path.totalCost != null) return { gold: path.totalCost, unknownSteps: 0 };
   const known = path.knownCostTotal;
   const unknown = path.unknownCostSteps;
