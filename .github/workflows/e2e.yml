@@ -26,7 +26,7 @@ name: E2E
 #    PR 화면과 검토 도구가 보는 이름이 바뀌지 않는다.
 on:
   pull_request:
-    branches: [develop, master]
+    branches: [develop, master, "ci-test/**"]
     types: [opened, synchronize, reopened, ready_for_review]
     # paths는 두지 않는다(머리말). 같은 목록을 changes job이 본다.
   push:
