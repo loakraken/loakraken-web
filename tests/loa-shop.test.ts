@@ -125,7 +125,9 @@ test("ended sales are split off from those on sale (folded on screen), by the KS
   assert.equal(before.past.length, 0);
   const after = splitBySale(SHOP_DATA.packages, kst("2026-10-21T06:00:00"));
   assert.deepEqual(after.past.map((p) => p.id), ["hangawi-battle", "hangawi-life", "hangawi-card", "hangawi-peon"]);
-  assert.deepEqual(after.current.map((p) => p.id), ["monthly-growth-plus", "item-level-1700", "region-clear-kadarum"]);
+  assert.deepEqual(after.current.map((p) => p.id), ["item-level-1700", "region-clear-kadarum"]);
+  // Not on the official shop screen and no end notice: its own group, never listed as on sale (11-19 recheck).
+  assert.deepEqual(after.unconfirmed.map((p) => p.id), ["monthly-growth-plus"]);
   // A malformed end time is reported.
   const broken = structuredClone(SHOP_DATA) as ShopData;
   broken.packages[3].endsAt = "2026-10-21";
@@ -243,8 +245,8 @@ test("without a typed rate, the break-even exchange rate: a gain at it, a loss o
 
 test("an open-ended package missing from the official shop screen is marked, not claimed on sale (PM 총괄 2026-11-15)", () => {
   const growth = SHOP_DATA.packages.find((p) => p.id === "monthly-growth-plus");
-  assert.equal(growth?.saleUnconfirmed, "2026-11-15");
-  // The others are on the official shop screen (11-15) or end by date.
+  assert.equal(growth?.saleUnconfirmed, "2026-11-19");
+  // The others are on the official shop screen (11-15, again 11-19) or end by date.
   assert.deepEqual(
     SHOP_DATA.packages.filter((p) => p.saleUnconfirmed).map((p) => p.id),
     ["monthly-growth-plus"],
