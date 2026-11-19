@@ -730,6 +730,10 @@
 .countedTitle h3 {
   line-height: 21px;
 }
+/* …and with the period change line between them (the market item head): three lines, 21 + 1 + 16 + 1 + 16. */
+.countedTitle.changedTitle {
+  min-height: 55px;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
