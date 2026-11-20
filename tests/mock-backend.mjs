@@ -137,10 +137,12 @@ const ARMOR_RESIDUAL_TEXT = "장비로 계산한 전투력이 공식 전투력�
  * Other mock weapons ("테스트 무기") are not 업화, so their field stays hidden.
  */
 const UPGRADE_WEAPON = "무기상재업화";
-function withUpgradeWeapon(data) {
+/** An 에스더 weapon that reads a 상급 재련 step (10): no model there, so the field is hidden all the same. */
+const ESTHER_WEAPON = "무기상재에스더";
+function withUpgradeWeapon(data, name = UPGRADE_WEAPON) {
   const weapon = data.loadout.equipment.find((item) => item.type === "무기");
-  weapon.name = "+16 업화 테스트 무기";
-  weapon.detail = { ...weapon.detail, refineLevel: 16, advancedRefineLevel: 21 };
+  weapon.name = name === ESTHER_WEAPON ? "+8 에스더 테스트 무기" : "+16 업화 테스트 무기";
+  weapon.detail = { ...weapon.detail, refineLevel: name === ESTHER_WEAPON ? 8 : 16, advancedRefineLevel: name === ESTHER_WEAPON ? 10 : 21 };
   return data;
 }
 /** Armour (not the weapon) 재련 · 상급 재련: what the api's armour switch holds while it is off (MODEL_UNCONFIRMED). */
@@ -1480,14 +1482,14 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
-    if (request.characterName === UPGRADE_WEAPON) withUpgradeWeapon(search);
+    if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -2979,8 +2981,8 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON].includes(name)) withSimulatorGear(envelope.data);
-  if (name === UPGRADE_WEAPON) withUpgradeWeapon(envelope.data);
+  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
+  if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
