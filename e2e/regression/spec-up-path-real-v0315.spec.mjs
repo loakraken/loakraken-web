@@ -82,8 +82,12 @@ for (const width of [320, 1280])
         const switched = await shiftsSince(page, mark);
         expect(switched.quiet, `${button}: 입력 없는 흔들림 (${switched.moved})`).toBe(0);
 
-        const more = answer(page).getByRole("button", { name: `${steps}줄 모두 보기` });
-        if (steps > 10) await more.click();
+        // The answer stays open on a switch (the row fold keeps its state), so it is opened only when folded.
+        if (steps > 10) {
+          const fold = answer(page).getByRole("button", { name: /^(\d+줄 모두 보기|앞 10줄만 보기)$/ });
+          if ((await fold.textContent()) === `${steps}줄 모두 보기`) await fold.click();
+          await expect(fold).toHaveText("앞 10줄만 보기");
+        }
         await expect(pathTable(page).locator("tbody tr")).toHaveCount(steps);
         if (unknown > 0) await expect(summary(page)).toContainText(` + 비용 모름 ${unknown}단계`);
         else await expect(summary(page)).not.toContainText("비용 모름");
@@ -109,14 +113,14 @@ test("@A37 1280 순서가 다루는 범위는 답에 있는 장신구 연마·�
   // The answer has both kinds of step.
   await answer(page).getByRole("button", { name: "30줄 모두 보기" }).click();
   await expect(pathTable(page).locator('tbody [data-cell="kind"]', { hasText: "연마" }).first()).toBeVisible();
-  await expect(pathTable(page).locator('tbody [data-cell="kind"]', { hasText: "아크 패시브" }).first()).toBeVisible();
+  await expect(pathTable(page).locator('tbody [data-cell="kind"]', { hasText: "카르마" }).first()).toBeVisible();
   const scope = answer(page).locator("p", { hasText: /단계를 다뤄요/ });
   await expect(scope).toContainText("장신구 연마");
   await expect(scope).toContainText("깨달음 카르마");
   await expect(scope).not.toContainText("넣지 않아요");
 });
 
-test("@A37 1280 점수 효율 순서를 시뮬레이터에서 열면 무기 재련은 목표 레벨로, 방어구 재련은 빼고 연다 @regression", async ({ page }) => {
+test("@A37 1280 점수 효율 순서의 시뮬레이터 링크는 무기 재련을 목표 레벨로 담고 방어구 재련은 뺀다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(characterPath("실표본1", "specup"));
   await rule(page).getByRole("button", { name: "점수 효율" }).click();
@@ -129,7 +133,9 @@ test("@A37 1280 점수 효율 순서를 시뮬레이터에서 열면 무기 재�
   expect(refines.map((c) => [c.index, c.refine])).toEqual([[0, 25]]);
   expect(tried.filter((c) => c.kind === "ARM_GUARD").map((c) => c.level)).toEqual([25]);
   expect(tried).toHaveLength(14);
+  // The link opens the simulator tab. (The mock character's own gear is not the sample's, so what the simulator
+  // applies there is checked by the unit test on simulatorPath, not on this screen.)
   await link.click();
   await expect(page).toHaveURL(/tab=simulator/);
-  await expect(page.getByRole("region", { name: "바꾼 것" })).toContainText("→ 25");
+  await expect(page.getByRole("heading", { name: "전투력 시뮬레이터" })).toBeVisible();
 });
