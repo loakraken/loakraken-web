@@ -6,6 +6,7 @@ import { applySaved, parseSaved, targetsOf, type Identity } from "../lib/combat-
 import { simulatorPath, type GoalStep } from "../lib/spec-up/goal";
 import { editsFor, readTryPath, tryPathParam, type SpecUpChange } from "../lib/spec-up/model";
 import { isKarmaSimEnabled } from "../lib/tools/flags";
+import { requestSimulation } from "../lib/combat-power/upstream";
 
 const karmaChange = (karmaLevel: number) => ({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel }) as SpecUpChange;
 
@@ -32,13 +33,45 @@ test("a karma edit goes out as ARK_PASSIVE_POINT 깨달음 karmaLevel, never wit
   assert.deepEqual(toChanges(edits, { ...current, karma: undefined }), []);
 });
 
-test("the proxy passes karmaLevel on to the api (whole numbers only)", () => {
+test("the proxy passes karmaLevel on only as the api takes it, and only with KARMA_SIM on (PM 총괄 #1815 P2)", () => {
   const body = (change: Record<string, unknown>) => ({ characterName: "테스트", changes: [change] });
-  assert.deepEqual(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 30 }))?.changes, [
-    { kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 30 },
+  const on = { karma: true };
+  const karma = (extra: Record<string, unknown>) => ({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", ...extra });
+  assert.deepEqual(parseSimulateRequest(body(karma({ karmaLevel: 30 })), on)?.changes, [karma({ karmaLevel: 30 })]);
+  assert.deepEqual(parseSimulateRequest(body(karma({ karmaLevel: 0 })), on)?.changes, [karma({ karmaLevel: 0 })]);
+  // Refused as a whole request, never sent on without the level.
+  const refused: [string, Record<string, unknown>, { karma?: boolean }?][] = [
+    ["31", karma({ karmaLevel: 31 })],
+    ["-1", karma({ karmaLevel: -1 })],
+    ["not a whole number", karma({ karmaLevel: 2.5 })],
+    ["a string", karma({ karmaLevel: "30" })],
+    ["another tree (진화)", { kind: "ARK_PASSIVE_POINT", tree: "진화", karmaLevel: 3 }],
+    ["no tree", { kind: "ARK_PASSIVE_POINT", karmaLevel: 3 }],
+    ["with points", karma({ karmaLevel: 30, points: 101 })],
+    ["with level", karma({ karmaLevel: 30, level: 1 })],
+    ["another kind", { kind: "ENGRAVING_LEVEL", name: "원한", level: 3, karmaLevel: 3 }],
+    ["KARMA_SIM off", karma({ karmaLevel: 30 }), { karma: false }],
+    ["KARMA_SIM not given", karma({ karmaLevel: 30 }), {}],
+  ];
+  for (const [why, change, flag = on] of refused) assert.equal(parseSimulateRequest(body(change), flag), null, why);
+  // Point changes without karmaLevel are as before, flag or not.
+  assert.deepEqual(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 }))?.changes, [
+    { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 140 },
   ]);
-  assert.equal(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: "30" })), null);
-  assert.equal(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 2.5 })), null);
+});
+
+test("the upstream request refuses a karma change unless KARMA_SIM is on", async () => {
+  let sent = 0;
+  const fetcher = (async () => {
+    sent += 1;
+    return new Response("{}", { status: 500 });
+  }) as typeof fetch;
+  const body = { characterName: "테스트", changes: [{ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 30 }] };
+  const off = await requestSimulation(body, "http://api.test", { fetcher });
+  assert.deepEqual(off, { ok: false, error: { code: "INVALID_REQUEST", status: 400 } });
+  assert.equal(sent, 0);
+  await requestSimulation(body, "http://api.test", { fetcher, karma: true });
+  assert.equal(sent, 1);
 });
 
 test("a spec-up karma step opens in the simulator with its level; 깨달음 points still open nothing", () => {
