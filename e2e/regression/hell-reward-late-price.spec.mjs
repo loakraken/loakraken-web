@@ -13,6 +13,9 @@ const blocks = (page) =>
     const main = document.querySelector("main");
     const list = main.querySelector('ul[aria-label^="기본 보상"]');
     const els = [
+      // The section titles and the stage / price-basis labels too (codex #1823 P3: they kept the inherited 1.43).
+      ...main.querySelectorAll('h2[id^="hell-"]'),
+      ...[...main.querySelectorAll("label[for]")].filter((label) => document.getElementById(label.htmlFor)?.tagName === "SELECT"),
       ...main.querySelectorAll('dl[aria-live] > div, dl[aria-live] dt, dl[aria-live] dd, label:has(> input[role="switch"])'),
       ...[...main.querySelectorAll("p")].filter((p) => p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING && p.closest("section") === list.closest("section")),
       ...list.querySelector("li").querySelectorAll(":scope > span, strong, small"),
@@ -40,6 +43,11 @@ for (const face of ["site", "untuned"])
       // Held, never answered: display: optional keeps the system face.
       await page.route(/\.woff2(\?|$)/, () => {});
       await useUntunedSystemFace(page);
+    } else {
+      // The site font warmed in the cache first, as the other site legs do: under display: optional a slow runner
+      // can miss the face on a cold load, and the leg would fail on the font, not the shift (codex #1823 P3).
+      await gotoReady(page, "/");
+      await page.evaluate(() => Promise.all([document.fonts.load("12px kraken"), document.fonts.load("700 12px kraken")]));
     }
     await page.setViewportSize({ width: 360, height: 900 });
     // The late answer of the CI run: prices land after the page woke.
