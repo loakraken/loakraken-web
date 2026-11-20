@@ -105,11 +105,13 @@ for (const [label, size] of SKEW_LEGS)
       Shifted.parse = Real.parse;
       Shifted.UTC = Real.UTC;
       globalThis.Date = Shifted;
-      const moveClock = (serverState) => {
-        const kstDay = new Real(Real.now() + 9 * 3_600_000).toISOString().slice(0, 10);
+      // The day is the drawn schedule's own (its first round's time[datetime], KST), not today by the page's clock:
+      // a render just before midnight with a snapshot just after would move the clock to the wrong day (#1827 P3).
+      const moveClock = (serverState, round) => {
+        const kstDay = new Real(Real.parse(round) + 9 * 3_600_000).toISOString().slice(0, 10);
         const target = serverState === "done" ? "12:00" : "23:30";
         offset = Real.parse(`${kstDay}T${target}:00+09:00`) - Real.now();
-        window.__clientState = serverState === "done" ? "upcoming" : "done";
+        window.__scheduleDay = kstDay;
       };
       const snap = () =>
         [...document.querySelectorAll("#schedule section[aria-label]")].map((section) => {
@@ -129,7 +131,8 @@ for (const [label, size] of SKEW_LEGS)
         if (window.__headsAtServer !== undefined || !document.querySelector('#schedule a[href="/schedule"]')) return;
         window.__headsAtServer = window.__lkHydrated ? null : snap();
         const islands = window.__headsAtServer?.find((section) => section.name === "모험 섬");
-        if (islands?.state) moveClock(islands.state);
+        const round = document.querySelector('#schedule section[aria-label="모험 섬"] time[datetime]')?.getAttribute("datetime");
+        if (islands?.state && round) moveClock(islands.state, round);
       };
       new MutationObserver(take).observe(document, { childList: true, subtree: true });
     });
@@ -155,6 +158,7 @@ for (const [label, size] of SKEW_LEGS)
     const at = (list, name) => list.find((section) => section.name === name);
     const serverState = at(before, "모험 섬").state;
     expect(["upcoming", "done"], `서버 상태 ${serverState}`).toContain(serverState);
+    expect(await page.evaluate(() => window.__scheduleDay), "그려진 일정의 날짜로 기기 시계를 옮김").toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // The leg tests something only if the state really changed after the page woke.
     const clientState = serverState === "done" ? "upcoming" : "done";
     await expect(islands(page).locator("header [data-state]")).toHaveAttribute("data-state", clientState);
