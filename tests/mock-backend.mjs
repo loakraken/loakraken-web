@@ -986,6 +986,8 @@ createServer(async (req, res) => {
       return env;
     };
     // '점수순서방어구…' (api #1029): a dealer whose 점수 효율 path stops giving combat power at step 2 ('…첫': step 1).
+    const krakenDealer = who === "점수순서딜러" || !!who?.startsWith("점수순서방어구");
+    const supportOrder = krakenDealer || who === "점수순서서폿";
     if (who === "점수순서서폿" && sort === "KRAKEN") {
       const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
       Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
