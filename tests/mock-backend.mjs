@@ -1035,6 +1035,8 @@ createServer(async (req, res) => {
       // '스펙순서범위꺼짐': production after the switch fields ship, both switches off (false); every other name here is an
       // api before the fields (no field).
       if (data && who === "스펙순서범위꺼짐") Object.assign(data, { polishStepsConsidered: false, karmaStepsConsidered: false });
+      // '스펙순서범위켜짐': both switches on but no such step picked (e.g. karma already at 30): no sentence about them.
+      if (data && who === "스펙순서범위켜짐") Object.assign(data, { polishStepsConsidered: true, karmaStepsConsidered: true });
       if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
       const extras = (data.steps ?? []).map((step) => step.extraCost ?? null);
       data.knownCostTotal = extras.reduce((sum, extra) => sum + (extra ?? 0), 0);
