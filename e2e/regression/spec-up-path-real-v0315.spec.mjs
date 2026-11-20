@@ -21,9 +21,9 @@ const summary = (page) => answer(page).locator("p", { hasText: /^\d+단계를 �
 const STOP_REASON = "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.";
 
 // [steps, unknownCostSteps, combatPowerStopOrder, simulator skips] per sample and sort, from the saved answers. Skips are
-// for this build: KARMA_SIM and ARMOR_CP_SIM on (#1843), so armour 재련 opens and only the weapon 상급 재련 (실표본2,
-// index 0, gear not 업화) stays out; the armour-off server's leg is e2e/armor-off. The unit test
-// tests/spec-up-path-v0315.test.ts checks every switch combination against simulatorPath.
+// for this build: KARMA_SIM and ARMOR_CP_SIM on (#1843), so armour 재련 opens, and 실표본2's 업화 weapon opens its 상급
+// 재련 (#1847, no flag): nothing is skipped. The armour-off server's leg is e2e/armor-off. The unit test
+// tests/spec-up-path-v0315.test.ts checks every switch combination (and a weapon not 업화) against simulatorPath.
 const SORTS = [
   ["효율 우선", "효율 우선 기준", "EFFICIENCY"],
   ["점수 효율", "크라켄 점수 기준", "KRAKEN"],
@@ -31,7 +31,7 @@ const SORTS = [
 ];
 const SAMPLES = {
   1: { EFFICIENCY: [12, 6, null, 0], KRAKEN: [18, 12, 8, 0], DELTA: [6, 0, null, 0] },
-  2: { EFFICIENCY: [30, 3, null, 1], KRAKEN: [30, 2, null, 1], DELTA: [6, 0, null, 0] },
+  2: { EFFICIENCY: [30, 3, null, 0], KRAKEN: [30, 2, null, 0], DELTA: [6, 0, null, 0] },
   3: { EFFICIENCY: [14, 5, null, 0], KRAKEN: [20, 11, 10, 0], DELTA: [7, 0, null, 0] },
   4: { EFFICIENCY: [30, 14, null, 0], KRAKEN: [30, 14, 18, 0], DELTA: [7, 0, null, 0] },
 };
@@ -157,6 +157,20 @@ for (const [who, what, kinds, note] of SCOPE)
     // The cost note is there, so an absence above is not of an empty answer.
     await expect(answer(page).getByText(/다시 계산한 값이에요/)).toBeVisible();
   });
+
+test("@A37 1280 업화 무기: 점수 효율 순서의 시뮬레이터 링크는 상급 재련 21 → 40 한 단계를 40으로 담는다(#1847) @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(characterPath("실표본2", "specup"));
+  await rule(page).getByRole("button", { name: "점수 효율" }).click();
+  await expect(pathTable(page)).toHaveAccessibleName("추천 순서, 크라켄 점수 기준");
+  const link = answer(page).getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" });
+  const tried = JSON.parse(new URL(await link.getAttribute("href"), "http://x").searchParams.get("try"));
+  // 실표본2 (weapon 업화, as the sample's): step 29 the weapon +16 → +25, step 30 its 상급 재련 21 → 40, both in one step.
+  expect(tried.filter((c) => c.kind === "EQUIPMENT_ADVANCED_REFINE").map((c) => [c.index, c.level])).toEqual([[0, 40]]);
+  expect(tried.filter((c) => c.kind === "EQUIPMENT_REFINE").map((c) => [c.index, c.refine])).toEqual([[0, 25]]);
+  expect(tried).toHaveLength(26);
+  await expect(answer(page).getByText(/빼고 열어요/)).toHaveCount(0);
+});
 
 test("@A37 1280 방어구 문이 열린 빌드: 점수 효율 순서의 시뮬레이터 링크는 한 단계 점프를 목표 레벨로, 방어구 재련도 담는다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
