@@ -16,9 +16,10 @@ type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: numbe
 export async function requestSimulation(
   body: unknown,
   origin: string | undefined,
-  options: Options = {},
+  { karma = false, ...options }: Options & { karma?: boolean } = {},
 ): Promise<BackendResult<SimulateEnvelope>> {
-  const request = parseSimulateRequest(body);
+  // karma: KARMA_SIM on this deployment; off, a karmaLevel change is refused here (PM 총괄 #1815 P2).
+  const request = parseSimulateRequest(body, { karma });
   if (!request)
     return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
   return requestBackend(backendUrl(origin, "/api/v1/characters/combat-power/simulate"), {

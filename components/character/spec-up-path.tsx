@@ -33,7 +33,7 @@ import detail from "./detail.module.css";
 import styles from "./spec-up-path.module.css";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
-import { SimulatorEnabled } from "./tabs";
+import { KarmaSimEnabled, SimulatorEnabled } from "./tabs";
 
 const BUSY = "SPEC_UP_BUSY";
 
@@ -195,7 +195,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const figures = pathFigures(path, supporter);
   const { start, final } = figures;
   const total = pathTotal(path);
-  const sim = simulatorPath(steps, gearTypeOf(data));
+  const sim = simulatorPath(steps, gearTypeOf(data), useContext(KarmaSimEnabled));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
   // steps keep their own place instead of folding under the first one.

@@ -4,7 +4,7 @@
 // simulator's (never a sum of single deltas). The web only formats it.
 import { isOpen } from "../combat-power/model";
 import type { components } from "../api/spec-up-schema";
-import { editsFor, SPEC_UP_KIND_LABEL, type GearType, type SpecUpChange } from "./model";
+import { editsFor, isKarmaChange, SPEC_UP_KIND_LABEL, type GearType, type SpecUpChange } from "./model";
 import { NO_EDITS } from "../combat-power/model";
 
 type Schemas = components["schemas"];
@@ -75,11 +75,17 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
  * simulator takes today, in order; `skipped` counts the steps left out
  * (PM-프론트 10-12 20:28 — the /simulate proxy refuses kinds it does not know).
  * Refine is open per slot, not per kind: a weapon step goes in, an armour step
- * is skipped (api #884, #1567), told apart by `gearType`.
+ * is skipped (api #884, #1567), told apart by `gearType`. A 깨달음 카르마 step (api #1004) goes in only where the
+ * simulator edits the karma level (`karma`, isKarmaSimEnabled): elsewhere it could not show or undo it.
  */
-export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes: SpecUpChange[]; skipped: number } {
+export function simulatorPath(
+  steps: GoalStep[],
+  gearType?: GearType,
+  karma = false,
+): { changes: SpecUpChange[]; skipped: number } {
   const takes = (change: SpecUpChange) =>
-    (isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") && editsFor(change, NO_EDITS, gearType) != null;
+    (isKarmaChange(change) ? karma : isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") &&
+    editsFor(change, NO_EDITS, gearType) != null;
   const changes: SpecUpChange[] = [];
   let skipped = 0;
   for (const step of steps) {

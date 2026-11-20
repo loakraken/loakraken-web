@@ -151,7 +151,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같다. POLISH(장신구 연마 교체)·ABILITY_STONE(어빌리티 스톤)·KARMA_LEVEL(깨달음 카르마)은 크라켄 점수를 낼 수 있으면 후보마다 한 줄(change null·전투력 UNSUPPORTED·deltaKrakenScore 있음)이고, 그럴 수 없으면 종류마다 한 줄 UNSUPPORTED 알림. 다만 연마 교체 줄 전투력 스위치가 켜지면 딜러 POLISH 줄은 Δ크라켄 점수와 같은 목표 장신구로, 스톤 줄 전투력 스위치가 켜지면 ABILITY_STONE 줄은 추천 순서와 같은 변경(STONE_ENGRAVING 둘)으로 전투력도 낸다(status OK, change는 그대로 null)
+             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같다. POLISH(장신구 연마 교체)·ABILITY_STONE(어빌리티 스톤)·KARMA_LEVEL(깨달음 카르마)은 크라켄 점수를 낼 수 있으면 후보마다 한 줄(change null·전투력 UNSUPPORTED·deltaKrakenScore 있음)이고, 그럴 수 없으면 종류마다 한 줄 UNSUPPORTED 알림. 다만 연마 교체 줄 전투력 스위치가 켜지면 딜러 POLISH 줄은 Δ크라켄 점수와 같은 목표 장신구로, 스톤 줄 전투력 스위치가 켜지면 ABILITY_STONE 줄은 추천 순서와 같은 변경(STONE_ENGRAVING 둘)으로, 카르마 스위치가 켜지면 딜러 KARMA_LEVEL 줄은 무기 공격력 % W 항으로 전투력도 낸다(status OK, change는 그대로 null)
              * @example GEM_LEVEL
              */
             kind: string;
@@ -197,6 +197,8 @@ export interface components {
             grade?: string | null;
             line?: number | null;
             option?: string | null;
+            tree?: string | null;
+            karmaLevel?: number | null;
         };
         CostResponse: {
             /**
@@ -294,7 +296,7 @@ export interface components {
              */
             candidateId: string;
             /**
-             * @description 단계 종류(문자열, 값이 늘 수 있음). 지금 값: GEM_LEVEL·EQUIPMENT_REFINE·EQUIPMENT_ADVANCED_REFINE·EQUIPMENT_QUALITY·ENGRAVING_LEVEL. 예정: POLISH(장신구 연마 교체), EQUIPMENT_SUCCESSION(장비 계승, 나중에 추가), 같은 칸 연속 재련은 EQUIPMENT_REFINE 그대로. 모르는 값은 target·from·to로 일반 줄로 다룬다.
+             * @description 단계 종류(문자열, 값이 늘 수 있음). 지금 값: GEM_LEVEL·EQUIPMENT_REFINE·EQUIPMENT_ADVANCED_REFINE·EQUIPMENT_QUALITY·ENGRAVING_LEVEL. KARMA_LEVEL(깨달음 카르마, spec-up.karma-cp.enabled, change는 ARK_PASSIVE_POINT 깨달음 karmaLevel). 예정: POLISH(장신구 연마 교체), EQUIPMENT_SUCCESSION(장비 계승, 나중에 추가), 같은 칸 연속 재련은 EQUIPMENT_REFINE 그대로. 모르는 값은 target·from·to로 일반 줄로 다룬다.
              * @example GEM_LEVEL
              */
             kind: string;

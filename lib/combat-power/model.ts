@@ -131,6 +131,8 @@ export type Edits = {
   engraving: Record<string, number>;
   stone: Record<string, number>;
   arkPassive: Record<string, number>;
+  /** 깨달음 카르마 레벨 (api #1004), keyed by the tree (깨달음), apart from its points. */
+  karma: Record<string, number>;
   core: Record<number, { grade: string; point: number }>;
   /** 팔 보호구(완갑) step and grade (backend #342). */
   armGuard: { level?: number; grade?: string };
@@ -148,6 +150,7 @@ export const NO_EDITS: Edits = {
   engraving: {},
   stone: {},
   arkPassive: {},
+  karma: {},
   core: {},
   armGuard: {},
 };
@@ -198,9 +201,27 @@ export type Current = {
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
+  /** 깨달음 카르마 레벨 worn, only where the screen edits it (isKarmaSimEnabled) and the level was read. */
+  karma?: number | null;
   cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
   armGuard?: { level: number; grade: string } | null;
 };
+
+/** The tree whose karma level the simulator edits, and the request's range (api #1004 KARMA_MAX_LEVEL). */
+export const KARMA_TREE = "깨달음";
+export const KARMA_MAX = 30;
+
+/**
+ * The 깨달음 karma level from its point description ("6랭크 29레벨"), read as the api reads it
+ * (CombatPowerRefineModel.karmaLevel: the first "N레벨"). null when it cannot be read: the field stays
+ * hidden, as the api would answer that it could not read it.
+ */
+export function karmaLevelOf(points: readonly { name?: string | null; description?: string | null }[] | null | undefined) {
+  const point = points?.find((item) => item.name === KARMA_TREE);
+  const level = point?.description?.match(/(\d+)레벨/)?.[1];
+  const value = level == null ? null : Number(level);
+  return value != null && value <= KARMA_MAX ? value : null;
+}
 
 export type PolishValues = NonNullable<Options["polishValues"]>;
 
@@ -344,6 +365,10 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (points != null && points !== item.points && points <= arkPassiveMax(item.tree))
       changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
   }
+  // 깨달음 카르마 레벨 (api #1004): its own field, never with points.
+  const karma = edits.karma[KARMA_TREE];
+  if (current.karma != null && karma != null && karma !== current.karma && karma >= 0 && karma <= KARMA_MAX)
+    changes.push({ kind: "ARK_PASSIVE_POINT", tree: KARMA_TREE, karmaLevel: karma });
   for (const item of (current.cores ?? []).filter((item) => isCoreOpen(item.name ?? ""))) {
     const edit = edits.core[item.slotIndex];
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
@@ -373,8 +398,22 @@ export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {
 const KINDS = new Set(Object.keys(KIND_LABEL));
 const int = (value: unknown) => Number.isInteger(value);
 
-/** Server-side guard before the body leaves the proxy. */
-export function parseSimulateRequest(body: unknown): SimulateRequest | null {
+/**
+ * A 깨달음 카르마 change as the api takes it (api #1004): ARK_PASSIVE_POINT, tree 깨달음, a level 0~30, no points or
+ * level beside it. Only with KARMA_SIM on: off (production until the api switch opens), the proxy forwards none
+ * (PM 총괄 #1815 P2).
+ */
+const karmaAllowed = (out: Record<string, unknown>, karma: boolean) =>
+  karma &&
+  out.kind === "ARK_PASSIVE_POINT" &&
+  out.tree === KARMA_TREE &&
+  out.points === undefined &&
+  out.level === undefined &&
+  (out.karmaLevel as number) >= 0 &&
+  (out.karmaLevel as number) <= KARMA_MAX;
+
+/** Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment. */
+export function parseSimulateRequest(body: unknown, { karma = false }: { karma?: boolean } = {}): SimulateRequest | null {
   if (!body || typeof body !== "object") return null;
   const { characterName, changes } = body as Record<string, unknown>;
   if (typeof characterName !== "string" || characterNameError(characterName))
@@ -386,7 +425,8 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
     const change = raw as Record<string, unknown>;
     if (typeof change.kind !== "string" || !KINDS.has(change.kind)) return null;
     const out: Record<string, unknown> = { kind: change.kind };
-    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point"]) {
+    // karmaLevel: 깨달음 카르마 레벨 (api #1004); dropped here, the api got 깨달음 without a level (web #1781).
+    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point", "karmaLevel"]) {
       if (change[key] === undefined) continue;
       if (!int(change[key])) return null;
       out[key] = change[key];
@@ -397,6 +437,7 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
         return null;
       out[key] = change[key];
     }
+    if (out.karmaLevel !== undefined && !karmaAllowed(out, karma)) return null;
     clean.push(out as Change);
   }
   return { characterName: normalizeCharacterName(characterName), changes: clean };

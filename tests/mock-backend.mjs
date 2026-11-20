@@ -114,6 +114,17 @@ function withArkSimulator(data) {
   data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
   return data;
 }
+/**
+ * 깨달음 카르마 레벨 (api #1004, web #1781): the ark rows with a 깨달음 point whose description carries the karma
+ * level ("6랭크 29레벨", as the official armory writes it). '전투력카르마' opens the simulator with it;
+ * '스펙순서카르마' is the spec-up path with a KARMA_LEVEL step on the same character.
+ */
+const KARMA_NAMES = ["전투력카르마", "스펙순서카르마"];
+function withKarma(data) {
+  withArkSimulator(data);
+  data.loadout.arkPassive.points.find((point) => point.name === "깨달음").description = "6랭크 29레벨";
+  return data;
+}
 const marketRead = (name) =>
   JSON.parse(
     readFileSync(new URL(`./market-fixtures/${name}`, import.meta.url), "utf8"),
@@ -908,6 +919,11 @@ createServer(async (req, res) => {
         return [`스톤 ${s.name}`, String(s.level)];
       }
       case "ARK_PASSIVE_POINT": {
+        // 깨달음 카르마 (api #1004): its own target, from the level in the point's description.
+        if (change.karmaLevel != null) {
+          const point = loadout.arkPassive.points.find((x) => x.name === "깨달음");
+          return ["깨달음 카르마", point?.description?.match(/(\d+)레벨/)?.[1] ?? null];
+        }
         const p = loadout.arkPassive.points.find((x) => x.name === change.tree);
         return [`아크 패시브 ${p.name}`, String(p.value)];
       }
@@ -928,7 +944,7 @@ createServer(async (req, res) => {
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
     : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
-    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
+    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? change.karmaLevel ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
   // 스펙업 가이드(백엔드 #318 표본). '스펙업꺼짐'은 SPEC_UP_DISABLED, '스펙업시세'는
@@ -1094,6 +1110,24 @@ createServer(async (req, res) => {
     }
     // A 연마 step (api #951): another 목걸이 for the simulator gear's one, a line per change; its second line
     // has no scoring option (NONE, grade null), and `change` is the first (a named option).
+    // A 깨달음 카르마 step (api #1004): KARMA_LEVEL, change ARK_PASSIVE_POINT 깨달음 karmaLevel (no points).
+    if (who === "스펙순서카르마") {
+      const change = { ...d.steps[0].change, kind: "ARK_PASSIVE_POINT", slot: null, level: null, tree: "깨달음", karmaLevel: 30 };
+      d.steps.push({
+        ...structuredClone(d.steps[0]),
+        order: d.steps.length + 1,
+        candidateId: "KARMA_LEVEL:깨달음:30",
+        kind: "KARMA_LEVEL",
+        target: "깨달음 카르마",
+        from: "29레벨",
+        to: "30레벨",
+        change,
+        changes: [change],
+        deltaCombatPower: 3.1,
+        combatPowerAfter: Math.round((d.finalCombatPower + 3.1) * 100) / 100,
+      });
+      d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
+    }
     if (who === "스펙순서연마") {
       const index = withSimulatorGear(read("character-full-data.json")).loadout.equipment.findIndex((item) => item.type === "목걸이");
       const line = (n, option, grade) => ({ ...d.steps[0].change, kind: "POLISH", slot: null, level: null, index, line: n, option, grade });
@@ -1334,11 +1368,12 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약"].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
-    if (request.characterName === "전투력코어도약") withArkSimulator(search);
+    if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
+    else if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
@@ -2819,6 +2854,7 @@ createServer(async (req, res) => {
   }
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
+  if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not

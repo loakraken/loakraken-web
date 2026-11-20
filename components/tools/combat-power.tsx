@@ -47,6 +47,9 @@ import {
   isCoreOpen,
   isOpen,
   isRefineOpen,
+  KARMA_MAX,
+  KARMA_TREE,
+  karmaLevelOf,
   polishValue,
   polishOptionText,
   polishSwapOf,
@@ -118,7 +121,7 @@ const withCurrent = (values: number[], current: number) =>
   values.includes(current) ? values : [...values, current].sort((x, y) => x - y);
 
 /** The parts of the character the first cut can change. */
-function currentOf(data: Character) {
+function currentOf(data: Character, karmaSim = false) {
   const gems = (data.loadout.gems?.items ?? []).flatMap((gem) =>
     gem.slot != null && gem.level != null
       ? [{ slot: gem.slot, level: gem.level, name: gem.name ?? `보석 ${gem.slot + 1}` }]
@@ -178,7 +181,9 @@ function currentOf(data: Character) {
     guardItem && guardItem.detail?.refineLevel != null && guardItem.grade
       ? { level: guardItem.detail.refineLevel, grade: guardItem.grade, name: guardItem.name ?? "팔 보호구" }
       : null;
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores, armGuard };
+  // 깨달음 카르마 레벨 (api #1004): only where the screen edits it, and only once it was read.
+  const karma = karmaSim ? karmaLevelOf(data.loadout.arkPassive?.points) : null;
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, armGuard };
 }
 
 function Choice({
@@ -612,7 +617,7 @@ function Editors({
         <Card
           id="cp-ark-passive"
           title="아크 패시브"
-          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree))}
+          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree)) && current.karma == null}
         >
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
@@ -637,6 +642,23 @@ function Editors({
               )}
             </li>
           ))}
+          {/* 깨달음 카르마 레벨 (api #1004, KARMA_SIM): its own row, apart from the tree's points. */}
+          {current.karma != null && (
+            <li key="karma">
+              <span className={styles.rowName}>
+                깨달음 카르마
+                <small className={styles.rowSub}>레벨</small>
+              </span>
+              <span className={styles.rowFrom}>Lv.{current.karma}</span>
+              <Select
+                label="깨달음 카르마 레벨"
+                value={edits.karma[KARMA_TREE] ?? current.karma}
+                original={current.karma}
+                values={range(0, KARMA_MAX)}
+                onChange={(level) => setEdits((prev) => ({ ...prev, karma: { ...prev.karma, [KARMA_TREE]: level } }))}
+              />
+            </li>
+          )}
         </Card>
       )}
 
@@ -861,9 +883,12 @@ export function CombatPowerSimulator({
   initial,
   start,
   head,
+  karma = false,
 }: {
   name: string;
   initial?: Character;
+  /** KARMA_SIM on this deployment (server flag): the 깨달음 카르마 레벨 field. */
+  karma?: boolean;
   /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
   start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
@@ -906,7 +931,7 @@ export function CombatPowerSimulator({
     retry: false,
   });
   const data = character.data?.data ?? initial ?? null;
-  const current = useMemo(() => (data ? currentOf(data) : null), [data]);
+  const current = useMemo(() => (data ? currentOf(data, karma) : null), [data, karma]);
   const refineMin = options.data?.data.refineMin;
   const refineMax = options.data?.data.refineMax;
   // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
@@ -1131,7 +1156,7 @@ const savedTime = (iso: string) =>
     timeZone: "Asia/Seoul",
   });
 
-function CombatPowerContent({ initialName }: { initialName: string }) {
+function CombatPowerContent({ initialName, karma = false }: { initialName: string; karma?: boolean }) {
   const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
@@ -1212,7 +1237,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
             </form>
 
             {/* A new character starts from its own values (keyed). */}
-            <CombatPowerSimulator key={name} name={name} />
+            <CombatPowerSimulator key={name} name={name} karma={karma} />
           </div>
         </div>
       </main>
@@ -1223,6 +1248,6 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
   );
 }
 
-export function CombatPowerTool({ initialName }: { initialName: string }) {
-  return <CombatPowerContent initialName={initialName} />;
+export function CombatPowerTool({ initialName, karma = false }: { initialName: string; karma?: boolean }) {
+  return <CombatPowerContent initialName={initialName} karma={karma} />;
 }

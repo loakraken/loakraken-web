@@ -110,6 +110,21 @@ export function isSpecUpPathEnabled(env: Env = process.env) {
 }
 
 /**
+ * 깨달음 카르마 레벨 in the combat-power simulator (api #1004, web #1781): the field, the karmaLevel change it
+ * sends, and spec-up steps that open with it. The api computes it only with spec-up.karma-cp.enabled
+ * (SPEC_UP_KARMA_CP_ENABLED, off on production until 계산 검증 passes it) and otherwise answers 계산 준비 중,
+ * so the field stays hidden on production until both are opened. Same rule: `KARMA_SIM=on|off` overrides,
+ * otherwise hidden only on the production host (and with the simulator itself).
+ */
+export function isKarmaSimEnabled(env: Env = process.env) {
+  if (!isCombatPowerEnabled(env)) return false;
+  const flag = env.KARMA_SIM?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Official armory page details (tripod levels, skill code; backend flag off
  * by default). The web asks for them only where ARMORY_PAGE allows it:
  * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so
