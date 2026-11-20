@@ -159,8 +159,14 @@ export function pathTotal(path: SpecUpPath): { gold: number | null; unknownSteps
   return { gold: null, unknownSteps: 0 };
 }
 
-/** The path rule whose step costs pathCostNote describes (api SpecUpGoalService.PATH_RULE_VERSION). */
-export const PATH_COST_RULE = "spec-up-path-v6";
+/**
+ * The path rules whose step costs pathCostNote describes (api SpecUpGoalService.PATH_RULE_VERSION). v7 (api #1019,
+ * level jumps) keeps v6's paidCost and marginal; a 효율 우선 or 점수 효율 step can raise several levels at once, its
+ * cost the whole range (rangeCost: refine and arm guard the sum of the stages, an engraving the book cost × levels,
+ * a gem its target level's price as before). Accepted before #1019 ships (PM-프론트 11-20 22:53).
+ */
+export const PATH_COST_RULES: ReadonlySet<string> = new Set(["spec-up-path-v6", "spec-up-path-v7"]);
+const JUMPS_RULE = "spec-up-path-v7";
 
 /**
  * The note under the path on how its step costs were counted, per order (PM 총괄 11-20 P1; api #993,
@@ -174,12 +180,15 @@ export const PATH_COST_RULE = "spec-up-path-v6";
  */
 export function pathCostNote(path: Pick<SpecUpPath, "sort" | "ruleVersion" | "steps">): string {
   const plain = "비용은 그 단계에서 더 드는 골드예요.";
-  if (path.ruleVersion !== PATH_COST_RULE) return plain;
+  if (!PATH_COST_RULES.has(path.ruleVersion)) return plain;
+  // 전투력 우선 raises one level per step on every rule (api #1019 leaves DELTA at +1).
   if (path.sort === "DELTA") {
     const polish = path.steps.some((step) => step.kind === "POLISH");
     return `비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 ${polish ? "스톤·장신구는" : "스톤은"} 같은 칸의 앞 단계 비용을 빼고 셌어요.`;
   }
-  if (path.sort === "EFFICIENCY" || path.sort === "KRAKEN")
-    return `${plain} 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.`;
+  if (path.sort === "EFFICIENCY" || path.sort === "KRAKEN") {
+    const jumps = path.ruleVersion === JUMPS_RULE ? " 한 단계에 여러 레벨을 올리면 그 레벨까지 드는 비용을 한 번에 셌어요." : "";
+    return `${plain} 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.${jumps}`;
+  }
   return plain;
 }
