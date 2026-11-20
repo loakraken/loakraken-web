@@ -1,15 +1,20 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { LazyMotion, domAnimation, m, useInView } from "motion/react";
+import { LazyMotion, m, useInView } from "motion/react";
 import { MotionScope, useLandingMotion } from "./motion-context";
 
 export { useLandingMotion } from "./motion-context";
 
+// The animation features come after the first paint (#1860): the same loader the search panel and 순서 바꾸기 use.
+// Pages render visibly on the server (Reveal: initial false), so until they arrive only the entrance waits;
+// nothing moves. It kept ~60KB (gzip) out of the character page's first JS.
+const loadFeatures = () => import("@/lib/motion-dom-animation").then((mod) => mod.default);
+
 export function LandingMotion({ children }: { children: ReactNode }) {
   return (
     <MotionScope>
-      <LazyMotion features={domAnimation}>{children}</LazyMotion>
+      <LazyMotion features={loadFeatures}>{children}</LazyMotion>
     </MotionScope>
   );
 }
