@@ -310,7 +310,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
       )}
       <p className={styles.note}>
         {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
-        {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path.sort)}`}
+        {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path)}`}
       </p>
       <Unpriced items={path.unpriced} scored={figures.scored} />
     </div>
