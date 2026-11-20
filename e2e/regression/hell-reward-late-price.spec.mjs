@@ -5,7 +5,7 @@
 // 조건을 없앴다: 머리 값·풍요 단추·0G 줄·품목 줄은 정한 px 줄 높이라 높이가 글자·글꼴에 따라 바뀌지 않는다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
-import { useUntunedSystemFace } from "../support/fonts.mjs";
+import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
 
 // The blocks above the base list's first item and the item's own line, as the page draws them.
 const blocks = (page) =>
@@ -50,6 +50,9 @@ for (const face of ["site", "untuned"])
     await watchShifts(page);
     await page.goto("/tools/hell-reward", { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/^시세 (방금|\d+분 전) 수집$/)).toBeVisible({ timeout: 10_000 });
+    // The face the leg names is the one drawn (a site font slipping through would test the site face twice).
+    if (face === "site") await page.evaluate(() => document.fonts.ready);
+    expect(await drawnFace(page)).toBe(face);
     await page.waitForTimeout(600);
     const late = await shiftsSince(page);
     expect(late.all, `늦은 시세 흔들림 (${late.moved})`).toBe(0);
