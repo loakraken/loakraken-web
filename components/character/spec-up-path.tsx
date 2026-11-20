@@ -157,11 +157,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
       <p className={styles.lead}>
         가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요.
       </p>
-      {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
-      <p className={styles.lead}>
-        보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음
-        카르마는 전투력 계산식이 없어 넣지 않아요.
-      </p>
+      {/* The kinds the path takes (PM 총괄 11-01 wording). 장신구 연마 (api #951) and 깨달음 카르마 joined later; the line still
+          said both were left out while the real answers listed them (v0.3.15 readiness, 11-21). */}
+      <p className={styles.lead}>보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤·장신구 연마·깨달음 카르마 단계를 다뤄요.</p>
       {failure && !path.isFetching ? (
         <div className={detail.specUpFailure} role="alert">
           <p>{failureText(failure.code, "limit" in failure ? failure.limit : undefined)}</p>
