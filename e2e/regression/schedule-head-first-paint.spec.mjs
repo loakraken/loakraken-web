@@ -70,11 +70,10 @@ for (const [width, clock, face] of LEGS)
 
 // 서버 시계와 기기 시계가 그날 마지막 회차 양쪽에 있을 때(#1799 후속, PM-프론트 11-20 02:50): 첫 HTML은 서버 시각의
 // 상태로, 깬 뒤에는 기기 시각의 상태로 그린다. 상태 줄과 '내일 일정 보기'는 늘 한 줄에 함께 있고(머리 폭 440px 아래는
-// 그 줄 따로, 위는 제목 줄), 상태가 바뀌어도 머리 높이와 아래 행 자리는 그대로여야 한다. 기기 시계는 서버(실제 시각)의
-// 반대 상태로 고정한다: 모험 섬의 마지막 회차는 23시라, 실제로 23시 뒤면 기기는 12:00(다음 회차), 아니면 23:30(끝남).
-// 목 서버의 nextAt은 늘 다음 날 첫 회차라(#1816), 끝난 쪽 머리는 어느 시각에 돌려도 '내일 09:00'까지 붙은 긴 글이다.
-// 서버 쪽 상태는 깨기 전에 잡아, 상태가 정말 바뀐 판만 통과로 친다.
-const kstToday = (hhmm) => Date.parse(`${kstNow().toISOString().slice(0, 10)}T${hhmm}:00+09:00`);
+// 그 줄 따로, 위는 제목 줄), 상태가 바뀌어도 머리 높이와 아래 행 자리는 그대로여야 한다. 기기 시계는 서버가 실제로 그린
+// 상태의 반대로 옮긴다: 판 전체가 온 때(깨기 전) 모험 섬이 다음 회차면 23:30(끝남), 끝남이면 12:00(다음 회차). 서버 시각을
+// 미리 짐작하지 않으므로 23시나 자정을 걸쳐 돌아도 결과가 같다(#1817 P3). 목 서버의 nextAt은 늘 다음 날 첫 회차라(#1816),
+// 끝난 쪽 머리는 어느 시각에 돌려도 '내일 09:00'까지 붙은 긴 글이다. 상태가 정말 바뀐 판만 통과로 친다.
 
 // [label, viewport width or the head width to reach]: phones, the 440 cut and both sides of it, desktop.
 const SKEW_LEGS = [
@@ -89,11 +88,29 @@ const SKEW_LEGS = [
 for (const [label, size] of SKEW_LEGS)
   test(`@A7 홈 ${label}: 서버와 기기 시계가 마지막 회차 양쪽이어도 일정 섹션 머리 높이와 행 자리가 그대로 @regression`, async ({ page }) => {
     test.slow();
-    const serverDone = kstNow().getUTCHours() >= 23;
-    const client = serverDone ? "12:00" : "23:30";
-    await page.clock.setFixedTime(kstToday(client));
-    // The heads as the server drew them: taken when the islands' rows first exist, before the page wakes.
+    // The page's clock follows what the server drew, not a guess at the server's hour (#1817 P3: a run across 23:00
+    // guessed wrong). The heads are taken once the whole board has streamed (its last link, '주간 일정 전체 보기', comes
+    // after every section; #1817 P3), before the page wakes; at that moment the page's clock moves to the other state:
+    // 23:30 (done) if the server drew the next round, 12:00 (next round) if it drew the day as over.
     await page.addInitScript(() => {
+      const Real = Date;
+      let offset = 0;
+      function Shifted(...args) {
+        if (!new.target) return new Real(Real.now() + offset).toString();
+        if (args.length) return Reflect.construct(Real, args, new.target === Shifted ? Real : new.target);
+        return new Real(Real.now() + offset);
+      }
+      Shifted.prototype = Real.prototype;
+      Shifted.now = () => Real.now() + offset;
+      Shifted.parse = Real.parse;
+      Shifted.UTC = Real.UTC;
+      globalThis.Date = Shifted;
+      const moveClock = (serverState) => {
+        const kstDay = new Real(Real.now() + 9 * 3_600_000).toISOString().slice(0, 10);
+        const target = serverState === "done" ? "12:00" : "23:30";
+        offset = Real.parse(`${kstDay}T${target}:00+09:00`) - Real.now();
+        window.__clientState = serverState === "done" ? "upcoming" : "done";
+      };
       const snap = () =>
         [...document.querySelectorAll("#schedule section[aria-label]")].map((section) => {
           const head = section.querySelector("header");
@@ -109,8 +126,10 @@ for (const [label, size] of SKEW_LEGS)
         });
       window.__snapHeads = snap;
       const take = () => {
-        if (window.__headsAtServer !== undefined || !document.querySelector('#schedule section[aria-label="모험 섬"] ul li')) return;
+        if (window.__headsAtServer !== undefined || !document.querySelector('#schedule a[href="/schedule"]')) return;
         window.__headsAtServer = window.__lkHydrated ? null : snap();
+        const islands = window.__headsAtServer?.find((section) => section.name === "모험 섬");
+        if (islands?.state) moveClock(islands.state);
       };
       new MutationObserver(take).observe(document, { childList: true, subtree: true });
     });
@@ -131,13 +150,15 @@ for (const [label, size] of SKEW_LEGS)
       await gotoReady(page, "/");
     }
     await page.waitForFunction(() => window.__lkHydrated);
-    await expect(islands(page).locator("header [data-state]")).toHaveAttribute("data-state", serverDone ? "upcoming" : "done");
     const before = await page.evaluate(() => window.__headsAtServer);
-    const after = await page.evaluate(() => window.__snapHeads());
-    expect(before, "깨기 전 서버가 그린 머리를 잡지 못함").not.toBeNull();
+    expect(before, "깨기 전 서버가 그린 판 전체를 잡지 못함").not.toBeNull();
     const at = (list, name) => list.find((section) => section.name === name);
+    const serverState = at(before, "모험 섬").state;
+    expect(["upcoming", "done"], `서버 상태 ${serverState}`).toContain(serverState);
     // The leg tests something only if the state really changed after the page woke.
-    expect(at(before, "모험 섬").state, "서버 상태").toBe(serverDone ? "done" : "upcoming");
+    const clientState = serverState === "done" ? "upcoming" : "done";
+    await expect(islands(page).locator("header [data-state]")).toHaveAttribute("data-state", clientState);
+    const after = await page.evaluate(() => window.__snapHeads());
     if (size.head) expect(at(after, "모험 섬").width, "머리 폭").toBe(size.head);
     for (const section of after) {
       const server = at(before, section.name);
