@@ -45,11 +45,16 @@ for (const width of [320, 1280]) {
 
 test("방어구 상급 재련은 프록시를 지나도 api의 방어구 스위치가 꺼져 있으면 전투력 없이 돌아온다 @regression", async ({ page }) => {
   await gotoReady(page, tool("전투력계산"));
-  const res = await page.request.post("/api/combat-power/simulate", {
-    data: { characterName: "전투력계산", changes: [{ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 }] },
+  // From the page, as the simulator sends it (the route takes same-origin requests only).
+  const { status, json } = await page.evaluate(async () => {
+    const res = await fetch("/api/combat-power/simulate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ characterName: "전투력계산", changes: [{ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 }] }),
+    });
+    return { status: res.status, json: await res.json() };
   });
-  expect(res.status(), "프록시는 정확한 상급 재련을 받는다").toBe(200);
-  const json = await res.json();
+  expect(status, "프록시는 정확한 상급 재련을 받는다").toBe(200);
   const envelope = json.envelope ?? json;
   const [row] = envelope.data.contributions;
   expect(row).toMatchObject({ kind: "EQUIPMENT_ADVANCED_REFINE", status: "UNSUPPORTED", delta: null });
