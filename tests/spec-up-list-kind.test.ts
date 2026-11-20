@@ -21,3 +21,11 @@ test("the folded group names 완갑 rows 완갑, beside 재련 rows", () => {
   ]);
   assert.deepEqual(folded[0].kinds, ["완갑", "재련"]);
 });
+
+test("noCombatPower: the one test the 전투력 cell's dash and the 크라켄 점수 footer count share", async () => {
+  const { noCombatPower } = await import("../lib/spec-up/model");
+  assert.equal(noCombatPower({ deltaCombatPower: null }), true);
+  assert.equal(noCombatPower({}), true);
+  assert.equal(noCombatPower({ deltaCombatPower: 0 }), false);
+  assert.equal(noCombatPower({ deltaCombatPower: 3.02 }), false);
+});
