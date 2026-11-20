@@ -290,6 +290,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  // The ranked rows the cut counts (status OK), and under 크라켄 점수 the scored rows without combat power after them.
+  const computedShown = ok.filter((c) => c.status === "OK").length;
+  // Only below computed rows: a supporter's list is all scored rows (combat power not computed for the role).
+  const scoredOnly = computedShown > 0 ? ok.length - computedShown : 0;
   // One row per target, its other stages behind '자세히' (사용자 제보 #26).
   const groups = useMemo(() => groupStages(ok), [ok]);
   const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
@@ -636,9 +640,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                 </table>
               </div>
             )}
-            {guide.total > ok.length && (
+            {(guide.total > computedShown || scoredOnly > 0) && (
+              // total counts the computed (OK) candidates before the cut, and the cut applies to them only; under
+              // 크라켄 점수 the rows the api scored without combat power come after them, all of them (v0.3.15
+              // real answers: 136 computed, 50 shown, 57 more scored). Said apart, not as '136개 중 위에서 107개'.
               <p className={styles.muted}>
-                계산된 후보 {guide.total}개 중 위에서 {ok.length}개를 보여 드려요.
+                {guide.total > computedShown && `계산된 후보 ${guide.total}개 중 위에서 ${computedShown}개를 보여 드려요.`}
+                {guide.total > computedShown && scoredOnly > 0 && " "}
+                {scoredOnly > 0 && `전투력을 아직 계산하지 않은 ${scoredOnly}개는 점수 순으로 그 아래에 이어요.`}
               </p>
             )}
             {bases.length > 0 && (
