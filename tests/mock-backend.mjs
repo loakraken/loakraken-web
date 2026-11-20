@@ -1,6 +1,6 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
@@ -966,6 +966,12 @@ createServer(async (req, res) => {
     const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // Real answers (v0.3.15 readiness, api develop c76685dc: #1019 jumps, #1029 armor/완갑 with the CP stop, #1033 상재):
+    // '실표본<n>' serves spec-up-fixtures/v0315/<n>-<SORT>.json as saved, names already placeholders.
+    if (who?.startsWith("실표본")) {
+      const file = new URL(`./spec-up-fixtures/v0315/${who.slice(3)}-${sort}.json`, import.meta.url);
+      if (existsSync(file)) return send(JSON.parse(readFileSync(file, "utf8")));
+    }
     // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
     // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
