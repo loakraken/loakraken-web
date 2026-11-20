@@ -5,7 +5,7 @@
 import { test, expect, characterPath, chooseOption, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
 
 const NAME = "방어구문열림";
-const TODAY = /무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수\s*있어요\. 방어구 재련·상급 재련·아크 패시브 깨달음·/;
+const TODAY = /무기 재련·업화 무기 상급 재련·아크 그리드 코어·아크 패시브 진화와\s*도약을 바꿀 수 있어요\. 방어구 재련·상급 재련·아크 패시브 깨달음·/;
 
 /** Every simulate body the page sends; none may carry armour 재련 or any 상급 재련 (index 0 is the weapon). */
 function watchBodies(page) {

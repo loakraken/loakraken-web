@@ -132,6 +132,23 @@ const ARMOR_CLOSED = "방어구문닫힘";
 const ARMOR_GATE_NAMES = [ARMOR_OPEN, ARMOR_CLOSED];
 const ARMOR_RESIDUAL_CODE = "ARMOR_CP_RESIDUAL_HIGH";
 const ARMOR_RESIDUAL_TEXT = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+/**
+ * An 업화 weapon with 상급 재련 21 (PM 총괄 11-21: the weapon's 상급 재련 opens for 업화 only; 계산 검증 04:36 PASS).
+ * Other mock weapons ("테스트 무기") are not 업화, so their field stays hidden.
+ */
+const UPGRADE_WEAPON = "무기상재업화";
+/** An 에스더 weapon that reads a 상급 재련 step (10): no model there, so the field is hidden all the same. */
+const ESTHER_WEAPON = "무기상재에스더";
+function withUpgradeWeapon(data, name = UPGRADE_WEAPON) {
+  const weapon = data.loadout.equipment.find((item) => item.type === "무기");
+  weapon.name = name === ESTHER_WEAPON ? "+8 에스더 테스트 무기" : "+16 업화 테스트 무기";
+  weapon.detail = { ...weapon.detail, refineLevel: name === ESTHER_WEAPON ? 8 : 16, advancedRefineLevel: name === ESTHER_WEAPON ? 10 : 21 };
+  return data;
+}
+/** Armour (not the weapon) 재련 · 상급 재련: what the api's armour switch holds while it is off (MODEL_UNCONFIRMED). */
+const armourRefine = (search, change) =>
+  (change.kind === "EQUIPMENT_REFINE" || change.kind === "EQUIPMENT_ADVANCED_REFINE") &&
+  search.loadout.equipment[change.index]?.type !== "무기";
 /** A change the gate holds: armour (not the weapon) 재련 · 상급 재련, or 완갑. */
 const armourGated = (search, change) =>
   change.kind === "ARM_GUARD" ||
@@ -1359,6 +1376,25 @@ createServer(async (req, res) => {
         deltaPercent: 0.4,
       });
     }
+    // An 업화 weapon's 상급 재련 candidate (the list's +1 step), computed (PM 총괄 11-21).
+    if (who === UPGRADE_WEAPON) {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      envelope.data.candidates.push({
+        ...weapon,
+        id: "EQUIPMENT_ADVANCED_REFINE:0:22",
+        kind: "EQUIPMENT_ADVANCED_REFINE",
+        target: "+16 업화 테스트 무기",
+        from: "상급 재련 21단계",
+        to: "상급 재련 22단계",
+        change: { ...weapon.change, kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, refine: null, level: 22 },
+        status: "OK",
+        deltaCombatPower: 9.12,
+        deltaPercent: 0.228,
+        reasonCode: null,
+        reason: null,
+        reasonDetail: null,
+      });
+    }
     // The armour CP gate (PR3): a 투구 재련 and a 투구 상급 재련 candidate. Inside, computed like any row (ΔCP and
     // per 10k); outside, held with the gate's code and sentence (folded at the end of the list).
     if (ARMOR_GATE_NAMES.includes(who)) {
@@ -1465,13 +1501,14 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
+    if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -1493,6 +1530,13 @@ createServer(async (req, res) => {
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
+    // The api's armour switch off (every character but the gate's two): armour 재련 · 상급 재련 held as today, whatever
+    // the web sent. The proxy passes an armour 상급 재련 (it cannot tell its index from the weapon's); this holds it.
+    if (computed && !ARMOR_GATE_NAMES.includes(request.characterName))
+      request.changes.forEach((change, i) => {
+        if (armourRefine(search, change))
+          Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: "방어구 재련 전투력은 계산식을 확인하고 있습니다.", reasonCode: "MODEL_UNCONFIRMED" });
+      });
     // Outside the armour CP gate: the armour rows are held with the gate's reason, the rest computed.
     if (request.characterName === ARMOR_CLOSED)
       request.changes.forEach((change, i) => {
@@ -2956,7 +3000,8 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES].includes(name)) withSimulatorGear(envelope.data);
+  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
+  if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
