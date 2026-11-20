@@ -1391,6 +1391,18 @@ createServer(async (req, res) => {
     // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
     // web's own limit=50 request. '실목록2전체' is 실목록2's limit=200 KRAKEN answer, for the weapon 상급 재련 row a limit-50
     // answer never carries.
+    // api #1042: '실목록1사유' is 실목록1's answer (any sort) with the score reason the api now gives its empty gem
+    // slots (OK, ΔK null, emptySlot true): code + sentence as api #1042 sends them.
+    if (who === "실목록1사유") {
+      const answer = specUp(`v0315-list/실목록1-${url.searchParams.get("sort") ?? "EFFICIENCY"}.json`);
+      for (const c of answer.data.candidates)
+        if (c.emptySlot && c.deltaKrakenScore == null)
+          Object.assign(c, {
+            krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT",
+            krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.",
+          });
+      return send(answer);
+    }
     if (who?.startsWith("실목록")) {
       const sort = who === "실목록2전체" ? "KRAKEN" : (url.searchParams.get("sort") ?? "EFFICIENCY");
       return send(specUp(`v0315-list/${who}-${sort}.json`));

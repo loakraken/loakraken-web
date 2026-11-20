@@ -241,7 +241,8 @@ export function groupStages(list: Candidate[]): { head: Candidate; more: Candida
 
 /**
  * A computed (OK) row the 크라켄 점수 split cannot rank: no Δ점수 and no reason from the api (빈 보석 칸 rows,
- * v0.3.15). The web's own code, never the api's; it folds with a plain sentence instead of being dropped.
+ * v0.3.15). The web's own code, never the api's; it folds with a plain sentence instead of being dropped. Where the
+ * api says why (krakenScoreReasonCode · krakenScoreReason, api #1042; optional until it ships) its code and sentence win.
  */
 export const KRAKEN_UNSCORED = "WEB_KRAKEN_UNSCORED";
 export const KRAKEN_UNSCORED_REASON = "이 항목은 크라켄 점수를 아직 계산하지 않았어요.";
@@ -262,10 +263,11 @@ export function splitCandidates(list: Candidate[], ranked: (c: Candidate) => boo
   for (const c of list) {
     if (ranked(c)) continue;
     const unscored = c.status === "OK" && !c.reasonCode;
-    const code = c.reasonCode ?? (unscored ? KRAKEN_UNSCORED : "UNKNOWN");
+    // An unscored row says why when the api does (krakenScoreReasonCode, api #1042: 빈 보석 칸); else the web's line.
+    const code = c.reasonCode ?? (unscored ? (c.krakenScoreReasonCode ?? KRAKEN_UNSCORED) : "UNKNOWN");
     const entry = folded.get(code) ?? {
       code,
-      reason: c.reason ?? (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
+      reason: c.reason ?? (unscored ? (c.krakenScoreReason ?? KRAKEN_UNSCORED_REASON) : "이 항목은 아직 계산하지 않았어요."),
       kinds: [],
       candidates: [],
     };

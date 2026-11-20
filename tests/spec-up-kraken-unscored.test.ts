@@ -66,3 +66,18 @@ test("효율 · 증가 lists are unchanged: OK rows ranked, the rest folded by t
   assert.deepEqual(ok, candidates.filter((c) => c.status === "OK"));
   assert.ok(folded.every((g) => g.code !== KRAKEN_UNSCORED));
 });
+
+test("api #1042: an unscored row the api gives a reason folds under its code with its sentence", () => {
+  const { candidates } = answer("실목록1-KRAKEN");
+  const withReason = candidates.map((c) =>
+    c.emptySlot && c.deltaKrakenScore == null
+      ? { ...c, krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT", krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요." }
+      : c,
+  );
+  const { folded } = splitKrakenCandidates(withReason);
+  const group = folded.find((g) => g.code === "KRAKEN_SCORE_EMPTY_GEM_SLOT");
+  assert.ok(group);
+  assert.equal(group.reason, "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.");
+  assert.equal(group.candidates.length, 5);
+  assert.ok(folded.every((g) => g.code !== KRAKEN_UNSCORED));
+});
