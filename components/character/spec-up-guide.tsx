@@ -324,18 +324,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   return (
     <SpecUpExpired.Provider value={expiry}>
     <div className={styles.specUp} data-expired={expired || undefined}>
-      <p className={styles.simulatorLead}>
-        {supporter
-          ? pathOpen
-            ? // A supporter's first view is 추천 순서 by score once it runs (PM 총괄 11-15).
-              "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
-            : "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
-          : pathEnabled
-            ? // The dealer's first view is 추천 순서 (layout A, 11-02).
-              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
-            : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
-              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요."}
-      </p>
+      {/* The lead sentence is the tab's (SpecUpTab, specUpLead): in the server HTML (#1858). */}
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
       {/* PM 총괄 10-25: why a supporter's list has no combat-power column. */}
