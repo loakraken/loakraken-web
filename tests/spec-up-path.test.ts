@@ -252,7 +252,7 @@ test("the backend's #993 sample (SpecUpIntegrationTest, api develop 7f9aff63) pa
   assert.deepEqual(extraCosts(path.steps), [600_000, 2_000_000, null]);
 });
 
-test("the cost note follows the order's rule on spec-up-path-v6 only (api #993 paidCost / marginal; PM-프론트 #1793 P3)", () => {
+test("the cost note follows the order's rule on spec-up-path-v6 and v7 only (api #993 paidCost / marginal, #1019 jumps)", () => {
   const gem = { kind: "GEM_LEVEL" } as GoalStep;
   const polish = { kind: "POLISH" } as GoalStep;
   const note = (sort: string, ruleVersion = "spec-up-path-v6", steps = [gem]) => pathCostNote({ sort, ruleVersion, steps });
@@ -269,15 +269,24 @@ test("the cost note follows the order's rule on spec-up-path-v6 only (api #993 p
     note("DELTA", undefined, [gem, polish]),
     "비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 스톤·장신구는 같은 칸의 앞 단계 비용을 빼고 셌어요.",
   );
-  // Another rule version (before v6 the orders counted differently, after it nobody has checked) or an order the
+  // v7 (api #1019 level jumps): the same rules, and a 효율 우선 or 점수 효율 step may raise several levels at once,
+  // its cost the whole range; 전투력 우선 stays one level per step.
+  const jumps = `${perStep} 한 단계에 여러 레벨을 올리면 그 레벨까지 드는 비용을 한 번에 셌어요.`;
+  assert.equal(note("EFFICIENCY", "spec-up-path-v7"), jumps);
+  assert.equal(note("KRAKEN", "spec-up-path-v7"), jumps);
+  assert.equal(note("DELTA", "spec-up-path-v7"), note("DELTA"));
+  assert.equal(note("DELTA", "spec-up-path-v7", [gem, polish]), note("DELTA", undefined, [gem, polish]));
+  // Another rule version (before v6 the orders counted differently, after v7 nobody has checked) or an order the
   // web does not know: only what a step cost means, no claim on how it was counted.
   const plain = "비용은 그 단계에서 더 드는 골드예요.";
   for (const [sort, version] of [
     ["EFFICIENCY", "spec-up-path-v5"],
     ["KRAKEN", "spec-up-path-v1"],
     ["DELTA", "spec-up-path-v5"],
-    ["EFFICIENCY", "spec-up-path-v7"],
+    ["EFFICIENCY", "spec-up-path-v8"],
+    ["DELTA", "spec-up-path-v8"],
     ["COST", "spec-up-path-v6"],
+    ["COST", "spec-up-path-v7"],
   ])
     assert.equal(note(sort, version, [gem, polish]), plain, `${sort} ${version}`);
 });
