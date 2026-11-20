@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort, pathCostNote, pathCpStopNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathCostNote, pathCpStopNote, pathFigures, pathScopeNote, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -332,4 +332,29 @@ test("the combat-power stop note: where, why only for a known code, none without
     assert.equal(note(2, code), "2단계부터는 전투력을 계산하지 않았어요.", code);
   // No stop (null, an api before #1029) or a step the path does not have: no note.
   for (const order of [null, undefined, 0, 4, 1.5, "2"]) assert.equal(note(order), null, String(order));
+});
+test("pathScopeNote (PM 총괄 11-21 05:42): (c) on and present → covered, (b) on and absent → nothing, (a) off or missing → not yet", () => {
+  const steps = (...kinds: string[]) => kinds.map((kind, i) => ({ order: i + 1, kind })) as GoalStep[];
+  const note = (fields: Record<string, unknown>, ...kinds: string[]) =>
+    pathScopeNote({ steps: steps(...kinds), ...fields } as Parameters<typeof pathScopeNote>[0]);
+  const on = { polishStepsConsidered: true, karmaStepsConsidered: true };
+  // (c)
+  assert.equal(note(on, "POLISH", "GEM_LEVEL", "KARMA_LEVEL"), "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.");
+  // (c) + (b): karma on but none picked (already at 30) says nothing about karma.
+  assert.equal(note(on, "POLISH"), "이 순서는 장신구 연마 단계도 다뤄요.");
+  assert.equal(note(on, "KARMA_LEVEL"), "이 순서는 깨달음 카르마 단계도 다뤄요.");
+  // (b) alone: nothing to say, no element.
+  assert.equal(note(on, "GEM_LEVEL"), null);
+  assert.equal(note(on), null);
+  // (a): only the kinds that are off, 깨달음 카르마 first, no reason.
+  const both = "깨달음 카르마 · 장신구 연마 단계는 아직 추천 순서에 넣지 않아요.";
+  assert.equal(note({ polishStepsConsidered: false, karmaStepsConsidered: false }), both);
+  assert.equal(note({}, "GEM_LEVEL"), both);
+  // A missing field is off even where such a step shows (an api before the fields): production stays right.
+  assert.equal(note({}, "POLISH", "KARMA_LEVEL"), both);
+  assert.equal(note({ polishStepsConsidered: null, karmaStepsConsidered: "true" }), both);
+  assert.equal(note({ polishStepsConsidered: 1, karmaStepsConsidered: true }, "KARMA_LEVEL"), "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마 단계는 아직 추천 순서에 넣지 않아요.");
+  assert.equal(note({ polishStepsConsidered: true, karmaStepsConsidered: false }, "POLISH"), "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마 단계는 아직 추천 순서에 넣지 않아요.");
+  // (b) + (a): polish on but none picked, karma off.
+  assert.equal(note({ polishStepsConsidered: true }, "GEM_LEVEL"), "깨달음 카르마 단계는 아직 추천 순서에 넣지 않아요.");
 });
