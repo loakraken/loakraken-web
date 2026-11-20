@@ -42,7 +42,7 @@ import { pathSortsFor, type PathSort } from "@/lib/spec-up/path";
 import { oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpPathList } from "./spec-up-path";
-import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
+import { ArmorSimEnabled, SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { EXPIRED_LINE, EXPIRED_LINE_SHORT, SpecUpExpired } from "./spec-up-expired";
 import { Warning } from "@/components/ui/icons";
@@ -178,6 +178,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     : (pathSorts[0]?.id ?? "EFFICIENCY");
   // '적용해 보기' opens the simulator tab, which exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
+  const armor = useContext(ArmorSimEnabled);
   // Refine opens for the weapon only (api #884): the button needs the slot of a refine step (#1567).
   const gearType = gearTypeOf(data);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
@@ -543,7 +544,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                         simulator &&
                         !supporter &&
                         c.kind !== "POLISH" &&
-                        editsFor(c.change, NO_EDITS, gearType) != null &&
+                        editsFor(c.change, NO_EDITS, gearType, armor) != null &&
                         c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort

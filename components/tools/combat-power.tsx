@@ -32,6 +32,7 @@ import {
 import {
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
+  ARMOR_CP_RESIDUAL,
   ROLE_REASONS,
   GEAR_TYPES,
   NO_ADVANCED_REFINE,
@@ -45,6 +46,7 @@ import {
   arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
+  isAdvancedRefineOpen,
   isOpen,
   isRefineOpen,
   KARMA_MAX,
@@ -121,7 +123,7 @@ const withCurrent = (values: number[], current: number) =>
   values.includes(current) ? values : [...values, current].sort((x, y) => x - y);
 
 /** The parts of the character the first cut can change. */
-function currentOf(data: Character, karmaSim = false) {
+function currentOf(data: Character, karmaSim = false, armorSim = false) {
   const gems = (data.loadout.gems?.items ?? []).flatMap((gem) =>
     gem.slot != null && gem.level != null
       ? [{ slot: gem.slot, level: gem.level, name: gem.name ?? `보석 ${gem.slot + 1}` }]
@@ -183,7 +185,8 @@ function currentOf(data: Character, karmaSim = false) {
       : null;
   // 깨달음 카르마 레벨 (api #1004): only where the screen edits it, and only once it was read.
   const karma = karmaSim ? karmaLevelOf(data.loadout.arkPassive?.points) : null;
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, armGuard };
+  // Armour 재련 · 상급 재련 (ARMOR_CP_SIM): the rows open and their edits go out.
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, armGuard, armor: armorSim };
 }
 
 function Choice({
@@ -367,14 +370,14 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null && !isRefineOpen(item.type) ? (
+                {item.refine != null && !isRefineOpen(item.type, current.armor) ? (
                   <Locked caption="재련" value={`+${item.refine}`} />
                 ) : item.refine != null ? (
                   <Select
                     label={`${item.type} 재련 단계`}
                     caption="재련"
                     value={
-                      refineEdit(edits.refine[item.index], item, { min: options.refineMin, max: options.refineMax }) ??
+                      refineEdit(edits.refine[item.index], item, { min: options.refineMin, max: options.refineMax }, current.armor) ??
                       item.refine
                     }
                     original={item.refine}
@@ -391,10 +394,10 @@ function Editors({
                     상급 재련 없음
                   </span>
                 )}
-                {item.advanced != null && !isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                {item.advanced != null && !isAdvancedRefineOpen(item.type, current.armor) && (
                   <Locked caption="상급" value={item.advanced} />
                 )}
-                {item.advanced != null && isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                {item.advanced != null && isAdvancedRefineOpen(item.type, current.armor) && (
                   <Select
                     label={`${item.type} 상급 재련 단계`}
                     caption="상급"
@@ -698,10 +701,17 @@ function Editors({
           })}
         </Card>
       )}
-      <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
-        있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
-      </p>
+      {current.armor ? (
+        <p className={styles.later}>
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·재련·방어구 상급 재련·아크 그리드 코어·아크 패시브 진화와 도약을
+          바꿀 수 있어요. 무기 상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        </p>
+      ) : (
+        <p className={styles.later}>
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
+          있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        </p>
+      )}
     </div>
   );
 }
@@ -858,7 +868,9 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
             {item.status === "OK" && item.delta != null ? (
               <b className={item.delta >= 0 ? styles.gain : styles.loss}>{signed(item.delta)}</b>
             ) : (
-              <span className={styles.pending}>계산 준비 중</span>
+              // Outside the armour CP gate the api does not compute armour for this character (not 'coming soon'):
+              // its sentence follows right under (PM 총괄 11-21).
+              <span className={styles.pending}>{item.reasonCode === ARMOR_CP_RESIDUAL ? "계산하지 않음" : "계산 준비 중"}</span>
             )}
             {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
                 not computed, says why right under it — the backend's
@@ -884,11 +896,14 @@ export function CombatPowerSimulator({
   start,
   head,
   karma = false,
+  armor = false,
 }: {
   name: string;
   initial?: Character;
   /** KARMA_SIM on this deployment (server flag): the 깨달음 카르마 레벨 field. */
   karma?: boolean;
+  /** ARMOR_CP_SIM on this deployment (server flag): armour 재련 · 상급 재련. */
+  armor?: boolean;
   /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
   start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
@@ -902,7 +917,7 @@ export function CombatPowerSimulator({
     // The character tab passes the character, so a weapon refine step comes in (#1567).
     const gearType = gearTypeOf(initial);
     const first = (start ?? []).reduce<Edits | null>(
-      (edits, change) => editsFor(change, edits ?? NO_EDITS, gearType) ?? edits,
+      (edits, change) => editsFor(change, edits ?? NO_EDITS, gearType, armor) ?? edits,
       null,
     );
     return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
@@ -931,7 +946,7 @@ export function CombatPowerSimulator({
     retry: false,
   });
   const data = character.data?.data ?? initial ?? null;
-  const current = useMemo(() => (data ? currentOf(data, karma) : null), [data, karma]);
+  const current = useMemo(() => (data ? currentOf(data, karma, armor) : null), [data, karma, armor]);
   const refineMin = options.data?.data.refineMin;
   const refineMax = options.data?.data.refineMax;
   // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
@@ -1156,7 +1171,15 @@ const savedTime = (iso: string) =>
     timeZone: "Asia/Seoul",
   });
 
-function CombatPowerContent({ initialName, karma = false }: { initialName: string; karma?: boolean }) {
+function CombatPowerContent({
+  initialName,
+  karma = false,
+  armor = false,
+}: {
+  initialName: string;
+  karma?: boolean;
+  armor?: boolean;
+}) {
   const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
@@ -1237,7 +1260,7 @@ function CombatPowerContent({ initialName, karma = false }: { initialName: strin
             </form>
 
             {/* A new character starts from its own values (keyed). */}
-            <CombatPowerSimulator key={name} name={name} karma={karma} />
+            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} />
           </div>
         </div>
       </main>
@@ -1248,6 +1271,14 @@ function CombatPowerContent({ initialName, karma = false }: { initialName: strin
   );
 }
 
-export function CombatPowerTool({ initialName, karma = false }: { initialName: string; karma?: boolean }) {
-  return <CombatPowerContent initialName={initialName} karma={karma} />;
+export function CombatPowerTool({
+  initialName,
+  karma = false,
+  armor = false,
+}: {
+  initialName: string;
+  karma?: boolean;
+  armor?: boolean;
+}) {
+  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} />;
 }

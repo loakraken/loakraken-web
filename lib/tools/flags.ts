@@ -125,6 +125,22 @@ export function isKarmaSimEnabled(env: Env = process.env) {
 }
 
 /**
+ * Armour combat power in the simulator (the api's armour CP gate, spec-up.armor-cp-gate.enabled): armour
+ * 재련 and 상급 재련 open in the simulator, the spec-up '적용해 보기' and the path's simulator hand-off. The api
+ * computes them only for a dealer whose item-built CP matches the official CP; others come back
+ * ARMOR_CP_RESIDUAL_HIGH with the api's sentence. Turned on together with the api switch (the deploy sheet's
+ * paired block). Same rule as KARMA_SIM: `ARMOR_CP_SIM=on|off` overrides, otherwise hidden only on the production
+ * host (and with the simulator itself). Off, every screen, request body and the proxy guard are as before.
+ */
+export function isArmorCpSimEnabled(env: Env = process.env) {
+  if (!isCombatPowerEnabled(env)) return false;
+  const flag = env.ARMOR_CP_SIM?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Official armory page details (tripod levels, skill code; backend flag off
  * by default). The web asks for them only where ARMORY_PAGE allows it:
  * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so

@@ -77,15 +77,19 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
  * Refine is open per slot, not per kind: a weapon step goes in, an armour step
  * is skipped (api #884, #1567), told apart by `gearType`. A 깨달음 카르마 step (api #1004) goes in only where the
  * simulator edits the karma level (`karma`, isKarmaSimEnabled): elsewhere it could not show or undo it.
+ * Armour 재련 · 상급 재련 steps go in only with the armour CP gate (`armor`, ARMOR_CP_SIM); editsFor decides per slot.
  */
 export function simulatorPath(
   steps: GoalStep[],
   gearType?: GearType,
   karma = false,
+  armor = false,
 ): { changes: SpecUpChange[]; skipped: number } {
   const takes = (change: SpecUpChange) =>
-    (isKarmaChange(change) ? karma : isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") &&
-    editsFor(change, NO_EDITS, gearType) != null;
+    (isKarmaChange(change)
+      ? karma
+      : isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE" || change.kind === "EQUIPMENT_ADVANCED_REFINE") &&
+    editsFor(change, NO_EDITS, gearType, armor) != null;
   const changes: SpecUpChange[] = [];
   let skipped = 0;
   for (const step of steps) {

@@ -121,6 +121,22 @@ function withArkSimulator(data) {
  * same character.
  */
 const KARMA_NAMES = ["전투력카르마", "스펙순서카르마"];
+/**
+ * The armour CP gate (api PR3, spec-up.armor-cp-gate.enabled on; web ARMOR_CP_SIM). '방어구문열림' is a dealer inside
+ * the gate (item-built CP = official): armour 재련 · 상급 재련 · 완갑 are computed like any row. '방어구문닫힘' is
+ * outside (official CP 1% above): those rows come back ARMOR_CP_RESIDUAL_HIGH with the agreed sentence; the rest is
+ * computed. Names and sentence as in the backend's PR3 samples.
+ */
+const ARMOR_OPEN = "방어구문열림";
+const ARMOR_CLOSED = "방어구문닫힘";
+const ARMOR_GATE_NAMES = [ARMOR_OPEN, ARMOR_CLOSED];
+const ARMOR_RESIDUAL_CODE = "ARMOR_CP_RESIDUAL_HIGH";
+const ARMOR_RESIDUAL_TEXT = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+/** A change the gate holds: armour (not the weapon) 재련 · 상급 재련, or 완갑. */
+const armourGated = (search, change) =>
+  change.kind === "ARM_GUARD" ||
+  ((change.kind === "EQUIPMENT_REFINE" || change.kind === "EQUIPMENT_ADVANCED_REFINE") &&
+    search.loadout.equipment[change.index]?.type !== "무기");
 function withKarma(data) {
   withArkSimulator(data);
   const point = data.loadout.arkPassive.points.find((item) => item.name === "깨달음");
@@ -1230,6 +1246,32 @@ createServer(async (req, res) => {
       d.steps.push(refine(0, "+20 테스트 무기", 20, top + 10), refine(1, "+19 테스트 투구", 19, top + 20));
       d.steps.forEach((step, i) => (step.order = i + 1));
     }
+    // The armour CP gate, inside (PR3): the path may rank a 투구 재련 and a 투구 상급 재련 step, both with CP.
+    if (who === ARMOR_OPEN) {
+      const [gem] = d.steps;
+      const last = d.steps.at(-1);
+      const top = last.combatPowerAfter;
+      const step = (candidateId, kind, target, from, to, change, after) => ({
+        ...gem,
+        candidateId,
+        kind,
+        target,
+        from,
+        to,
+        change: { slot: null, level: null, refine: null, quality: null, name: null, ...change },
+        changes: undefined,
+        deltaCombatPower: after - top,
+        combatPowerAfter: after,
+        cost: { ...last.cost },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+      });
+      d.steps.push(
+        step("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { kind: "EQUIPMENT_REFINE", index: 1, refine: 20 }, top + 12.5),
+        step("ADVANCED_REFINE:1:11", "EQUIPMENT_ADVANCED_REFINE", "테스트 투구 상급 재련", "10", "11", { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 }, top + 20.75),
+      );
+      d.steps.forEach((s, i) => (s.order = i + 1));
+    }
     const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
     d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
     const last = d.steps.at(-1);
@@ -1308,6 +1350,32 @@ createServer(async (req, res) => {
         deltaPercent: 0.4,
       });
     }
+    // The armour CP gate (PR3): a 투구 재련 and a 투구 상급 재련 candidate. Inside, computed like any row (ΔCP and
+    // per 10k); outside, held with the gate's code and sentence (folded at the end of the list).
+    if (ARMOR_GATE_NAMES.includes(who)) {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      const open = who === ARMOR_OPEN;
+      const armour = (id, kind, target, from, to, change, deltaCombatPower) => ({
+        ...weapon,
+        id,
+        kind,
+        target,
+        from,
+        to,
+        change: { ...weapon.change, ...change },
+        status: open ? "OK" : "UNSUPPORTED",
+        deltaCombatPower: open ? deltaCombatPower : null,
+        deltaPercent: open ? Math.round((deltaCombatPower / 4000) * 100_000) / 1000 : null,
+        combatPowerPer10kGold: open && weapon.cost?.amount ? Math.round((deltaCombatPower / weapon.cost.amount) * 1_000_000) / 100 : null,
+        reasonCode: open ? null : ARMOR_RESIDUAL_CODE,
+        reason: open ? null : ARMOR_RESIDUAL_TEXT,
+        reasonDetail: null,
+      });
+      envelope.data.candidates.push(
+        armour("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { index: 1, refine: 20, level: null }, 12.5),
+        armour("ADVANCED_REFINE:1:11", "ADVANCED_REFINE", "테스트 투구 상급 재련", "10", "11", { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, refine: null, level: 11 }, 8.25),
+      );
+    }
     if (who !== "스펙업옛응답")
       Object.assign(envelope.data, {
         krakenScore: who === "스펙업점수꺼짐" ? null : 3977.02,
@@ -1379,7 +1447,7 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
@@ -1407,12 +1475,19 @@ createServer(async (req, res) => {
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
-    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
+    // Outside the armour CP gate: the armour rows are held with the gate's reason, the rest computed.
+    if (request.characterName === ARMOR_CLOSED)
+      request.changes.forEach((change, i) => {
+        if (armourGated(search, change))
+          Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: ARMOR_RESIDUAL_TEXT, reasonCode: ARMOR_RESIDUAL_CODE });
+      });
+    const held = d.contributions.filter((item) => item.status !== "OK").length;
+    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + (item.delta ?? 0), 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
     d.delta = d.before == null ? null : delta;
     d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
-    d.unsupportedCount = computed ? 0 : d.contributions.length;
-    d.partial = !computed && d.contributions.length > 0;
+    d.unsupportedCount = computed ? held : d.contributions.length;
+    d.partial = held > 0 && d.contributions.length > 0;
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
@@ -2863,7 +2938,7 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
+  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES].includes(name)) withSimulatorGear(envelope.data);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).

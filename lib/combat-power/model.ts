@@ -47,7 +47,25 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
  * (MODEL_UNCONFIRMED, api #866) until its formula is confirmed, so armour rows
  * stay "준비 중" (PM 총괄 11-12).
  */
-export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+export const isRefineOpen = (type: string | null | undefined, armor = false) =>
+  isOpen("EQUIPMENT_REFINE") || type === "무기" || (armor && !!type);
+
+/**
+ * 상급 재련 opens for armour with the api's armour CP gate (ARMOR_CP_SIM, `armor`): the api lifts its hold on armour
+ * 재련 · 상급 재련 · 완갑 for a dealer whose item-built CP matches the official CP. The weapon's 상급 재련 stays as
+ * before (locked here; the gate does not cover it).
+ */
+export const isAdvancedRefineOpen = (type: string | null | undefined, armor = false) =>
+  isOpen("EQUIPMENT_ADVANCED_REFINE") || (armor && !!type && type !== "무기");
+
+/**
+ * The api's refine bounds (combat-power options refineMin / refineMax / advancedRefineMax; the screen reads them
+ * from the options, the proxy guard from here). tests/combat-power-karma.test.ts holds them to the committed
+ * options fixture, so the two cannot drift apart unseen.
+ */
+export const REFINE_MIN = 10;
+export const REFINE_MAX = 25;
+export const ADVANCED_REFINE_MAX = 40;
 
 /**
  * Ark passive trees the simulator takes, one by one: 도약 (api #842), 진화 (api #965, PM 총괄 11-16).
@@ -205,6 +223,8 @@ export type Current = {
   karma?: number | null;
   cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
   armGuard?: { level: number; grade: string } | null;
+  /** Armour 재련 · 상급 재련 open on this screen (ARMOR_CP_SIM). Unset: as before, the weapon's refine only. */
+  armor?: boolean;
 };
 
 /** The tree whose karma level the simulator edits, and the request's range (api #1004 KARMA_MAX_LEVEL). */
@@ -280,8 +300,9 @@ export function refineEdit(
   edit: number | null | undefined,
   item: Current["gear"][number],
   range: RefineRange,
+  armor = false,
 ): number | null {
-  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type)) return null;
+  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type, armor)) return null;
   if (!range || edit < range.min || edit > range.max) return null;
   return edit;
 }
@@ -325,13 +346,21 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
       changes.push({ kind: "GEM_LEVEL", slot: gem.slot, level });
   }
   for (const item of current.gear) {
-    const refine = refineEdit(edits.refine[item.index], item, range);
+    const refine = refineEdit(edits.refine[item.index], item, range, current.armor);
     if (refine != null) changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
+    // Only where 상급 재련 is open (armour with ARMOR_CP_SIM): elsewhere no edit reaches here, as before.
     const advanced = edits.advanced[item.index];
-    if (advanced != null && item.advanced != null && advanced !== item.advanced)
+    if (
+      advanced != null &&
+      item.advanced != null &&
+      advanced !== item.advanced &&
+      isAdvancedRefineOpen(item.type, current.armor) &&
+      advanced >= 0 &&
+      advanced <= ADVANCED_REFINE_MAX
+    )
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
   // Nothing for polish while the card is locked: it cannot show or undo an edit (review P3 #1700).
@@ -392,6 +421,12 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
 /** Supporters and unjudged roles are not computed at all (backend #332): one line, not one per row. */
 export const ROLE_REASONS: ReadonlySet<string> = new Set(["SUPPORTER_MODEL_PENDING", "ROLE_UNKNOWN"]);
 
+/**
+ * The armour CP gate's reason (api PR3): the item-built CP misses the official CP by more than the gate, so the api
+ * does not compute armour 재련 · 상급 재련 · 완갑 for this character. Its own sentence goes in basis / reason.
+ */
+export const ARMOR_CP_RESIDUAL = "ARMOR_CP_RESIDUAL_HIGH";
+
 /** 팔 보호구 grades the simulator takes (backend #342). */
 export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
 export const ARM_GUARD_MAX = 25;
@@ -418,8 +453,31 @@ const karmaAllowed = (out: Record<string, unknown>, karma: boolean) =>
   (out.karmaLevel as number) >= 0 &&
   (out.karmaLevel as number) <= KARMA_MAX;
 
-/** Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment. */
-export function parseSimulateRequest(body: unknown, { karma = false }: { karma?: boolean } = {}): SimulateRequest | null {
+const only = (out: Record<string, unknown>, keys: string[]) =>
+  Object.keys(out).every((key) => key === "kind" || keys.includes(key)) && keys.every((key) => out[key] !== undefined);
+
+/**
+ * 재련 · 상급 재련 with the armour CP gate (ARMOR_CP_SIM on, PM 총괄 11-21): exactly the fields the simulator sends,
+ * inside the api's bounds (REFINE_MIN..REFINE_MAX, 0..ADVANCED_REFINE_MAX). The proxy cannot tell armour from the
+ * weapon (index is the search answer's equipment position), so off, 재련 goes as before and every 상급 재련 is
+ * refused: the screen never sends one there, and the api holds its own switch.
+ */
+const refineAllowed = (out: Record<string, unknown>, armor: boolean) => {
+  if (out.kind === "EQUIPMENT_ADVANCED_REFINE")
+    return armor && only(out, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
+  if (out.kind === "EQUIPMENT_REFINE" && armor)
+    return only(out, ["index", "refine"]) && (out.index as number) >= 0 && (out.refine as number) >= REFINE_MIN && (out.refine as number) <= REFINE_MAX;
+  return true;
+};
+
+/**
+ * Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment; `armor`: ARMOR_CP_SIM
+ * on this deployment.
+ */
+export function parseSimulateRequest(
+  body: unknown,
+  { karma = false, armor = false }: { karma?: boolean; armor?: boolean } = {},
+): SimulateRequest | null {
   if (!body || typeof body !== "object") return null;
   const { characterName, changes } = body as Record<string, unknown>;
   if (typeof characterName !== "string" || characterNameError(characterName))
@@ -444,6 +502,7 @@ export function parseSimulateRequest(body: unknown, { karma = false }: { karma?:
       out[key] = change[key];
     }
     if (out.karmaLevel !== undefined && !karmaAllowed(out, karma)) return null;
+    if (!refineAllowed(out, armor)) return null;
     clean.push(out as Change);
   }
   return { characterName: normalizeCharacterName(characterName), changes: clean };

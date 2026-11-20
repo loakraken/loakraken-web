@@ -3,7 +3,7 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ARM_GUARD_GRADES, GRADES, isRefineOpen, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
 
 const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
@@ -265,12 +265,18 @@ export function splitCandidates(list: Candidate[]) {
  * not edit yet give null, and the screen shows no button for them.
  * `gearType` names the slot of an equipment index (무기, 투구 …): refine opens
  * for the weapon only (api #884), so without it a refine step gives null (#1567).
+ * `armor` (ARMOR_CP_SIM): armour 재련 and 상급 재련 open too (the api's armour CP gate, PM 총괄 11-21).
  */
-export function editsFor(change: SpecUpChange | null | undefined, base: Edits, gearType?: GearType): Edits | null {
+export function editsFor(
+  change: SpecUpChange | null | undefined,
+  base: Edits,
+  gearType?: GearType,
+  armor = false,
+): Edits | null {
   if (!change) return null;
   switch (change.kind) {
     case "EQUIPMENT_REFINE":
-      return change.index != null && change.refine != null && gearType && isRefineOpen(gearType(change.index))
+      return change.index != null && change.refine != null && gearType && isRefineOpen(gearType(change.index), armor)
         ? { ...base, refine: { ...base.refine, [change.index]: change.refine } }
         : null;
     case "GEM_LEVEL":
@@ -290,6 +296,16 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
     case "STONE_ENGRAVING":
       return change.name && change.level != null
         ? { ...base, stone: { ...base.stone, [change.name]: change.level } }
+        : null;
+    // 상급 재련: armour only, with ARMOR_CP_SIM (the weapon's stays as before), inside 0..ADVANCED_REFINE_MAX.
+    case "EQUIPMENT_ADVANCED_REFINE":
+      return change.index != null &&
+        change.level != null &&
+        change.level >= 0 &&
+        change.level <= ADVANCED_REFINE_MAX &&
+        gearType &&
+        isAdvancedRefineOpen(gearType(change.index), armor)
+        ? { ...base, advanced: { ...base.advanced, [change.index]: change.level } }
         : null;
     // 완갑 (api #809): the simulator edits 팔 보호구 by level and grade; a step
     // without a grade keeps the one worn.
