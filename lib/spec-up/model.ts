@@ -220,7 +220,6 @@ export function keepOrder(list: Candidate[], ids: readonly string[] | null) {
     .map((row) => row.candidate);
 }
 
-/** OK rows in the backend's order; the rest folded into one line per reason. */
 /**
  * Several stages of one target (각인 0→2 / 0→3 / 0→4, one gem slot's 9·10레벨,
  * one part's +19 / +20) as one row (사용자 제보 #26): the first stage in the list's
@@ -240,15 +239,33 @@ export function groupStages(list: Candidate[]): { head: Candidate; more: Candida
   return [...groups.values()];
 }
 
-export function splitCandidates(list: Candidate[]) {
-  const ok = list.filter((c) => c.status === "OK");
+/**
+ * A computed (OK) row the 크라켄 점수 split cannot rank: no Δ점수 and no reason from the api (빈 보석 칸 rows,
+ * v0.3.15). The web's own code, never the api's; it folds with a plain sentence instead of being dropped.
+ */
+export const KRAKEN_UNSCORED = "WEB_KRAKEN_UNSCORED";
+export const KRAKEN_UNSCORED_REASON = "이 항목은 크라켄 점수를 아직 계산하지 않았어요.";
+
+/**
+ * Whether the api counts a row in a 크라켄 점수 list's total (SpecUpService: ranked = OK or a Δ점수): the rows
+ * the answer's first `limit` were taken from, ranked on screen or folded.
+ */
+export const krakenRanked = (c: Pick<Candidate, "status" | "deltaKrakenScore">) => c.status === "OK" || c.deltaKrakenScore != null;
+
+/**
+ * The ranked rows (`ranked`, by default OK) in the list's order; every other row folded into one line per
+ * reason, so no row is left off the screen.
+ */
+export function splitCandidates(list: Candidate[], ranked: (c: Candidate) => boolean = (c) => c.status === "OK") {
+  const ok = list.filter(ranked);
   const folded = new Map<string, Folded>();
   for (const c of list) {
-    if (c.status === "OK") continue;
-    const code = c.reasonCode ?? "UNKNOWN";
+    if (ranked(c)) continue;
+    const unscored = c.status === "OK" && !c.reasonCode;
+    const code = c.reasonCode ?? (unscored ? KRAKEN_UNSCORED : "UNKNOWN");
     const entry = folded.get(code) ?? {
       code,
-      reason: c.reason ?? "이 항목은 아직 계산하지 않았어요.",
+      reason: c.reason ?? (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
       kinds: [],
       candidates: [],
     };
@@ -440,9 +457,8 @@ function changeOf(value: unknown): SpecUpChange | null {
  * fold by reason as before.
  */
 export function splitKrakenCandidates(list: Candidate[]) {
-  const scored = list.filter((c) => c.deltaKrakenScore != null);
-  const { folded } = splitCandidates(list.filter((c) => c.deltaKrakenScore == null));
-  return { ok: scored, folded };
+  // Rows with no Δ점수 fold, an OK one too (it was dropped before: neither ranked nor folded).
+  return splitCandidates(list, (c) => c.deltaKrakenScore != null);
 }
 
 /** Why the 크라켄 점수 sort could not be used; the list then comes in 전투력 효율 order. */
