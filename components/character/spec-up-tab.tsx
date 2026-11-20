@@ -35,8 +35,7 @@ export function SpecUpTab({ data }: { data: Character }) {
   // scored (an older backend, or no score for this character) keeps the one
   // plain line instead of a list of "not calculated" rows.
   // The same position the header shows (the api's, else read from the build).
-  const position = positionOf(data);
-  const supporter = position === "SUPPORT";
+  const supporter = positionOf(data) === "SUPPORT";
   const firstSort = supporter ? "KRAKEN" : DEFAULT_SORT;
   // The guide's own first query for this list (KRAKEN carries the cooldown-gem
   // choice, off at first), so the two share one cache entry and one request.
@@ -63,8 +62,9 @@ export function SpecUpTab({ data }: { data: Character }) {
   const pathEnabled = useContext(SpecUpPathEnabled);
   const pathOpen = pathEnabled && (!supporter || answer?.supportOrderAvailable === true);
   // A supporter's sentence waits for their first answer on purpose (it depends on supportOrderAvailable), so it is
-  // not in the server HTML; an unknown role (positionOf null) gets the neutral one (#1862).
-  const lead = !supporter || shown ? specUpLead({ supporter, pathOpen, pathEnabled, roleKnown: position !== null }) : null;
+  // not in the server HTML. An unknown role (positionOf null) is asked and shown the dealer list (supporter false),
+  // so the dealer sentence describes what is on screen (PM-프론트 11-21, #1862).
+  const lead = !supporter || shown ? specUpLead({ supporter, pathOpen, pathEnabled }) : null;
   if (supporter && answer && !supporterScored)
     return (
       <Panel title="스펙업 가이드" wide>
