@@ -19,6 +19,7 @@ import {
   keepOrder,
   candidateKindLabel,
   noCombatPower,
+  krakenRanked,
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
@@ -296,6 +297,9 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   // for a supporter, whose rows all have none (the role note says why).
   const noCp = krakenShown ? ok.filter(noCombatPower).length : 0;
   const noCpNote = noCp > 0 && noCp < ok.length;
+  // The rows the api counted in total that came back: under 크라켄 점수 also the OK rows with no Δ점수, which
+  // fold (빈 보석 칸, v0.3.15). Without them an uncut list read '41개 중 위에서 36개'.
+  const rankedShown = krakenShown ? candidates.filter(krakenRanked).length : ok.length;
   // One row per target, its other stages behind '자세히' (사용자 제보 #26).
   const groups = useMemo(() => groupStages(ok), [ok]);
   const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
@@ -642,13 +646,13 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                 </table>
               </div>
             )}
-            {guide.total > ok.length && (
+            {guide.total > rankedShown && (
               <p className={styles.muted}>
-                계산된 후보 {guide.total}개 중 위에서 {ok.length}개를 보여 드려요.
+                계산된 후보 {guide.total}개 중 위에서 {rankedShown}개를 보여 드려요.
                 {noCpNote && ` 그중 ${noCp}개는 전투력을 아직 계산하지 않았어요.`}
               </p>
             )}
-            {guide.total <= ok.length && noCpNote && (
+            {guide.total <= rankedShown && noCpNote && (
               <p className={styles.muted}>
                 보여 드린 {ok.length}개 중 {noCp}개는 전투력을 아직 계산하지 않았어요.
               </p>
