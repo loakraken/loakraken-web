@@ -3,7 +3,7 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, isUpgradeGear, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
 
 const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
@@ -299,14 +299,14 @@ export function editsFor(
       return change.name && change.level != null
         ? { ...base, stone: { ...base.stone, [change.name]: change.level } }
         : null;
-    // 상급 재련: armour only, with ARMOR_CP_SIM (the weapon's stays as before), inside 0..ADVANCED_REFINE_MAX.
+    // 상급 재련: an 업화 weapon (gearType.upgrade), or armour with ARMOR_CP_SIM, inside 0..ADVANCED_REFINE_MAX.
     case "EQUIPMENT_ADVANCED_REFINE":
       return change.index != null &&
         change.level != null &&
         change.level >= 0 &&
         change.level <= ADVANCED_REFINE_MAX &&
         gearType &&
-        isAdvancedRefineOpen(gearType(change.index), armor)
+        isAdvancedRefineOpen(gearType(change.index), armor, gearType.upgrade?.(change.index) ?? false)
         ? { ...base, advanced: { ...base.advanced, [change.index]: change.level } }
         : null;
     // 완갑 (api #809): the simulator edits 팔 보호구 by level and grade; a step
@@ -351,13 +351,14 @@ const isKarmaLevel = (value: unknown): value is number =>
 export const isKarmaChange = (change: SpecUpChange) => change.kind === "ARK_PASSIVE_POINT" && change.karmaLevel != null;
 
 /** The slot type of an equipment index ("무기", "투구" …), from the character on screen. */
-export type GearType = (index: number) => string | null | undefined;
+/** The slot of an equipment index (무기, 투구 …); `upgrade` says whether it is 업화 (isUpgradeGear), when known. */
+export type GearType = ((index: number) => string | null | undefined) & { upgrade?: (index: number) => boolean };
 
 /** Change indexes are positions in loadout.equipment, as the simulator's own rows. */
-export const gearTypeOf =
-  (data: Pick<Character, "loadout"> | null | undefined): GearType =>
-  (index) =>
-    data?.loadout.equipment[index]?.type;
+export const gearTypeOf = (data: Pick<Character, "loadout"> | null | undefined): GearType =>
+  Object.assign((index: number) => data?.loadout.equipment[index]?.type, {
+    upgrade: (index: number) => isUpgradeGear(data?.loadout.equipment[index]?.name),
+  });
 
 /** ?try= on the simulator tab carries one change; readTry reads it back. */
 export const tryParam = (change: SpecUpChange) => JSON.stringify(change);
