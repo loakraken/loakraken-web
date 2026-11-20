@@ -12,18 +12,25 @@ const blocks = (page) =>
   page.evaluate(() => {
     const main = document.querySelector("main");
     const list = main.querySelector('ul[aria-label^="기본 보상"]');
+    // The stage and price-basis labels: their target is the shared Select, a button with role combobox, not a
+    // native <select> (codex #1825). Their own line height must be whole px too: the 36px control can make the
+    // label's box whole while its text line is not.
+    const stages = [...main.querySelectorAll("label[for]")].filter((label) => {
+      const target = document.getElementById(label.htmlFor);
+      return target?.tagName === "SELECT" || target?.getAttribute("role") === "combobox";
+    });
     const els = [
-      // The section titles and the stage / price-basis labels too (codex #1823 P3: they kept the inherited 1.43).
+      // The section titles too (codex #1823 P3: they kept the inherited 1.43).
       ...main.querySelectorAll('h2[id^="hell-"]'),
-      ...[...main.querySelectorAll("label[for]")].filter((label) => document.getElementById(label.htmlFor)?.tagName === "SELECT"),
       ...main.querySelectorAll('dl[aria-live] > div, dl[aria-live] dt, dl[aria-live] dd, label:has(> input[role="switch"])'),
       ...[...main.querySelectorAll("p")].filter((p) => p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING && p.closest("section") === list.closest("section")),
       ...list.querySelector("li").querySelectorAll(":scope > span, strong, small"),
     ];
-    return els.map((el) => {
+    const box = (el, line) => {
       const r = el.getBoundingClientRect();
-      return { what: `${el.tagName.toLowerCase()} '${el.textContent.trim().slice(0, 12)}'`, h: r.height, lh: getComputedStyle(el).lineHeight };
-    });
+      return { what: `${el.tagName.toLowerCase()} '${el.textContent.trim().slice(0, 12)}'`, h: r.height, lh: getComputedStyle(el).lineHeight, line };
+    };
+    return { stages: stages.length, all: [...stages.map((el) => box(el, true)), ...els.map((el) => box(el, false))] };
   });
 
 for (const width of [360, 320])
@@ -31,9 +38,12 @@ for (const width of [360, 320])
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/tools/hell-reward");
     await expect(page.getByRole("list", { name: /^기본 보상/ })).toBeVisible();
-    const found = await blocks(page);
+    const { stages, all: found } = await blocks(page);
+    // Both labels (단계, 시세 기준) found, so the leg cannot pass on none (codex #1825).
+    expect(stages, "단계·시세 기준 칸").toBe(2);
     expect(found.length, "찾은 칸").toBeGreaterThan(10);
-    const loose = found.filter((b) => b.lh === "normal" || Math.abs(b.h - Math.round(b.h)) > 0.01);
+    const fraction = (px) => Math.abs(px - Math.round(px)) > 0.01;
+    const loose = found.filter((b) => b.lh === "normal" || fraction(b.h) || (b.line && fraction(parseFloat(b.lh))));
     expect(loose.map((b) => `${b.what} h=${b.h.toFixed(2)} lh=${b.lh}`), "글꼴 값 줄 높이·소수 높이").toEqual([]);
   });
 
