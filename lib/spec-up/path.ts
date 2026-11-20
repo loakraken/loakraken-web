@@ -199,6 +199,12 @@ export function pathCostNote(path: Pick<SpecUpPath, "sort" | "ruleVersion" | "st
  */
 const CP_STOP_REASONS: ReadonlyMap<string, string> = new Map([
   ["ARMOR_REFINE_CP_UNCONFIRMED", "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요."],
+  // api #1036 with the armour gate on: the dealer's official and equipment-built CP differ by more than 0.10%; the path
+  // stops as for UNCONFIRMED (every step from the stop on, 백엔드 11-21), the simulator's facts in the path's words.
+  [
+    "ARMOR_CP_RESIDUAL_HIGH",
+    "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.",
+  ],
 ]);
 
 /**

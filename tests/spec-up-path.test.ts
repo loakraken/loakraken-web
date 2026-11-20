@@ -319,6 +319,11 @@ test("the combat-power stop note: where, why only for a known code, none without
   const why = " 방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.";
   assert.equal(note(1), `이 순서는 첫 단계부터 전투력을 계산하지 않았어요.${why}`);
   assert.equal(note(3), `3단계부터는 전투력을 계산하지 않았어요.${why}`);
+  // api #1036, armour gate on: official vs equipment-built CP (백엔드 11-21 wording check).
+  assert.equal(
+    note(2, "ARMOR_CP_RESIDUAL_HIGH"),
+    "2단계부터는 전투력을 계산하지 않았어요. 장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.",
+  );
   // A code the web does not know: where only, no reason it cannot vouch for.
   assert.equal(note(2, "SOMETHING_NEW"), "2단계부터는 전투력을 계산하지 않았어요.");
   assert.equal(note(2, null), "2단계부터는 전투력을 계산하지 않았어요.");
