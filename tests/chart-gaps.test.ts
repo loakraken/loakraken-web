@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { daySlots, gapBridges, gapsBefore, slotDate } from "../lib/market/chart-gaps";
-import { accessoryGapNote, isWarmedFilter } from "../lib/market/warmup-since";
+import { ACCESSORY_WARMUP_SINCE, accessoryGapNote, isWarmedFilter } from "../lib/market/warmup-since";
 
 const t = (date: string) => Date.parse(`${date}T00:00:00Z`);
 const times = ["2026-10-18", "2026-10-19", "2026-10-22", "2026-10-24", "2026-10-25"].map(t);
@@ -65,4 +65,13 @@ test("accessoryGapNote: no gap → none; not warmed or no start → viewed days 
   // Every missing day after the start: nothing to explain beyond the gap itself.
   assert.equal(accessoryGapNote(warmed, times, "2026-10-20"), null);
   assert.equal(isWarmedFilter({ ...warmed, minQuality: 90 }), false);
+});
+
+test("accessoryGapNote: the published warmup start is the default (11/20)", () => {
+  assert.equal(ACCESSORY_WARMUP_SINCE, "2026-11-20");
+  const before = ["2026-11-17", "2026-11-19", "2026-11-20"].map(t);
+  assert.equal(accessoryGapNote(warmed, before), "이 칸은 11/20 전에는 누가 조회한 날만 기록돼요");
+  const after = ["2026-11-20", "2026-11-22", "2026-11-23"].map(t);
+  assert.equal(accessoryGapNote(warmed, after), null);
+  assert.equal(accessoryGapNote({ ...warmed, minQuality: 90 }, after), "이 칸은 누가 조회한 날만 기록돼요");
 });

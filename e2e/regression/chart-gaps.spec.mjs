@@ -8,8 +8,12 @@ const GAP = "이날은 기록이 없어요";
 const detailOf = (page) => page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
 const countOf = (box) => box.getByText(/^\S+ 중 \d+일치 기록$/);
 
-/** Drop the answer's days at these positions (newest first, today partial at 0). */
-const dropDays = (page, url, positions) =>
+/**
+ * Drop the answer's days at these positions (newest first, today partial at 0). With `newest`, the days are
+ * first re-dated from that day back (one per position), so a fixed date such as the accessory warmup start
+ * falls on known positions whatever today is.
+ */
+const dropDays = (page, url, positions, newest) =>
   page.route(url, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
@@ -22,6 +26,10 @@ const dropDays = (page, url, positions) =>
       }
       return null;
     })(body);
+    if (newest) {
+      const top = Date.parse(`${newest}T00:00:00Z`);
+      holder.days = holder.days.map((day, i) => ({ ...day, date: new Date(top - i * 86_400_000).toISOString().slice(0, 10) }));
+    }
     holder.days = holder.days.filter((_, i) => !positions.includes(i));
     await route.fulfill({ response, json: body });
   });
@@ -114,9 +122,14 @@ for (const width of [320, 1280])
     await expectNoHorizontalOverflow(page);
   });
 
+const ACCESSORY_HISTORY = /\/api\/markets\/auctions\/accessories\/history/;
+// 품질 90은 워밍업이 채우지 않는 칸(기본 필터는 고대 · 딜러 · 품질 70).
+const UNWARMED = "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH&minQuality=90";
+const WARMED = "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH";
+
 test("장신구 칸에 빈 날이 있으면 조회한 날만 기록된다고 한 줄, 없으면 자리만 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 900 });
-  await gotoReady(page, "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH");
+  await gotoReady(page, UNWARMED);
   const box = page.getByRole("region", { name: /최저가 추이$/ });
   const note = box.locator("[data-gap-note]");
   await expect(box.locator("figure svg path.k-draw")).toBeVisible();
@@ -125,9 +138,34 @@ test("장신구 칸에 빈 날이 있으면 조회한 날만 기록된다고 한
   await expect(note).toHaveCount(1);
   await expect(note).toHaveText(/^\s*$/);
   const held = await note.boundingBox();
-  await dropDays(page, /\/api\/markets\/auctions\/accessories\/history/, [3, 4]);
-  await gotoReady(page, "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH");
+  await dropDays(page, ACCESSORY_HISTORY, [3, 4]);
+  await gotoReady(page, UNWARMED);
   await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "1");
   await expect(note).toHaveText("이 칸은 누가 조회한 날만 기록돼요");
   expect((await note.boundingBox()).height, "한 줄 자리 그대로").toBe(held.height);
 });
+
+// 워밍업 시작일(lib/market/warmup-since.ts, 2026-11-20)을 고정 날짜로 둔다. 날짜를 다시 매겨 오늘과 상관없이 본다.
+for (const width of [320, 360])
+  test(`${width}: 워밍업 칸은 시작일 전 빈 날만 날짜와 함께 한 줄, 뒤 빈 날은 줄 없이 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, WARMED);
+    const box = page.getByRole("region", { name: /최저가 추이$/ });
+    const note = box.locator("[data-gap-note]");
+    await expect(box.locator("figure svg path.k-draw")).toBeVisible();
+    const held = await note.boundingBox();
+    // 11-25부터 거꾸로: 위치 6·7 = 11-19·11-18(시작 전).
+    await dropDays(page, ACCESSORY_HISTORY, [6, 7], "2026-11-25");
+    await gotoReady(page, WARMED);
+    await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "1");
+    await expect(note).toHaveText("이 칸은 11/20 전에는 누가 조회한 날만 기록돼요");
+    expect((await note.boundingBox()).height, "한 줄 자리 그대로").toBe(held.height);
+    await expectNoHorizontalOverflow(page);
+    // 위치 2·3 = 11-23·11-22(시작 뒤): 빈 날은 점선과 '이날은 기록이 없어요'로 충분, 줄은 비운 채 자리만.
+    await page.unroute(ACCESSORY_HISTORY);
+    await dropDays(page, ACCESSORY_HISTORY, [2, 3], "2026-11-25");
+    await gotoReady(page, WARMED);
+    await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "1");
+    await expect(note).toHaveText(/^\s*$/);
+    expect((await note.boundingBox()).height, "자리 그대로").toBe(held.height);
+  });

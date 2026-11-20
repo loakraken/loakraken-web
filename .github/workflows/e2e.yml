@@ -87,7 +87,8 @@ jobs:
           files=$(git -c core.quotepath=off diff --no-renames --name-only HEAD^1 HEAD) || run_all "변경 파일 비교 실패"
           [ -n "$files" ] || run_all "바뀐 파일 없음"
           # 글: content/ · docs/, 그리고 e2e/ 밖의 .md(e2e/의 .md는 시험 자료). on.push.paths와 같은 규칙.
-          matched=$(printf '%s\n' "$files" | awk 'NF && !/^(content|docs)\// && !(/\.md$/ && !/^e2e\//)')
+          # awk가 실패하면 -e(러너 기본 bash -e)로 판정 job이 실패해 필수 검사가 빨갛게 막힌다. 실패도 모두 돌리는 쪽으로 간다.
+          matched=$(printf '%s\n' "$files" | awk 'NF && !/^(content|docs)\// && !(/\.md$/ && !/^e2e\//)') || run_all "판정 실패"
           # 수만 찍는다. 이름은 PR이 짓는 값이라 로그에 그대로 내지 않는다(머리말).
           echo "바뀐 파일 $(printf '%s\n' "$files" | grep -c .)개, 그중 글이 아닌 것 $(printf '%s\n' "$matched" | grep -c .)개"
           if [ -n "$matched" ]; then

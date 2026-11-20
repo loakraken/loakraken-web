@@ -972,8 +972,11 @@ createServer(async (req, res) => {
     // and unknownCostSteps (how many have none); 0 and 0 with no steps. Answers that set their own ('스펙순서비용모름…')
     // keep them, and '스펙순서비용모름옛' stays an answer from an api before #993. The supporter KRAKEN answer (the api's
     // #969 test answer, from before #993) gets them too, as today's api sends them (PM-프론트 #1778 P3).
+    // Every answer but '…옛' is on today's path rule (spec-up-path-v6, the one the web's cost note describes); '…옛'
+    // is on the rule before #993 (v5), so its note makes no per-step claim (PM-프론트 #1793 P3).
     const withCostParts = (env) => {
       const data = env.data;
+      if (data) data.ruleVersion = who === "스펙순서비용모름옛" ? "spec-up-path-v5" : "spec-up-path-v6";
       if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
       const extras = (data.steps ?? []).map((step) => step.extraCost ?? null);
       data.knownCostTotal = extras.reduce((sum, extra) => sum + (extra ?? 0), 0);
