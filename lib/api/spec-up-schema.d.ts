@@ -283,6 +283,10 @@ export interface components {
             pricesAt: string | null;
             /** @description 효율 순으로 목표에 닿을 때까지 고른 단계(순서대로) */
             steps: components["schemas"]["SpecUpGoalStepResponse"][];
+            /** @description 이 답이 장신구 연마 단계를 후보로 봤는지: 스위치 spec-up.polish-path.enabled가 켜졌고 딜러이며 크라켄 점수 입력이 있으면 true(고른 연마 단계가 없어도). 아니면 false. 배포 순서 때문에 계약에서는 선택 필드(없으면 false로 읽는다) */
+            polishStepsConsidered?: boolean;
+            /** @description 이 답이 깨달음 카르마 단계를 후보로 봤는지: 스위치 spec-up.karma-cp.enabled가 켜졌고 딜러면 true(목표 경로는 전투력으로 고르므로 서포터는 false, 고른 카르마 단계가 없어도 true). 아니면 false. 배포 순서 때문에 계약에서는 선택 필드(없으면 false로 읽는다) */
+            karmaStepsConsidered?: boolean;
         };
         SpecUpGoalStepResponse: {
             /**
@@ -512,6 +516,10 @@ export interface components {
             unknownCostSteps?: number;
             combatPowerStopOrder?: number | null;
             combatPowerStopReasonCode?: string | null;
+            /** @description 이 답이 장신구 연마 단계를 후보로 봤는지: 스위치 spec-up.polish-path.enabled가 켜졌고 딜러이며 크라켄 점수 입력이 있으면 true(고른 연마 단계가 없어도). 아니면 false. 배포 순서 때문에 계약에서는 선택 필드(없으면 false로 읽는다) */
+            polishStepsConsidered?: boolean;
+            /** @description 이 답이 깨달음 카르마 단계를 후보로 봤는지: 스위치 spec-up.karma-cp.enabled가 켜졌고 딜러이거나 실제 기준(sort)이 KRAKEN이면 true(서포터는 KRAKEN 순서에서만 카르마 단계를 고름, 고른 카르마 단계가 없어도 true). 아니면 false. 배포 순서 때문에 계약에서는 선택 필드(없으면 false로 읽는다) */
+            karmaStepsConsidered?: boolean;
         };
         SpecUpPathExcludedResponse: {
             /** @description 스펙업 가이드 후보 id와 같은 형식 */

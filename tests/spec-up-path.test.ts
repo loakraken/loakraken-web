@@ -358,3 +358,14 @@ test("pathScopeNote (PM 총괄 11-21 05:42): (c) on and present → covered, (b)
   // (b) + (a): polish on but none picked, karma off.
   assert.equal(note({ polishStepsConsidered: true }, "GEM_LEVEL"), "깨달음 카르마 단계는 아직 추천 순서에 넣지 않아요.");
 });
+test("api #1038's own answer (karma 30 dealer) passes the contract and keeps its switch fields; the note follows them", async () => {
+  const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-karma-considered.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("범위카르마30", "EFFICIENCY", origin, { fetcher: async () => json(real) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.polishStepsConsidered, false);
+  assert.equal(path.karmaStepsConsidered, true);
+  assert.equal(path.steps.some((step) => step.kind === "KARMA_LEVEL"), false);
+  // Karma on but none picked (already 30): nothing about it; polish off: not yet.
+  assert.equal(pathScopeNote(path), "장신구 연마 단계는 아직 추천 순서에 넣지 않아요.");
+});

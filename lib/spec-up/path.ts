@@ -226,12 +226,6 @@ export function pathCpStopNote(
 /** Kinds every path takes; the lead line above the answer names only these (it shows before any answer). */
 export const PATH_SCOPE_LEAD = "보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요.";
 
-/**
- * The answer's switch fields (백엔드 11-21, v0.3.15; optional): whether this answer took 장신구 연마 / 깨달음 카르마 steps
- * into account. Local until the contract sync after the api PR, then this type goes and the schema's fields are read.
- */
-export type PathScopeFields = { polishStepsConsidered?: boolean | null; karmaStepsConsidered?: boolean | null };
-
 /** The two switch-gated kinds: the answer's field, the step kind that shows one in the path, and its name. */
 const SCOPE_KINDS = [
   { field: "polishStepsConsidered", step: "POLISH", name: "장신구 연마" },
@@ -241,13 +235,14 @@ const SCOPE_KINDS = [
 /**
  * What this answer says about 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21 05:42). Each joins the path only behind its
  * own api switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production,
- * and the answer says whether it was on (polishStepsConsidered / karmaStepsConsidered; for karma the role must take it).
+ * and the answer says whether it was on (polishStepsConsidered / karmaStepsConsidered, api #1038, optional in the
+ * contract until the api ships; for karma the role must take it).
  * Per kind: (c) on and a step of it in the answer → covered; (b) on and none in the answer (karma already at 30, none
  * worth it) → nothing; (a) off, which is anything but true, a missing field (an api before them) included → '… 단계는
  * 아직 추천 순서에 넣지 않아요.' naming only the kinds that are off, with no reason (both are switch-gated now, so the old
  * reasons no longer hold). null when there is nothing to say (no element on screen).
  */
-export function pathScopeNote(path: Pick<SpecUpPath, "steps"> & PathScopeFields): string | null {
+export function pathScopeNote(path: Pick<SpecUpPath, "steps" | "polishStepsConsidered" | "karmaStepsConsidered">): string | null {
   const on = (kind: (typeof SCOPE_KINDS)[number]) => path[kind.field] === true;
   const covered = SCOPE_KINDS.filter((kind) => on(kind) && path.steps.some((step) => step.kind === kind.step));
   // 깨달음 카르마 first in the 'not yet' sentence, as PM 총괄 worded it.
