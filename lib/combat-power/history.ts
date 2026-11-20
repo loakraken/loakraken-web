@@ -1,7 +1,7 @@
 // Simulator input history and saved inputs (PM-프론트 10-11 16:37 ②·L6).
 // Pure: the screen keeps the state in a reducer and the browser storage
 // behind try/catch. Nothing here is sent to the server.
-import { NO_EDITS, type Edits } from "./model";
+import { NO_EDITS, arkPassiveMax, type Edits } from "./model";
 
 /** How many steps 이전 can go back. */
 export const HISTORY_LIMIT = 50;
@@ -201,7 +201,10 @@ export function parseSaved(text: string | null): Saved | null {
     bracelet: grades("bracelet") as Edits["bracelet"],
     engraving: numbers("engraving"),
     stone: numbers("stone"),
-    arkPassive: numbers("arkPassive"),
+    // Held to the tree's in-game maximum (도약 70), so the field shows what is sent (review P3 #1706).
+    arkPassive: Object.fromEntries(
+      Object.entries(numbers("arkPassive")).map(([tree, points]) => [tree, Math.min(points, arkPassiveMax(tree))]),
+    ),
     core: cores as Edits["core"],
     braceletName: isRecord(source.braceletName)
       ? Object.fromEntries(

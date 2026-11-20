@@ -1,0 +1,54 @@
+# 사이트 글꼴과 각 OS 시스템 글꼴의 너비·높이를 잰다(PM 총괄 11-16, 대체 글꼴 맞추기 C안).
+# 글꼴 파일을 받거나 커밋하지 않는다: 저장소의 woff2와 러너에 이미 있는 글꼴만 쓴다.
+# 결과는 로그(FONT-METRICS 줄)와 아티팩트. 이 파일이나 스크립트를 바꾸는 PR에서도 한 번 돈다.
+name: font-metrics
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/font-metrics.yml
+      - scripts/font-metrics.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install Playwright
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+      # The same fonts the e2e runner has (install --with-deps), so ubuntu reads as CI does.
+      - name: Install Chromium (ubuntu, with the e2e system dependencies)
+        if: runner.os == 'Linux'
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium (macOS)
+        if: runner.os == 'macOS'
+        working-directory: e2e
+        run: npx playwright install chromium
+      - name: Fontconfig choices (ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          echo "FONT-METRICS fc-match sans-serif: $(fc-match sans-serif)"
+          echo "FONT-METRICS fc-match ko: $(fc-match 'sans-serif:lang=ko')"
+          fc-list :lang=ko family | sort -u | sed 's/^/FONT-METRICS fc-list ko: /'
+      - name: Measure
+        run: node scripts/font-metrics.mjs "font-metrics-${{ matrix.os }}.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: font-metrics-${{ matrix.os }}
+          path: font-metrics-${{ matrix.os }}.json

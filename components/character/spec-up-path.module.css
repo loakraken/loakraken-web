@@ -32,6 +32,10 @@
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
+/* '+ 비용 모름 N단계' after the total (api #993) wraps as one piece at 320. */
+.unknownSteps {
+  white-space: nowrap;
+}
 .delta {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;

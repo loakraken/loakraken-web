@@ -849,10 +849,98 @@
    renamed per its Reserved Font Name) on every platform. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
    (rare Hanja, old Hangul, emoji) falls through to the system faces below.
    next/font sets --font-kraken on <html>, so :root resolves it. */
+/* Metric-matched fallback (PM 총괄 11-16, spike C). Kraken Sans is display:optional: a visit that
+   misses its load window keeps the system face for good. Windows' Malgun Gothic Hangul is 18% wider
+   and Linux' DejaVu Sans digits 10% / WenQuanYi Zen Hei Hangul 17% wider, so tables and badges ran
+   past their boxes (A37). These faces are those system faces scaled to Kraken Sans' widths per script
+   (size-adjust) with its line metrics (ascent 95, descent 24 per em), measured by
+   scripts/font-metrics.mjs (web #1743). macOS needs none: its fallback is as wide or narrower, and
+   Apple SD Gothic Neo cannot be named in local() anyway. A family whose local faces are missing is
+   skipped, so each platform reaches its own; with Kraken Sans loaded they draw nothing it has. */
+@font-face {
+  font-family: "Kraken Fallback Win";
+  src: local("Segoe UI");
+  font-weight: 400;
+  unicode-range: U+0000-02FF, U+2000-2BFF;
+  size-adjust: 104.24%;
+  ascent-override: 91.14%;
+  descent-override: 23.02%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Win";
+  src: local("Segoe UI Bold"), local("SegoeUI-Bold");
+  font-weight: 700;
+  unicode-range: U+0000-02FF, U+2000-2BFF;
+  size-adjust: 102.46%;
+  ascent-override: 92.72%;
+  descent-override: 23.42%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Win";
+  src: local("Malgun Gothic");
+  font-weight: 400;
+  unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF;
+  size-adjust: 84.58%;
+  ascent-override: 112.32%;
+  descent-override: 28.38%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Win";
+  src: local("Malgun Gothic Bold");
+  font-weight: 700;
+  unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF;
+  size-adjust: 83.89%;
+  ascent-override: 113.24%;
+  descent-override: 28.61%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Linux";
+  src: local("DejaVu Sans");
+  font-weight: 400;
+  unicode-range: U+0000-02FF, U+2000-2BFF;
+  size-adjust: 90.53%;
+  ascent-override: 104.94%;
+  descent-override: 26.51%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Linux";
+  src: local("DejaVu Sans Bold"), local("DejaVuSans-Bold");
+  font-weight: 700;
+  unicode-range: U+0000-02FF, U+2000-2BFF;
+  size-adjust: 86.17%;
+  ascent-override: 110.25%;
+  descent-override: 27.85%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Linux";
+  src: local("WenQuanYi Zen Hei");
+  font-weight: 400;
+  unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF;
+  size-adjust: 85.72%;
+  ascent-override: 110.83%;
+  descent-override: 28%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Kraken Fallback Linux";
+  src: local("WenQuanYi Zen Hei");
+  font-weight: 700;
+  unicode-range: U+1100-11FF, U+3000-303F, U+3130-318F, U+AC00-D7AF;
+  size-adjust: 85.01%;
+  ascent-override: 111.75%;
+  descent-override: 28.23%;
+  line-gap-override: 0%;
+}
 :root {
   --font-ui:
-    var(--font-kraken, "Kraken Sans"), -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
+    var(--font-kraken, "Kraken Sans"), "Kraken Fallback Win", "Kraken Fallback Linux", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
 }
 
 /* LOAKraken design values. One source for every screen; spec lives in the
@@ -1399,4 +1487,109 @@
    would otherwise draw it as an empty flex item with a gap). */
 [data-fp-end] {
   display: none !important;
+}
+
+/* OverflowRow (components/ui/overflow-row.tsx): a box round a row that scrolls sideways. It takes
+   no room of its own. The ‹ › buttons are overlays on the row's ends, not drawn at all (display:
+   none) until the row is measured as hiding items past that end, so they never move anything while
+   a page arrives (A7). A row whose scroller sits off this box's edges (negative margins for its
+   focus room) sets --row-start / --row-end / --row-top / --row-bottom in its own CSS.
+   Here, not in a CSS module: a module shared by this many client components became a stylesheet
+   chunk of its own and reordered the others, flipping equal-specificity rules on unrelated pages
+   (#1751 CI: /rankings class select 12px → 14px). The box's own base rule is in the components layer
+   (a row's utilities win); the button rules are not, and are parent-qualified, so a page module's
+   `.x button { display: … }` can't show them. */
+@layer components {
+  [data-overflow-row] {
+    position: relative;
+    min-width: 0;
+  }
+  /* On a mouse, an item brought into view (keyboard, a click on a half-hidden item, reveal) stops
+     clear of the ‹ › button: 4px + 28px, and a little air. Layered and zero specificity, so a row
+     that sets its own scroll-padding (utility or module) keeps it. Without this an item rested
+     under › and a press on it went to the button (CI 11-16: /stats tabs at 360). */
+  @media (hover: hover) and (pointer: fine) {
+    :where([data-overflow-row]) > :where(:first-child) {
+      scroll-padding-inline: 36px;
+    }
+  }
+}
+
+[data-overflow-row] > [data-overflow-arrow] {
+  position: absolute;
+  top: var(--row-top, 0px);
+  bottom: var(--row-bottom, 0px);
+  z-index: 2;
+  display: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin-block: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 12%, transparent);
+  cursor: pointer;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    scale var(--duration-fast) var(--ease-out);
+}
+[data-overflow-row] > [data-overflow-arrow="prev"] {
+  left: calc(var(--row-start, 0px) + 4px);
+}
+[data-overflow-row] > [data-overflow-arrow="next"] {
+  right: calc(var(--row-end, 0px) + 4px);
+}
+
+/* A mouse or trackpad only: a touch screen swipes the row itself. */
+@media (hover: hover) and (pointer: fine) {
+  [data-overflow-row][data-overflow-start] > [data-overflow-arrow="prev"],
+  [data-overflow-row][data-overflow-end] > [data-overflow-arrow="next"] {
+    display: grid;
+  }
+  /* Fades in; at the row's end it goes at once. */
+  @starting-style {
+    [data-overflow-row][data-overflow-start] > [data-overflow-arrow="prev"],
+    [data-overflow-row][data-overflow-end] > [data-overflow-arrow="next"] {
+      opacity: 0;
+    }
+  }
+  [data-overflow-row] > [data-overflow-arrow]:hover {
+    background: var(--hover-surface);
+  }
+}
+[data-overflow-row] > [data-overflow-arrow]:active {
+  scale: var(--press-scale, 0.97);
+}
+[data-overflow-row] > [data-overflow-arrow]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* While the mouse drags the row: no snapping or smooth scroll under the hand,
+   no text selected, and the hand shows it holds the row. */
+[data-overflow-row][data-dragging] > :first-child {
+  cursor: grabbing;
+  user-select: none;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+[data-overflow-row][data-dragging] > :first-child * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-overflow-row] > [data-overflow-arrow] {
+    transition: none;
+  }
+}
+
+/* Forced colours: the button keeps an edge of its own. */
+@media (forced-colors: active) {
+  [data-overflow-row] > [data-overflow-arrow] {
+    border-color: ButtonText;
+  }
 }

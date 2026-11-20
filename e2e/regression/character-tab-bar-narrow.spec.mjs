@@ -11,7 +11,8 @@ import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 const barState = (page) =>
   page.evaluate(() => {
     const nav = document.querySelector('nav[aria-label="캐릭터 정보 탭"]');
-    const actions = nav.nextElementSibling;
+    // The tabs sit in their scroll box (OverflowRow); the actions follow that box.
+    const actions = (nav.closest("[data-overflow-row]") ?? nav).nextElementSibling;
     const tabsTop = Math.min(...[...nav.querySelectorAll("a")].map((a) => a.getBoundingClientRect().top));
     const shown = [...actions.querySelectorAll("button, a")].filter((el) => el.getBoundingClientRect().width > 0);
     const page = document.documentElement.clientWidth;

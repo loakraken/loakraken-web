@@ -44,7 +44,7 @@ test("캐릭터: 360에서 탭·배너 순위·효율 설명·글자 버튼 누�
     const area = await pressArea(nav.getByRole("link").nth(i));
     expect([area[0], area[2]], `탭 ${i + 1} 위·아래`).toEqual([true, true]);
   }
-  expect(await pressArea(page.getByRole("button", { name: /^전투력 [\d,]+위/ })), "배너 순위").toEqual([true, true, true, true]);
+  expect(await pressArea(page.getByRole("button", { name: /[\d,]+위 · 상위 [\d.]+% 전투력 순위, / })), "배너 순위").toEqual([true, true, true, true]);
   expect(await pressArea(page.getByRole("button", { name: /^팔찌 효율/ })), "팔찌 효율 설명").toEqual([true, true, true, true]);
   expect(await pressArea(page.getByRole("button", { name: "악마 피해" })), "팔찌 악마 피해").toEqual([true, true, true, true]);
   const tiers = page.getByRole("button", { name: /^티어 / });

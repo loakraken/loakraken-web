@@ -734,9 +734,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 9999px;
+  /* One line is 26px (16px line + 5px above and below); two lines grow from it. */
+  min-height: 26px;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 13px;
+  line-height: 16px;
   background: color-mix(in oklab, var(--band-muted) 18%, transparent);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -760,6 +763,70 @@
 @media (max-width: 359px) {
   .bannerRankBadge {
     gap: 4px;
-    padding: 0 4px;
+    padding-inline: 4px;
   }
+}
+/* Fit (PM 총괄 11-16): two unbreakable halves, [tier rank] and [상위 share], wrap natively, so the
+   browser puts them on one line when they fit and on two when not, for any tier, rank length, font and
+   width (sweep 11-16: a 5-digit rank with a two-decimal share ran past the row at 320 even in the site
+   font). Only a row whose rank was in the first HTML grows (banner-rank.tsx); the site font is
+   display:optional, so its height is settled at the first paint. The "·" sits in the share's leading
+   gap, which the text box cuts off when the share starts the second line. */
+.bannerRankWraps {
+  height: auto;
+  min-height: 26px;
+}
+/* `.page button`'s `font: inherit` also sets line-height; this keeps the 16px line (26px badge). */
+.bannerRank > .bannerRankBadge {
+  line-height: 16px;
+}
+/* After the first paint the line count is kept (banner-rank.tsx): one line never wraps, two lines are a
+   fixed 42px (16px lines + 5px above and below, as the first paint drew them), one half per line. */
+.bannerRank:not(.bannerRankWraps):not(.bannerRankTwo) .bannerRankHalves {
+  flex-wrap: nowrap;
+}
+.bannerRankTwo {
+  height: 42px;
+}
+/* As wide as the first paint drew it: a wrapped badge fills the row; the fixed column would shrink it to its
+   wider half (167 → 98px at 320, PM-프론트 #1759 P2). */
+.bannerRankTwo .bannerRankBadge {
+  width: 100%;
+}
+.bannerRankTwo .bannerRankHalves {
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* The last short step: also without the tier (the name still says it). */
+.bannerRankShorter .bannerRankTier {
+  display: none;
+}
+.bannerRankText {
+  --rank-gap: 0.9em;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+}
+.bannerRankHalves {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline-start: calc(-1 * var(--rank-gap));
+}
+.bannerRankHalf {
+  margin-inline-start: var(--rank-gap);
+  white-space: nowrap;
+}
+.bannerRankShare {
+  position: relative;
+}
+.bannerRankShare::before {
+  content: "·";
+  position: absolute;
+  right: 100%;
+  width: var(--rank-gap);
+  text-align: center;
+}
+/* A row first drawn empty keeps one line: a rank arriving later that does not fit leaves 상위 out. */
+.bannerRankShort .bannerRankTopWord {
+  display: none;
 }

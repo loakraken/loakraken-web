@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathCostNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -39,12 +39,57 @@ test("no sort is the backend's default; a sort it does not take never leaves the
     },
   });
   assert.ok(result.ok);
-  for (const sort of ["KRAKEN", "efficiency", ""])
+  for (const sort of ["kraken", "efficiency", ""])
     assert.deepEqual(await requestSpecUpPath("스펙순서", sort, origin, { fetcher: async () => json(sample) }), {
       ok: false,
       error: { code: "INVALID_REQUEST", status: 400 },
     });
-  assert.ok(isPathSort("EFFICIENCY") && isPathSort("DELTA") && !isPathSort("KRAKEN"));
+  // KRAKEN passes since api #967/#971: the screen asks for it only where the api offered it.
+  assert.ok(isPathSort("EFFICIENCY") && isPathSort("DELTA") && isPathSort("KRAKEN") && !isPathSort("kraken"));
+});
+
+test("추천 순서 by score is offered only where the api says it runs (supportOrderAvailable, api #971)", () => {
+  const ids = (sorts: readonly { id: string }[]) => sorts.map((s) => s.id);
+  assert.deepEqual(ids(pathSortsFor(false, false)), ["EFFICIENCY", "DELTA"], "off: the dealer's two rules, no KRAKEN");
+  assert.deepEqual(ids(pathSortsFor(true, false)), ["EFFICIENCY", "DELTA", "KRAKEN"]);
+  assert.deepEqual(ids(pathSortsFor(false, true)), [], "off: a supporter has no 추천 순서");
+  assert.deepEqual(ids(pathSortsFor(true, true)), ["KRAKEN"], "on: a supporter's only rule is the score");
+});
+
+test("the score's name follows the answer's own role (krakenScoreRole), else the web's position check", () => {
+  assert.equal(scoredAsSupporter("SUPPORT", false), true);
+  assert.equal(scoredAsSupporter("DEALER", true), false);
+  // A value the web does not know yet (the field's values may grow) or none: the web's own check.
+  for (const role of [null, undefined, "HEALER"]) {
+    assert.equal(scoredAsSupporter(role, true), true);
+    assert.equal(scoredAsSupporter(role, false), false);
+  }
+  const answer = { sort: "KRAKEN", combatPower: 1, finalCombatPower: null, krakenScore: 1, finalKrakenScore: 2 };
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: "SUPPORT" }, false).name, "서포터 점수");
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: "DEALER" }, true).name, "크라켄 점수");
+  assert.equal(pathFigures({ ...answer, krakenScoreRole: null }, true).name, "서포터 점수");
+});
+
+test("the api's own supporter KRAKEN path (api #969 test answer) passes the contract and reads in its score", async () => {
+  const real = JSON.parse(
+    readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"),
+  );
+  const result = await requestSpecUpPath("점수순서서폿", "KRAKEN", origin, {
+    fetcher: async (url) => {
+      assert.match(String(url), /sort=KRAKEN$/);
+      return json(real);
+    },
+  });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.finalCombatPower, null);
+  const figures = pathFigures(path, true);
+  assert.deepEqual([figures.name, figures.start, figures.final], ["서포터 점수", 5286.48, 5490.12]);
+  assert.deepEqual(
+    path.steps.map((step) => stepFigures(step, true).gain),
+    [53.33, 40.57, 43.43, 41.33, 24.99],
+  );
+  assert.ok(path.steps.every((step) => stepFigures(step, false).gain === null), "no combat power on any step");
 });
 
 test("SPEC_UP_BUSY keeps its code and Retry-After; another 429 is the rate limit; 404 codes pass", async () => {
@@ -92,6 +137,48 @@ test("without extraCost (an older answer): a gem step adds its cost minus the sa
   assert.deepEqual(extraCosts([{ ...steps[0], extraCost: null }, { ...steps[1], extraCost: 1 }]), [null, 1]);
 });
 
+test("a supporter's KRAKEN path (api #967): null combat power passes the contract and is told in the score", async () => {
+  // As api #967 answers a supporter: combat power null on the path and its steps, the score given.
+  const kraken = structuredClone(sample);
+  Object.assign(kraken.data, { sort: "KRAKEN", finalCombatPower: null, krakenScore: 100, finalKrakenScore: 112.5 });
+  kraken.data.steps.forEach((step: Record<string, unknown>, i: number) =>
+    Object.assign(step, {
+      deltaCombatPower: null,
+      combatPowerAfter: null,
+      combatPowerPer10kGold: null,
+      deltaKrakenScore: 6.25,
+      krakenScoreAfter: 100 + 6.25 * (i + 1),
+      krakenScorePer100kGold: i === 0 ? 10.42 : null,
+    }),
+  );
+  const result = await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(kraken) });
+  assert.ok(result.ok, "the contract takes a null step combat power");
+  const path = result.envelope.data;
+
+  const figures = pathFigures(path, true);
+  assert.deepEqual(figures, { scored: true, name: "서포터 점수", perGold: "10만G당 점수", start: 100, final: 112.5 });
+  assert.equal(pathFigures(path, false).name, "크라켄 점수");
+  assert.deepEqual(
+    path.steps.map((step) => stepFigures(step, true)),
+    [
+      { gain: 6.25, after: 106.25, perGold: 10.42 },
+      { gain: 6.25, after: 112.5, perGold: null },
+    ],
+  );
+  // No combat power is ever read from it: the CP figures are null.
+  assert.deepEqual(stepFigures(path.steps[0], false), { gain: null, after: null, perGold: null });
+
+  // Any other answer is told in combat power, as before; an older answer without the score fields too.
+  const plain = (await requestSpecUpPath("스펙순서", "DELTA", origin, { fetcher: async () => json(sample) })) as {
+    ok: true;
+    envelope: { data: typeof path };
+  };
+  const cp = pathFigures(plain.envelope.data, false);
+  assert.deepEqual([cp.scored, cp.name, cp.perGold, cp.final], [false, "전투력", "1만G당 전투력", sample.data.finalCombatPower]);
+  assert.equal(stepFigures(plain.envelope.data.steps[0], false).gain, sample.data.steps[0].deltaCombatPower);
+  assert.equal(stepFigures(plain.envelope.data.steps[0], true).gain, null, "no score fields → null, never 0");
+});
+
 test("SPEC_UP_PATH: on/off override, hidden only on production, and never without the guide", () => {
   const prod = "https://loakraken.gg";
   assert.equal(isSpecUpPathEnabled({}), true);
@@ -99,4 +186,60 @@ test("SPEC_UP_PATH: on/off override, hidden only on production, and never withou
   assert.equal(isSpecUpPathEnabled({ SITE_URL: prod, SPEC_UP_GUIDE: "on", SPEC_UP_PATH: "on" }), true);
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_PATH: "off" }), false);
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_GUIDE: "off", SPEC_UP_PATH: "on" }), false);
+});
+
+test("computing seat busy (api #989): asked again after Retry-After, three times, only for SPEC_UP_BUSY", async () => {
+  const { SpecUpQueryError, SEAT_RETRIES, seatRetry, seatRetryDelay } = await import("../lib/spec-up/client");
+  const busy = new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 + 2_000 });
+  assert.equal(SEAT_RETRIES, 3);
+  assert.deepEqual([0, 1, 2, 3].map((n) => seatRetry(n, busy)), [true, true, true, false]);
+  // Other failures are shown as they come: the rate limit, a timeout, a plain error.
+  assert.equal(seatRetry(0, new SpecUpQueryError({ code: "RATE_LIMITED", status: 429, retryAt: 12_000 })), false);
+  assert.equal(seatRetry(0, new SpecUpQueryError({ code: "LOST_ARK_API_ERROR", status: 502 })), false);
+  assert.equal(seatRetry(0, new Error("x")), false);
+  // The wait is the Retry-After, held to 0.5–5 s; none given reads as 1 s.
+  assert.equal(seatRetryDelay(0, busy, 10_000), 2_000);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 + 60_000 }), 10_000), 5_000);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429, retryAt: 10_000 }), 10_000), 500);
+  assert.equal(seatRetryDelay(0, new SpecUpQueryError({ code: "SPEC_UP_BUSY", status: 429 }), 10_000), 1_000);
+});
+
+test("the total line (api #993): known gold plus unknown steps; an older api's null total stays unknown", () => {
+  const base = sample.data;
+  // A priced path: its total as it is.
+  assert.deepEqual(pathTotal(base), { gold: 2_600_000, unknownSteps: 0 });
+  // #993: totalCost null with the known part beside it.
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 1 });
+  // PM 총괄 11-19: every step unknown → no gold (미정), only the count; never 0G.
+  assert.equal(base.steps.length, 2);
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 0, unknownCostSteps: 2 }), { gold: null, unknownSteps: 2 });
+  // A known step that costs nothing more plus an unknown one: 0G + the count (a cost is known).
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 0, unknownCostSteps: 1 }), { gold: 0, unknownSteps: 1 });
+  // Only free steps: the api's own total, 0G.
+  assert.deepEqual(pathTotal({ ...base, totalCost: 0 }), { gold: 0, unknownSteps: 0 });
+  // An api before #993 (fields absent or null): no total, as today.
+  assert.deepEqual(pathTotal({ ...base, totalCost: null }), { gold: null, unknownSteps: 0 });
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: null, unknownCostSteps: null }), { gold: null, unknownSteps: 0 });
+  // Half an answer or a value that cannot be a count: never a made-up total.
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000 }), { gold: null, unknownSteps: 0 });
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000, unknownCostSteps: 0 }), { gold: null, unknownSteps: 0 });
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: -1, unknownCostSteps: 1 }), { gold: null, unknownSteps: 0 });
+  assert.deepEqual(pathTotal({ ...base, totalCost: null, knownCostTotal: 2_600_000, unknownCostSteps: 1.5 }), { gold: null, unknownSteps: 0 });
+  // A known total wins over the fields.
+  assert.deepEqual(pathTotal({ ...base, knownCostTotal: 1, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 0 });
+});
+
+test("the cost note follows the order's rule (api #993 paidCost, PM 총괄 11-20 P1)", () => {
+  // 효율 우선 and 점수 효율: a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its whole new
+  // price each step; only a tradeable one takes the step before off.
+  const perStep =
+    "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
+  assert.equal(pathCostNote("EFFICIENCY"), perStep);
+  assert.equal(pathCostNote("KRAKEN"), perStep);
+  // 전투력 우선 is unchanged: the old sentence.
+  assert.equal(pathCostNote("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
+  // An answer without a sort reads as the api's default order (EFFICIENCY).
+  assert.equal(pathCostNote(undefined), perStep);
+  // The old sentence never shows under an order that pays per step.
+  assert.ok(!perStep.includes("보석은 같은 칸의 앞 단계 비용을 빼고"));
 });

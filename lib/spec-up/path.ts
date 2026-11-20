@@ -13,14 +13,78 @@ export type SpecUpPath = Schemas["SpecUpPathResponse"];
 export type PathUnpriced = Schemas["SpecUpPathExcludedResponse"];
 export type PathEnvelope = { code: string; message: string; data: SpecUpPath };
 
-export type PathSort = "EFFICIENCY" | "DELTA";
+export type PathSort = "EFFICIENCY" | "DELTA" | "KRAKEN";
 // Own words, not the list's sort buttons above ('전투력 효율 (1만G당)' · '전투력 증가'):
 // two controls with one name on one screen read as the same control.
 export const PATH_SORTS: readonly { id: PathSort; label: string }[] = [
   { id: "EFFICIENCY", label: "효율 우선" },
   { id: "DELTA", label: "전투력 우선" },
 ];
-export const isPathSort = (value: unknown): value is PathSort => value === "EFFICIENCY" || value === "DELTA";
+/**
+ * 크라켄 점수 (서포터는 서포터 점수) order, api #967; shown only where the api says it runs (api #971).
+ * Named for what the api ranks by, score per 100,000 gold, not the raw gain (PM 총괄 · PM-프론트
+ * #1734 P2). Since api #993 (PM 총괄 11-19) steps with no rate, costing nothing more (extra cost
+ * ≤ 0) or an unknown cost, come after the rated ones (SpecUpGoalService.krakenPreferred); before
+ * it they came first. Same rule for dealers and supporters.
+ */
+export const PATH_KRAKEN_SORT = {
+  id: "KRAKEN",
+  label: "점수 효율",
+  describe: "10만 골드당 점수가 많이 오르는 순서예요. 더 드는 비용이 없거나 비용을 모르는 단계는 그 뒤에 와요.",
+} as const satisfies { id: PathSort; label: string; describe: string };
+export const isPathSort = (value: unknown): value is PathSort =>
+  value === "EFFICIENCY" || value === "DELTA" || value === "KRAKEN";
+
+/**
+ * The 추천 순서 rules on screen. KRAKEN only where the api says sort=KRAKEN really
+ * runs for this character (supportOrderAvailable, api #971; the web never asks
+ * to find out, 백엔드 11-15). A supporter has no combat-power order, so their
+ * path is the score one or none at all.
+ */
+export function pathSortsFor(
+  supportOrder: boolean,
+  supporter: boolean,
+): readonly { id: PathSort; label: string; describe?: string }[] {
+  if (supporter) return supportOrder ? [PATH_KRAKEN_SORT] : [];
+  return supportOrder ? [...PATH_SORTS, PATH_KRAKEN_SORT] : PATH_SORTS;
+}
+
+/**
+ * Whose score formula an answer used: the api's own word (krakenScoreRole, api #971;
+ * a string whose values may grow), else the web's position check (PM-프론트 P3 on #1731).
+ */
+export const scoredAsSupporter = (role: string | null | undefined, fallback: boolean) =>
+  role === "SUPPORT" ? true : role === "DEALER" ? false : fallback;
+
+/**
+ * The figures a path is told in (api #967). A KRAKEN answer orders by the Kraken
+ * score, so it is told in that score, as the list's KRAKEN view is; on a
+ * supporter's KRAKEN path the combat power is null (no CP number on screen).
+ * Every other answer is told in combat power, as before. The web does not ask
+ * for sort=KRAKEN on the path yet (백엔드 11-15: only after this ships).
+ */
+export function pathFigures(
+  path: Pick<SpecUpPath, "sort" | "combatPower" | "finalCombatPower" | "krakenScore" | "finalKrakenScore" | "krakenScoreRole">,
+  /** The web's own position check, used only when the answer does not name its score role. */
+  supporter: boolean,
+) {
+  const scored = path.sort === "KRAKEN";
+  return {
+    scored,
+    /** The figure's name: the list's own words for the same score, by the answer's own role. */
+    name: scored ? (scoredAsSupporter(path.krakenScoreRole, supporter) ? "서포터 점수" : "크라켄 점수") : "전투력",
+    perGold: scored ? "10만G당 점수" : "1만G당 전투력",
+    start: (scored ? path.krakenScore : path.combatPower) ?? null,
+    final: (scored ? path.finalKrakenScore : path.finalCombatPower) ?? null,
+  };
+}
+
+/** One step's gain, value after it and gain per gold, in the path's figure; null = not given. */
+export function stepFigures(step: GoalStep, scored: boolean) {
+  return scored
+    ? { gain: step.deltaKrakenScore ?? null, after: step.krakenScoreAfter ?? null, perGold: step.krakenScorePer100kGold ?? null }
+    : { gain: step.deltaCombatPower, after: step.combatPowerAfter, perGold: step.combatPowerPer10kGold };
+}
 
 /** Rows shown before "모두 보기". */
 export const PATH_FIRST_ROWS = 10;
@@ -74,4 +138,40 @@ export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
     if (before === undefined) return own;
     return before === null ? null : own - before;
   });
+}
+
+/**
+ * The fields api #993 adds beside totalCost: the gold of the steps whose cost is
+ * known and how many steps have no cost. Optional here until the contract sync
+ * after #993 merges; an api before it never sends them.
+ */
+type KnownCostParts = { knownCostTotal?: number | null; unknownCostSteps?: number | null };
+
+/**
+ * The path's total line (api #993, PM 총괄 11-19). KRAKEN and EFFICIENCY now add
+ * the steps whose cost is unknown at the end, so totalCost is null on many paths.
+ * Then the total is the known gold plus a count of the unknown steps; when every
+ * step's cost is unknown there is no gold to show, only the count (never 0G,
+ * PM 총괄 11-19). Without the new fields (an older api) it stays unknown, as before.
+ * gold null = no total to show; unknownSteps 0 = no count to show.
+ */
+export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | null; unknownSteps: number } {
+  if (path.totalCost != null) return { gold: path.totalCost, unknownSteps: 0 };
+  const known = path.knownCostTotal;
+  const unknown = path.unknownCostSteps;
+  if (typeof known === "number" && Number.isFinite(known) && known >= 0 && Number.isInteger(unknown) && unknown! > 0)
+    return { gold: unknown! >= path.steps.length ? null : known, unknownSteps: unknown! };
+  return { gold: null, unknownSteps: 0 };
+}
+
+/**
+ * The note under the path on how its step costs were counted, per order (PM 총괄 11-20 P1; api #993,
+ * SpecUpGoalService.paidCost / marginal). 효율 우선 and 점수 효율 (KRAKEN) pay each step: a tradeable gem or accessory
+ * costs its new price less the price paid in the same slot the step before (never below 0), while a bound gem, a gem
+ * for an empty slot, an accessory that cannot be traded and an ability stone cost their whole new price every time.
+ * 전투력 우선 (DELTA) keeps the earlier rule: a gem step adds its cost less the same slot's step before.
+ */
+export function pathCostNote(sort: string | null | undefined): string {
+  if (sort === "DELTA") return "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.";
+  return "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
 }

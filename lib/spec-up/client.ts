@@ -12,6 +12,22 @@ export class SpecUpQueryError extends Error {
   }
 }
 
+/**
+ * Computing seats (api #989): one per client. Switching the path's rule while its first answer is still being
+ * worked out leaves that computation holding this client's seat (the browser drops the request, the server
+ * finishes it), so the new rule's request reads 429 SPEC_UP_BUSY at once. A normal switch should not show
+ * a busy error: a busy answer is asked again after its Retry-After, a few times, before it is shown. Any
+ * other failure is shown as it comes.
+ */
+export const SEAT_RETRIES = 3;
+export const seatRetry = (failures: number, error: unknown) =>
+  failures < SEAT_RETRIES && error instanceof SpecUpQueryError && error.info.code === "SPEC_UP_BUSY";
+/** Retry-After, held to 0.5–5 s (a missing header reads as 60 s in retryAfterAt; a seat frees in seconds). */
+export const seatRetryDelay = (_failures: number, error: unknown, now = Date.now()) => {
+  const at = error instanceof SpecUpQueryError ? error.info.retryAt : undefined;
+  return Math.min(Math.max(at ? at - now : 1000, 500), 5000);
+};
+
 /** 스펙업 목표 경로 (api #455); target is sent as typed, two decimals at most. */
 export async function fetchSpecUpGoal(characterName: string, target: number, signal?: AbortSignal) {
   const params = new URLSearchParams({ characterName, targetCombatPower: target.toFixed(2).replace(/\.?0+$/, "") });

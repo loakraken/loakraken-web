@@ -73,7 +73,7 @@ export interface paths {
         };
         /**
          * 스펙업 추천 순서(이어 고르기, 공식 호출 없음)
-         * @description 목표 없이, 지금 상태에서 항목마다 다음 한 단계를 만들고 sort 기준으로 가장 앞의 단계를 적용한 뒤 다시 재기를 limit 단계까지 되풀이한 순서입니다. sort=EFFICIENCY(기본): 이 단계에 더 드는 비용 1만 골드당 전투력이 큰 순(더 드는 비용이 0 이하인 단계가 먼저, 같으면 Δ·id). sort=DELTA: 전투력 증가가 큰 순(같으면 효율·id). 시세(더 드는 비용)를 모르는 단계는 순서에 넣지 않고 unpriced에 지금 상태 기준으로 따로 줍니다(비용을 추측하지 않음). 단계·비용·전투력은 목표 경로(/spec-up/goal)와 같은 규칙입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음, 보석 칸은 누적 비용, cumulativeCost는 그 단계까지 합계). 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 계산 시간 상한이 있고, 같은 캐릭터 수집 시각·시세·sort·limit은 10분 캐시합니다. 계산이 몰리면 기다리지 않고 429 SPEC_UP_BUSY와 Retry-After(초)를 줍니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
+         * @description 목표 없이, 지금 상태에서 항목마다 다음 한 단계를 만들고 sort 기준으로 가장 앞의 단계를 적용한 뒤 다시 재기를 limit 단계까지 되풀이한 순서입니다. sort=EFFICIENCY(기본): 이 단계에 더 드는 비용 1만 골드당 전투력이 큰 순(더 드는 비용이 0 이하인 단계가 먼저, 같으면 Δ·id). sort=DELTA: 전투력 증가가 큰 순(같으면 효율·id). sort=KRAKEN(spec-up.support-order.enabled, 기본 끔): 크라켄 점수(서포터는 서포터 점수식)가 오르는 단계만, 더 드는 비용이 0 이하인 단계가 먼저(Δ점수 큰 순), 그다음 10만 골드당 Δ점수 큰 순(같으면 Δ점수·id). 작열(쿨) 보석은 빼고, 단계에 deltaKrakenScore·krakenScoreAfter·krakenScorePer100kGold를 준다. 쓸 수 없으면 EFFICIENCY로 되돌리고 krakenSortUnavailableReason을 준다. 시세(더 드는 비용)를 모르는 단계는 순서에 넣지 않고 unpriced에 지금 상태 기준으로 따로 줍니다(비용을 추측하지 않음). 단계·비용·전투력은 목표 경로(/spec-up/goal)와 같은 규칙입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음, 보석 칸은 누적 비용, cumulativeCost는 그 단계까지 합계). 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 계산 시간 상한이 있고, 같은 캐릭터 수집 시각·시세·sort·limit은 10분 캐시합니다. 계산이 몰리면 기다리지 않고 429 SPEC_UP_BUSY와 Retry-After(초)를 줍니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["path"];
         put?: never;
@@ -140,6 +140,9 @@ export interface components {
             /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) */
             cooldownGemsIncluded?: boolean;
             krakenSortUnavailableReason?: string | null;
+            /** @description 추천 순서(/spec-up/path) sort=KRAKEN을 이 캐릭터에 쓸 수 있는지: 스위치 spec-up.support-order.enabled가 켜졌고 크라켄 점수를 낼 수 있으면 true. 웹은 이 값으로 KRAKEN 순서 버튼을 보인다(시험 요청으로 알아보지 않음). 배포 순서 때문에 계약에서는 선택 필드 */
+            supportOrderAvailable?: boolean;
+            krakenScoreRole?: string | null;
         };
         CandidateResponse: {
             /**
@@ -312,17 +315,18 @@ export interface components {
             skillName: string | null;
             /** @description 전투력 시뮬레이터 요청의 changes[] 하나와 같은 모양 */
             change: components["schemas"]["ChangeResponse"];
-            /** @description 이 단계로 늘어난 전투력(소수 둘째 자리) */
-            deltaCombatPower: number;
-            /** @description 이 단계까지 적용한 전투력(시뮬레이터) */
-            combatPowerAfter: number;
+            deltaCombatPower: number | null;
+            combatPowerAfter: number | null;
             /** @description 이 단계 비용(골드). 보석 단계는 지금에서 그 레벨까지의 누적 비용(음수 없음) */
             cost: components["schemas"]["CostResponse"];
             cumulativeCost: number | null;
             combatPowerPer10kGold: number | null;
             extraCost?: number | null;
-            /** @description 이 단계의 시뮬레이터 변경 전부(전투력 시뮬레이터 요청의 changes[]와 같은 모양). 대부분 하나(= change)이고, 어빌리티 스톤은 각인 둘. 다시 잴 때는 단계마다 이 목록을 넣고 같은 칸(candidateId의 마지막 ':' 앞)은 마지막 단계의 목록만 남긴다 */
+            /** @description 이 단계의 시뮬레이터 변경 전부(전투력 시뮬레이터 요청의 changes[]와 같은 모양). 대부분 하나(= change)이고, 어빌리티 스톤은 각인 둘. 다시 잴 때는 단계마다 이 목록을 넣고 같은 칸(candidateId의 마지막 ':' 앞)은 마지막 단계의 목록만 남긴다. 장신구 연마(POLISH) 단계는 그 장신구의 처음 상태와 다른 줄마다 POLISH 하나(빠지는 줄은 option NONE, 이름 있는 옵션이 먼저)에, 같은 장신구의 앞 단계가 바꾼 줄 가운데 이 단계가 바꾸지 않는 줄을 처음 값으로 되돌리는 POLISH를 더한 목록이다. 그래서 칸마다 마지막 목록만 남기든, 모든 단계를 차례로 이어 줄마다 뒤의 변경이 이기게 하든 단계 전투력과 같다 */
             changes?: components["schemas"]["ChangeResponse"][];
+            deltaKrakenScore?: number | null;
+            krakenScoreAfter?: number | null;
+            krakenScorePer100kGold?: number | null;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseSpecUpDetailResponse: {
@@ -462,7 +466,7 @@ export interface components {
             combatPower: number | null;
             finalCombatPower: number | null;
             /**
-             * @description 쓴 기준(EFFICIENCY·DELTA)
+             * @description 쓴 기준(EFFICIENCY·DELTA·KRAKEN). KRAKEN은 sort=KRAKEN을 요청했고 쓸 수 있을 때만 나온다(쓸 수 없으면 EFFICIENCY와 krakenSortUnavailableReason)
              * @example EFFICIENCY
              */
             sort: string;
@@ -478,7 +482,7 @@ export interface components {
             stopReasonCode: string;
             stopReason: string | null;
             totalCost: number | null;
-            /** @example spec-up-path-v4 */
+            /** @example spec-up-path-v5 */
             ruleVersion: string;
             /** @description 전투력을 낸 시뮬레이터 규칙 */
             simulatorRuleVersion: string;
@@ -488,6 +492,12 @@ export interface components {
             steps: components["schemas"]["SpecUpGoalStepResponse"][];
             /** @description 시세를 몰라 순서에서 뺀 항목(지금 상태 기준, 전투력이 오르는 것만, Δ 큰 순). 비용을 추측하지 않음 */
             unpriced: components["schemas"]["SpecUpPathExcludedResponse"][];
+            krakenScore?: number | null;
+            finalKrakenScore?: number | null;
+            krakenSortUnavailableReason?: string | null;
+            /** @description 추천 순서(/spec-up/path) sort=KRAKEN을 이 캐릭터에 쓸 수 있는지: 스위치 spec-up.support-order.enabled가 켜졌고 크라켄 점수를 낼 수 있으면 true. 웹은 이 값으로 KRAKEN 순서 버튼을 보인다(시험 요청으로 알아보지 않음). 배포 순서 때문에 계약에서는 선택 필드 */
+            supportOrderAvailable?: boolean;
+            krakenScoreRole?: string | null;
         };
         SpecUpPathExcludedResponse: {
             /** @description 스펙업 가이드 후보 id와 같은 형식 */

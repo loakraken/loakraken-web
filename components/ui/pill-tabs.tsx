@@ -3,13 +3,15 @@
 import * as React from "react"
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 import { cn } from "cn"
+import { OverflowRow } from "@/components/ui/overflow-row"
 
 // Category tabs, Apple style (apple-design: response, spatial continuity,
 // springs, scroll edge effects). One row of icon + label that never wraps; a
 // single pill slides under the chosen tab on Apple's default spring (damping
 // 1.0, response 0.35s), re-targeting from wherever it is if pressed again
 // mid-way. When the row is wider than its box it scrolls sideways, the ends
-// fade where more tabs wait, and the chosen tab is brought into view.
+// fade where more tabs wait, and the chosen tab is brought into view; on a
+// mouse it also has ‹ › and drags (OverflowRow, the box round the scroller).
 //
 // The pill is two layers spanning the list (ring, then face), each cut to the
 // active tab with clip-path from Base UI's --active-tab-* variables: moving
@@ -103,7 +105,7 @@ function PillTabs({ className, listClassName, children, panels, "aria-label": la
           is square. A rounded box that scrolls clips its content to the
           rounding, which cut off the outer corners of the end tabs' 44px tap
           areas (A36, QA 10-14 13시). */}
-      <div className={cn("w-max max-w-full rounded-full bg-muted", listClassName)}>
+      <OverflowRow className={cn("w-max max-w-full rounded-full bg-muted", listClassName)}>
       <div
         ref={scroller}
         data-fade-start={edges.start || undefined}
@@ -141,7 +143,7 @@ function PillTabs({ className, listClassName, children, panels, "aria-label": la
           {children}
         </TabsPrimitive.List>
       </div>
-      </div>
+      </OverflowRow>
       {panels}
     </TabsPrimitive.Root>
   )

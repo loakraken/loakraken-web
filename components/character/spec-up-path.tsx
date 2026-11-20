@@ -11,14 +11,20 @@ import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { positionOf } from "@/lib/character/detail";
 import type { Character } from "@/lib/character/model";
-import { SpecUpQueryError, fetchSpecUpPath } from "@/lib/spec-up/client";
+import { SpecUpQueryError, fetchSpecUpPath, seatRetry, seatRetryDelay } from "@/lib/spec-up/client";
 import { simulatorPath, stepKindLabel } from "@/lib/spec-up/goal";
 import {
   PATH_FIRST_ROWS,
+  PATH_KRAKEN_SORT,
   PATH_SORTS,
   extraCosts,
+  pathCostNote,
+  pathFigures,
+  pathTotal,
   stepCandidate,
+  stepFigures,
   type PathSort,
   type SpecUpPath as Path,
 } from "@/lib/spec-up/path";
@@ -34,9 +40,12 @@ const BUSY = "SPEC_UP_BUSY";
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** One step's extra gold: 0 or less (a gem whose next level sells for less) adds nothing. */
+/**
+ * One step's extra gold: 0 or less (a gem whose next level sells for less) adds nothing.
+ * Unknown reads '비용 모름', the word the total line counts (api #993, PM 총괄 11-19).
+ */
 const stepGold = (amount: number | null) =>
-  amount === null ? "비용 미확인" : amount <= 0 ? "추가 비용 없음" : `+${koreanGold(amount)}G`;
+  amount === null ? "비용 모름" : amount <= 0 ? "추가 비용 없음" : `+${koreanGold(amount)}G`;
 
 function failureText(code: string, limit?: "client") {
   switch (code) {
@@ -54,7 +63,8 @@ function failureText(code: string, limit?: "client") {
 }
 
 /** The table head, the same for the answer and its skeleton (same column widths). */
-function Head() {
+/** Column names; a KRAKEN answer is told in its score (api #967), as the list's KRAKEN view. */
+function Head({ name = "전투력", perGold = "1만G당 전투력" }: { name?: string; perGold?: string }) {
   return (
     <thead>
       <tr>
@@ -62,9 +72,9 @@ function Head() {
         <th scope="col">종류</th>
         <th scope="col">대상</th>
         <th scope="col">전 → 후</th>
-        <th scope="col">전투력 증가</th>
+        <th scope="col">{name === "전투력" ? "전투력 증가" : name}</th>
         <th scope="col">추가 비용</th>
-        <th scope="col">1만G당 전투력</th>
+        <th scope="col">{perGold}</th>
       </tr>
     </thead>
   );
@@ -125,7 +135,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
     staleTime: 600_000,
     // Another rule keeps the shown order until the new one arrives (A7).
     placeholderData: keepPreviousData,
-    retry: false,
+    // Another rule while the last one is still computing: this client's seat is taken (api #989), asked again.
+    retry: seatRetry,
+    retryDelay: seatRetryDelay,
     refetchOnWindowFocus: false,
     // PM 총괄 11-02: asked only while this chip is shown, one at a time (the query
     // dedupes), and not again within the backend's cache window.
@@ -178,8 +190,11 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const name = data.characterName;
   const [all, setAll] = useState(false);
   const steps = path.steps;
-  const start = path.combatPower;
-  const final = path.finalCombatPower;
+  const supporter = positionOf(data) === "SUPPORT";
+  // A KRAKEN answer is told in its score; on a supporter's the combat power is null (api #967).
+  const figures = pathFigures(path, supporter);
+  const { start, final } = figures;
+  const total = pathTotal(path);
   const sim = simulatorPath(steps, gearTypeOf(data));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
@@ -201,17 +216,25 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
             ? `올릴 수 있는 항목 ${path.unpriced.length}개 모두 시세를 몰라 순서를 만들 수 없어요. 시세가 모이면 다시 계산해 주세요.`
             : (path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요.")}
         </p>
-        <Unpriced items={path.unpriced} />
+        <Unpriced items={path.unpriced} scored={figures.scored} />
       </>
     );
 
   return (
     <div data-stale={stale || undefined} className={styles.answer}>
       <p className={styles.summary}>
-        <b>{steps.length}단계</b>를 차례로 올리면 전투력 {two(start)} → <b>{two(final)}</b>(+{two(final - start)})
+        <b>{steps.length}단계</b>를 차례로 올리면 {figures.name} {two(start)} → <b>{two(final)}</b>(+{two(final - start)})
         {" · "}
-        합계 <b>{path.totalCost != null ? `${koreanGold(path.totalCost)}G` : "미정"}</b>
-        {path.totalCost == null && "(비용을 모르는 단계가 있어요)"}
+        합계 <b>{total.gold != null ? `${koreanGold(total.gold)}G` : "미정"}</b>
+        {/* api #993: the known gold plus the steps with no cost, or only their count when no step has a cost
+            (PM 총괄 11-19); an older api's null total keeps the old words. */}
+        {total.unknownSteps > 0 ? (
+          <span className={styles.unknownSteps}>
+            {total.gold != null ? ` + 비용 모름 ${total.unknownSteps}단계` : ` (비용 모름 ${total.unknownSteps}단계)`}
+          </span>
+        ) : (
+          total.gold == null && "(비용을 모르는 단계가 있어요)"
+        )}
       </p>
       <p className={styles.note}>
         {/* Codes the screen words itself; any other (NO_CANDIDATE, a new one) reads the backend's sentence. */}
@@ -221,37 +244,42 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
             ? "계산 시간이 다 되어 여기까지 골랐어요."
             : path.stopReason}
       </p>
+      {/* The order's rule in words (PM 총괄 · PM-프론트 #1734 P2): per 100,000 gold, not the raw gain. */}
+      {figures.scored && <p className={styles.note}>{PATH_KRAKEN_SORT.describe}</p>}
       <div className={detail.tableWrap}>
         <table className={`${detail.table} ${detail.specUpTable}`}>
           <caption className={detail.sr}>
-            추천 순서, {PATH_SORTS.find((s) => s.id === path.sort)?.label ?? ""} 기준
+            추천 순서, {figures.scored ? figures.name : (PATH_SORTS.find((s) => s.id === path.sort)?.label ?? "")} 기준
           </caption>
-          <Head />
+          <Head name={figures.name} perGold={figures.perGold} />
           <tbody>
-            {shown.map(({ step, extra, candidate: c }) => (
-              <tr key={c.id}>
-                <td data-cell="rank">{step.order}</td>
-                <td data-cell="kind">{stepKindLabel(c.kind)}</td>
-                <th scope="row" data-cell="target">
-                  {/* The target opens the row's detail, as in the list (시세·재료·전후 능력치). */}
-                  <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
-                </th>
-                <td data-cell="change">
-                  {c.from} → {c.to}
-                </td>
-                <td data-cell="gain" data-label="전투력" className={detail.specUpGain} data-figure="">
-                  +{two(step.deltaCombatPower)}
-                  <small className={detail.specUpCostTime}>→ {two(step.combatPowerAfter)}</small>
-                </td>
-                <td data-cell="cost" data-label="추가 비용" data-figure="">
-                  {stepGold(extra)}
-                  {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
-                </td>
-                <td data-cell="eff" data-label="1만G당" data-figure="">
-                  {step.combatPowerPer10kGold == null ? "—" : two(step.combatPowerPer10kGold)}
-                </td>
-              </tr>
-            ))}
+            {shown.map(({ step, extra, candidate: c }) => {
+              const f = stepFigures(step, figures.scored);
+              return (
+                <tr key={c.id}>
+                  <td data-cell="rank">{step.order}</td>
+                  <td data-cell="kind">{stepKindLabel(c.kind)}</td>
+                  <th scope="row" data-cell="target">
+                    {/* The target opens the row's detail, as in the list (시세·재료·전후 능력치). */}
+                    <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
+                  </th>
+                  <td data-cell="change">
+                    {c.from} → {c.to}
+                  </td>
+                  <td data-cell="gain" data-label={figures.name} className={detail.specUpGain} data-figure="">
+                    {f.gain == null ? "—" : `+${two(f.gain)}`}
+                    {f.after != null && <small className={detail.specUpCostTime}>→ {two(f.after)}</small>}
+                  </td>
+                  <td data-cell="cost" data-label="추가 비용" data-figure="">
+                    {stepGold(extra)}
+                    {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
+                  </td>
+                  <td data-cell="eff" data-label={figures.scored ? "10만G당" : "1만G당"} data-figure="">
+                    {f.perGold == null ? "—" : two(f.perGold)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -264,7 +292,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
       )}
       {/* Only where the simulator tab exists (COMBAT_POWER_SIM): with it off the
           link opened a hidden tab and fell back to 전투 (v0.3.4, #1216). */}
-      {simulator && (
+      {/* The simulator is combat power: not for a supporter (as the list). */}
+      {simulator && !supporter && (
         <p className={styles.note}>
           {sim.changes.length > 0 ? (
             <Link
@@ -276,19 +305,20 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
           ) : (
             <span>이 순서의 단계는 시뮬레이터에서 아직 바꿀 수 없어요.</span>
           )}
-          {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
+          {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
         </p>
       )}
       <p className={styles.note}>
-        전투력은 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. 비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞
-        단계 비용을 빼고 셌어요.
+        {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
+        {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path.sort)}`}
       </p>
-      <Unpriced items={path.unpriced} />
+      <Unpriced items={path.unpriced} scored={figures.scored} />
     </div>
   );
 }
 
-function Unpriced({ items }: { items: Path["unpriced"] }) {
+/** An excluded item has only its combat power (api #967): a KRAKEN answer, told in its score, leaves it out. */
+function Unpriced({ items, scored }: { items: Path["unpriced"]; scored: boolean }) {
   if (items.length === 0) return null;
   return (
     <details className={styles.unpriced}>
@@ -299,7 +329,7 @@ function Unpriced({ items }: { items: Path["unpriced"] }) {
             <span>
               {item.target} ({item.from} → {item.to})
             </span>
-            <span className={styles.delta}>지금 기준 +{two(item.deltaCombatPower)}</span>
+            {!scored && <span className={styles.delta}>지금 기준 +{two(item.deltaCombatPower)}</span>}
           </li>
         ))}
       </ul>

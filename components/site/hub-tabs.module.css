@@ -1,9 +1,18 @@
 /* Hub tab row (메뉴 합치기): the character page's tab look — plain links, the
    current one a filled pill — so it reads apart from a page's own filter
    chips below it (시세 분류 칩 are outlined). */
-.tabs {
-  /* Across the whole hero (a grid on tool pages). */
+/* The OverflowRow box round the row: across the whole hero (a grid on tool
+   pages). */
+.row {
   grid-column: 1 / -1;
+  max-width: 100%;
+  /* Where the tabs' scroller sits in it (its margin below): for the ‹ › buttons. */
+  --row-start: -8px;
+  --row-end: 8px;
+  --row-top: 4px;
+  --row-bottom: -8px;
+}
+.tabs {
   display: flex;
   gap: 4px;
   min-width: 0;
@@ -15,8 +24,8 @@
   overflow-x: auto;
   scrollbar-width: none;
   /* A tab reached by keyboard rests clear of the end fade (the default fade is
-     at most 40px; 64px on phones below): read by focusClearOfFade, since
-     Chrome's own focus scroll ignores it. */
+     at most 40px; 64px on phones below): read by OverflowRow, since Chrome's
+     own focus scroll ignores it. */
   scroll-padding-inline: 40px;
 }
 .tab {
@@ -32,12 +41,18 @@
   border-radius: 980px;
   color: var(--foreground);
   font-size: 14px;
+  /* A whole-pixel line (the pages' 1.43 gave 20.02px, so the row and everything below it sat at a fraction;
+     PM 총괄 11-19, material-quote @320 1px first-load move). */
+  line-height: 20px;
   letter-spacing: -0.016em;
   text-decoration: none;
   white-space: nowrap;
   transition: background-color 160ms ease-out;
 }
 .tab[aria-current="page"] {
+  /* In view from the first paint (Chrome 133+, before any script); other
+     browsers: OverflowRow's inline script. */
+  scroll-initial-target: nearest;
   background: var(--foreground);
   color: var(--background);
   font-weight: 600;

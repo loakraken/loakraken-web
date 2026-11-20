@@ -29,7 +29,7 @@ test("배너 순위: 순위가 없으면 빈 줄로 자리만 @regression", asyn
 test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smoke @regression", () => {
   test.use({ reducedMotion: "reduce" });
 
-  for (const width of [320, 360, 390]) {
+  for (const width of [320, 360, 390, 400]) {
     for (const theme of ["light", "dark"]) {
       test(`${width}px ${theme}: 순위가 다 보이고 첫 그림부터 자리가 같다`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
@@ -71,7 +71,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
           await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme ?? "light")).toBe(theme);
           const banner = page.getByRole("region", { name: "순위늦음 캐릭터 요약" });
           const row = banner.locator("p[class*=bannerRank]");
-          const badge = row.getByRole("button", { name: /전투력 4,120위 · 상위 22\.6%/ });
+          // Phones leave the metric's name out of the badge; the name says it after the shown text.
+          const badge = row.getByRole("button", { name: /^대양 4,120위 · 상위 22\.6% 전투력 순위, / });
           await expect(row).toBeVisible();
           await expect(row.getByRole("button")).toHaveCount(0);
           await expect.poll(() => rankRequested).toBe(true);
@@ -81,7 +82,8 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
 
           await expect(badge).toBeVisible();
           await expect(badge).toContainText("대양");
-          await expect(badge).toContainText("4,120위 · 상위 22.6%");
+          // This badge fits one line in full at every width here (fit rule, PM 총괄 11-16); 상위 is drawn.
+          await expect(badge.locator("[class*=bannerRankTopWord]")).toBeVisible();
           // The badge keeps the row's type at every width (the button inherits
           // it); only its spacing tightens below 360px.
           const rowFont = await row.evaluate((el) => getComputedStyle(el).fontSize);
@@ -141,3 +143,5 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
     }
   }
 });
+
+// Widths per rank length and font (site font, matched fallback, forced wide face): banner-rank-length.spec.

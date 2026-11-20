@@ -2,6 +2,7 @@
 // 가장 긴 직업 이름(디스트로이어·가디언나이트, 6글자)도 말줄임 없이 다 보여야 한다. 웹 글꼴이 오지 않아 더 넓은 대체
 // 글꼴로 그려질 때도 같다. 칸 폭·글자 크기·안쪽 여백을 바꿔 이 이름이 잘리면 여기서 걸린다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
 
 const NAMES = ["디스트로이어", "가디언나이트"];
 const WIDTHS = [320, 360];
@@ -50,9 +51,12 @@ test.describe("대체 글꼴", () => {
           errors.push(message.text());
         });
         page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
-        // No web font: the page draws with the system fallback, which is wider.
+        // No web font: the page draws with the system fallback, which is wider. Untuned (support/fonts.mjs): the
+        // metric-matched fallback (#1753) draws at the site font's widths on Windows and Linux.
         await page.route(/\.woff2(\?|$)/, (route) => route.abort());
+        await useUntunedSystemFace(page);
         await expectWhole(page, width, name, true);
+        expect(await drawnFace(page), "맞추지 않은 시스템 글꼴로 그림").toBe("untuned");
         expect(errors, "웹 글꼴 막음 외의 콘솔 오류가 없어야 한다").toEqual([]);
       });
 });

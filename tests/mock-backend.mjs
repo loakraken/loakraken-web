@@ -13,7 +13,8 @@ const read = (name) =>
   );
 const counts = {};
 // Client addresses that already had their one busy goal answer (api #922, spec-up-goal-retry spec).
-const goalBusyOnce = new Set();
+const goalBusyOnce = new Map();
+const rankAsks = new Map();
 /** BYOK: last four characters of the X-LK-User-Key each character read carried. */
 const userKeys = {};
 
@@ -106,7 +107,10 @@ function withSimulatorGear(data) {
  */
 function withArkSimulator(data) {
   withSimulatorGear(data);
-  data.loadout.arkPassive.points.push({ name: "도약", value: 60, description: "포인트 설명" });
+  data.loadout.arkPassive.points.push(
+    { name: "깨달음", value: 95, description: "포인트 설명" },
+    { name: "도약", value: 60, description: "포인트 설명" },
+  );
   data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
   return data;
 }
@@ -943,13 +947,31 @@ createServer(async (req, res) => {
     const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
-    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "5" });
+    // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
+    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
+    // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
+    // '점수순서서폿' answers sort=KRAKEN with the api's own supporter answer (#969 test, combat power null),
+    // '점수순서딜러' with the sample in its 크라켄 점수 (combat power kept). Every other name: switch off.
+    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
+    if (who === "점수순서서폿" && sort === "KRAKEN") {
+      const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
+      Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
+      return send(real);
+    }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
     const sampleBase = d.combatPower;
     const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
     Object.assign(d, { characterName: who, sort, combatPower: base, finalCombatPower: shift(d.finalCombatPower) });
+    if (supportOrder) d.supportOrderAvailable = true;
+    // With the switch off the api answers sort=KRAKEN in EFFICIENCY with DISABLED (the web never asks then).
+    if (sort === "KRAKEN" && !supportOrder) Object.assign(d, { sort: "EFFICIENCY", krakenSortUnavailableReason: "DISABLED" });
+    if (who === "점수순서서폿") {
+      // A supporter's other orders: no combat-power model, no steps (as 상세서포터).
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
@@ -964,6 +986,13 @@ createServer(async (req, res) => {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
+    }
+    if (who === "점수순서딜러" && sort === "KRAKEN") {
+      const start = 1000;
+      d.steps.forEach((step, i) =>
+        Object.assign(step, { deltaKrakenScore: 7.5, krakenScoreAfter: start + 7.5 * (i + 1), krakenScorePer100kGold: i === 0 ? 1.25 : 0.38 }),
+      );
+      Object.assign(d, { krakenScore: start, finalKrakenScore: start + 7.5 * d.steps.length, krakenScoreRole: "DEALER", stopReason: "시세가 있는 항목 가운데 점수가 오르는 것을 모두 골랐어요." });
     }
     // A stone step as api #812 words it (two engravings each side): the longest change text.
     if (who === "스펙순서스톤") {
@@ -1002,6 +1031,50 @@ createServer(async (req, res) => {
       d.steps.push(...more);
       Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
     }
+    // api #993 (PM 총괄 11-19): EFFICIENCY and KRAKEN add the steps whose cost is unknown after the
+    // priced ones (cost UNKNOWN, cumulativeCost/extraCost/per-gold null), totalCost null, no unpriced list,
+    // and the known part beside it (knownCostTotal, unknownCostSteps). '스펙순서비용모름' is the sample with its
+    // quality step taken in; '…긴' adds 12 more and a 12억 known total (the widest total line at 320, not
+    // the rows' sum); '…옛' is the same answer from an api before the two fields; '…전부' has only unknown
+    // steps (knownCostTotal 0, PM 총괄 11-19: 합계 미정, never 0G).
+    if (who?.startsWith("스펙순서비용모름")) {
+      const all = who === "스펙순서비용모름전부";
+      const known = all ? 0 : d.totalCost;
+      const unknownStep = (order, i) => ({
+        ...structuredClone(d.steps[0]),
+        order,
+        candidateId: i === 0 ? "EQUIPMENT_QUALITY:0:100" : `ENGRAVING_LEVEL:원한${i}:1`,
+        kind: i === 0 ? "EQUIPMENT_QUALITY" : "ENGRAVING_LEVEL",
+        target: i === 0 ? "+20 테스트 무기" : `시험 각인 ${i}`,
+        from: i === 0 ? "품질 90" : "0단계",
+        to: i === 0 ? "품질 100" : "1단계",
+        change:
+          i === 0
+            ? { ...d.steps[0].change, kind: "EQUIPMENT_QUALITY", slot: null, index: 0, level: null, quality: 100 }
+            : { ...d.steps[0].change, kind: "ENGRAVING_LEVEL", slot: null, level: 1, name: `원한${i}` },
+        deltaCombatPower: i === 0 ? 90.33 : 5,
+        combatPowerAfter: 0,
+        cost: { ...structuredClone(d.unpriced[0].cost) },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+        extraCost: null,
+      });
+      const count = who === "스펙순서비용모름긴" ? 13 : all ? 2 : 1;
+      const priced = all ? 0 : d.steps.length;
+      let after = all ? d.combatPower : d.finalCombatPower;
+      const added = [];
+      for (let i = 0; i < count; i++) {
+        const step = unknownStep(priced + i + 1, i);
+        after = Math.round((after + step.deltaCombatPower) * 100) / 100;
+        step.combatPowerAfter = after;
+        added.push(step);
+      }
+      d.steps = all ? added : [...d.steps, ...added];
+      Object.assign(d, { finalCombatPower: after, totalCost: null, unpriced: [], ruleVersion: "spec-up-path-v6" });
+      if (who === "스펙순서비용모름긴") Object.assign(d, { stopReasonCode: "STEP_LIMIT", limit: d.steps.length });
+      if (who !== "스펙순서비용모름옛")
+        Object.assign(d, { knownCostTotal: who === "스펙순서비용모름긴" ? 1_234_567_890 : known, unknownCostSteps: count });
+    }
     // A 연마 step (api #951): another 목걸이 for the simulator gear's one, a line per change; its second line
     // has no scoring option (NONE, grade null), and `change` is the first (a named option).
     if (who === "스펙순서연마") {
@@ -1030,14 +1103,15 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
-    // api #922: every computing seat taken. The target 12451.5 is busy once per client address (the
-    // spec-up-goal-retry spec gives each run its own), then answers as usual.
-    // 12452.5 waits 3 s instead (long enough to press during the countdown).
+    // api #922/#989: no computing seat. Per client address (the spec-up-goal-retry spec gives each run its
+    // own): 12451.5 is busy once (the web's own retry gets the answer), 12452.5 four times with a 2 s wait
+    // (more than the web retries, so the notice and its countdown show), then each answers as usual.
     const client = req.headers["x-forwarded-for"];
-    const busyFor = { 12451.5: "1", 12452.5: "3" }[target];
-    if (busyFor && client && !goalBusyOnce.has(`${client}|${target}`)) {
-      goalBusyOnce.add(`${client}|${target}`);
-      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busyFor });
+    const busy = { 12451.5: [1, "1"], 12452.5: [4, "2"] }[target];
+    const key = `${client}|${target}`;
+    if (busy && client && (goalBusyOnce.get(key) ?? 0) < busy[0]) {
+      goalBusyOnce.set(key, (goalBusyOnce.get(key) ?? 0) + 1);
+      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busy[1] });
     }
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).
@@ -1146,12 +1220,15 @@ createServer(async (req, res) => {
       kraken.data.characterName = who;
       kraken.data.cooldownGemsIncluded = url.searchParams.get("includeCooldownGems") === "true";
       if (who === "서포터옛응답") kraken.data.krakenSortUnavailableReason = "SUPPORTER_PENDING";
-      if (who === "상세서포터")
+      if (who === "상세서포터" || who === "점수순서서폿")
         for (const c of kraken.data.candidates)
           Object.assign(c, { deltaCombatPower: null, combatPowerPer10kGold: null, deltaPercent: null });
+      if (who === "점수순서딜러" || who === "점수순서서폿")
+        Object.assign(kraken.data, { supportOrderAvailable: true, krakenScoreRole: who === "점수순서서폿" ? "SUPPORT" : "DEALER" });
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    if (who === "점수순서딜러") envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
     // '적용해 보기' off the armour row.
@@ -1655,7 +1732,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음" || who === "순위긴범위") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (["순위늦음", "순위긴범위", "순위큰수늦음", "순위일곱자리늦음"].includes(who)) await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1686,6 +1763,28 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
+    ] : who === "순위큰수" || who === "순위큰수늦음" ? [
+      // The widest banner badge in practice (PM 11-16): a 6-digit rank, a 2-letter tier and a two-decimal
+      // share ("연안 123,456위 · 상위 49.98%"); 100% is the lowest tier, which has no label, so shorter.
+      // 순위큰수늦음: the same, after the page's 1s wait (the late path keeps a one-line row).
+      entry("COMBAT_POWER", "ALL", null, 123456, 247000),
+    ] : who.startsWith("순위바뀜") || who.startsWith("순위줄어듦") ? (() => {
+      // A rank whose length changes between asks (the page's own ask, then a later one, e.g. a tab switch):
+      // 순위바뀜… grows 4,120 → 123,456, 순위줄어듦… shrinks 123,456 → 4,120. Counted per name (specs use their own).
+      const asked = (rankAsks.get(who) ?? 0) + 1;
+      rankAsks.set(who, asked);
+      const long = who.startsWith("순위바뀜") ? asked > 1 : asked === 1;
+      return [long ? entry("COMBAT_POWER", "ALL", null, 123456, 247000) : entry("COMBAT_POWER", "ALL", null, 4120, 18231)];
+    })() : who === "순위다섯자리긴값" ? [
+      // The longest one-line badge: 5 digits and a two-decimal share ('99,999위 · 상위 47.62%'), on the
+      // longest real server name (아브렐슈드, character mock above).
+      entry("COMBAT_POWER", "ALL", null, 99999, 210000),
+    ] : who === "순위다섯자리" ? [
+      // The longest rank that stays one line (5 digits): '12,345위 · 상위 30.86%'.
+      entry("COMBAT_POWER", "ALL", null, 12345, 40000),
+    ] : who === "순위일곱자리" || who === "순위일곱자리늦음" ? [
+      // A 7-digit rank, longer than any server has today: '1,234,567위 · 상위 61.73%' (no tier above 50%).
+      entry("COMBAT_POWER", "ALL", null, 1234567, 2000000),
     ] : who === "순위긴범위" ? [
       // The longest real server + class pair, late like 순위늦음: the
       // server-class value takes two lines in a narrow box.
@@ -2828,7 +2927,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "순위다섯자리긴값" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2998,7 +3097,7 @@ createServer(async (req, res) => {
     ];
     d.coverage.skills = "PROVIDED";
     // 서포터옛응답: the same supporter against a backend from before api #722.
-    const supportRole = name === "상세서포터" || name === "서포터옛응답";
+    const supportRole = name === "상세서포터" || name === "서포터옛응답" || name === "점수순서서폿";
     d.analysis.position = supportRole ? "SUPPORT" : "DEALER";
     d.analysis.positionEvidence = supportRole ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
@@ -3144,7 +3243,8 @@ createServer(async (req, res) => {
       };
     }
     // A37: the longest values the banner shows (name, title, server and class, combat power, levels).
-    if (name === "가려짐긴값캐릭터") {
+    // 순위다섯자리긴값: the same long banner with the longest one-line rank (5 digits, two-decimal share).
+    if (name === "가려짐긴값캐릭터" || name === "순위다섯자리긴값") {
       d.characterName = name;
       d.serverName = "아브렐슈드";
       d.className = "데모닉";
