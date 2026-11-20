@@ -33,5 +33,8 @@ for (const [name, parent, reordered, extra = ""] of CASES)
       expect(cut.value, cut.moved.join(" / ")).toBe(0);
       expect(cut.added).toBe(0);
     }
+    // The count and time sit on the test itself (report annotation) only when cuts were added.
+    const notes = test.info().annotations.filter((note) => note.type === "cut-everywhere");
+    expect(notes.map((note) => note.description)).toEqual(reordered ? [expect.stringMatching(/\(\+\d+ reordered\) in \d+ ms$/)] : []);
     expect(cut.ms).toBeGreaterThanOrEqual(0);
   });

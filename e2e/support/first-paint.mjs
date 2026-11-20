@@ -1,5 +1,6 @@
 // First-paint helpers shared by the specs: the first HTML can arrive cut anywhere (a split stream),
 // and every box on the first screen must already have its final size and place from its start tag.
+import { test } from "@playwright/test";
 
 /**
  * Cut after every start tag and every text node inside `root` (first screen, nodes the server HTML holds),
@@ -173,7 +174,19 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     return { probed: nodes.length, added, ms: Math.round(performance.now() - started), value: +value.toFixed(7), moved };
     }
   }, [rootSelector, countIn, serverHtml]).then((cut) => {
-    // One line per probe that added cuts for a reordered block (rare): its count and time, in the test output.
-    if (cut.added > 0) console.log(`cutEverywhere ${rootSelector ?? "page"}: ${cut.probed} cuts (+${cut.added} reordered) in ${cut.ms} ms`);
+    // A probe that added cuts for a reordered block: its count and time on the test itself (an annotation, in the
+    // report) and one line in the output named by the test, since parallel workers interleave the lines.
+    if (cut.added > 0) {
+      const what = `${rootSelector ?? "page"}: ${cut.probed} cuts (+${cut.added} reordered) in ${cut.ms} ms`;
+      let title = "";
+      try {
+        const info = test.info();
+        info.annotations.push({ type: "cut-everywhere", description: what });
+        title = `${info.titlePath.slice(1).join(" › ")} · `;
+      } catch {
+        // Called outside a test: the line alone.
+      }
+      console.log(`cutEverywhere ${title}${what}`);
+    }
     return cut;
   });
