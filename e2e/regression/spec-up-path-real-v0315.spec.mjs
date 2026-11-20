@@ -20,18 +20,20 @@ const pathTable = (page) => page.getByRole("table", { name: /^추천 순서, / }
 const summary = (page) => answer(page).locator("p", { hasText: /^\d+단계를 차례로 올리면/ });
 const STOP_REASON = "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.";
 
-// [steps, unknownCostSteps, combatPowerStopOrder, simulator skips (KARMA_SIM on, as the e2e build)] per sample and sort,
-// from the saved answers (unit test tests/spec-up-path-v0315.test.ts checks the skips against simulatorPath).
+// [steps, unknownCostSteps, combatPowerStopOrder, simulator skips] per sample and sort, from the saved answers. Skips are
+// for this build: KARMA_SIM and ARMOR_CP_SIM on (#1843), so armour 재련 opens and only the weapon 상급 재련 (실표본2,
+// index 0, gear not 업화) stays out; the armour-off server's leg is e2e/armor-off. The unit test
+// tests/spec-up-path-v0315.test.ts checks every switch combination against simulatorPath.
 const SORTS = [
   ["효율 우선", "효율 우선 기준", "EFFICIENCY"],
   ["점수 효율", "크라켄 점수 기준", "KRAKEN"],
   ["전투력 우선", "전투력 우선 기준", "DELTA"],
 ];
 const SAMPLES = {
-  1: { EFFICIENCY: [12, 6, null, 0], KRAKEN: [18, 12, 8, 5], DELTA: [6, 0, null, 0] },
+  1: { EFFICIENCY: [12, 6, null, 0], KRAKEN: [18, 12, 8, 0], DELTA: [6, 0, null, 0] },
   2: { EFFICIENCY: [30, 3, null, 1], KRAKEN: [30, 2, null, 1], DELTA: [6, 0, null, 0] },
-  3: { EFFICIENCY: [14, 5, null, 0], KRAKEN: [20, 11, 10, 5], DELTA: [7, 0, null, 0] },
-  4: { EFFICIENCY: [30, 14, null, 0], KRAKEN: [30, 14, 18, 5], DELTA: [7, 0, null, 0] },
+  3: { EFFICIENCY: [14, 5, null, 0], KRAKEN: [20, 11, 10, 0], DELTA: [7, 0, null, 0] },
+  4: { EFFICIENCY: [30, 14, null, 0], KRAKEN: [30, 14, 18, 0], DELTA: [7, 0, null, 0] },
 };
 
 /** Problems in the shown rows: a clipped label, text leaving its cell, a figure column whose numbers do not line up. */
@@ -145,21 +147,21 @@ for (const [who, what, kinds, note] of SCOPE)
     await expect(answer(page).getByText(note, { exact: true })).toBeVisible();
   });
 
-test("@A37 1280 점수 효율 순서의 시뮬레이터 링크는 무기 재련을 목표 레벨로 담고 방어구 재련은 뺀다 @regression", async ({ page }) => {
+test("@A37 1280 방어구 문이 열린 빌드: 점수 효율 순서의 시뮬레이터 링크는 한 단계 점프를 목표 레벨로, 방어구 재련도 담는다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(characterPath("실표본1", "specup"));
   await rule(page).getByRole("button", { name: "점수 효율" }).click();
   await expect(pathTable(page)).toHaveAccessibleName("추천 순서, 크라켄 점수 기준");
   const link = answer(page).getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" });
   const tried = JSON.parse(new URL(await link.getAttribute("href"), "http://x").searchParams.get("try"));
-  // 실표본1: step 7 raises the weapon +22 → +25 in one step (it opens at +25), step 8 the arm guard to 25; the five armor
-  // refine steps (index 1–5, steps 9–13) stay out. 14 changes: 5 of the 18 steps skipped.
+  // 실표본1 (ARMOR_CP_SIM on, this build): step 7 raises the weapon +22 → +25 in one step (it opens at +25), step 8 the
+  // arm guard to 25, steps 9–13 each armour piece (index 5, 1, 4, 3, 2) to +25 in one step. Nothing skipped: 19 changes.
+  // The armour-off server's leg (e2e/armor-off) holds the same link at 14 changes, weapon only.
   const refines = tried.filter((c) => c.kind === "EQUIPMENT_REFINE");
-  expect(refines.map((c) => [c.index, c.refine])).toEqual([[0, 25]]);
+  expect(refines.map((c) => [c.index, c.refine])).toEqual([[0, 25], [5, 25], [1, 25], [4, 25], [3, 25], [2, 25]]);
   expect(tried.filter((c) => c.kind === "ARM_GUARD").map((c) => c.level)).toEqual([25]);
-  expect(tried).toHaveLength(14);
-  // The link opens the simulator tab. (The mock character's own gear is not the sample's, so what the simulator
-  // applies there is checked by the unit test on simulatorPath, not on this screen.)
+  expect(tried).toHaveLength(19);
+  await expect(answer(page).getByText(/빼고 열어요/)).toHaveCount(0);
   await link.click();
   await expect(page).toHaveURL(/tab=simulator/);
   await expect(page.getByRole("heading", { name: "전투력 시뮬레이터" })).toBeVisible();

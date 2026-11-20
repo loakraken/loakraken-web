@@ -46,6 +46,23 @@ for (const [entry, path] of [
     await expectNoHorizontalOverflow(page);
   });
 
+// 실제 추천 순서 답(v0.3.15, '실표본1' 점수 효율, #1845): 꺼진 서버에서는 방어구 재련 다섯 단계(index 1–5)를 빼고, 한 단계에
+// +22 → +25로 오르는 무기 재련은 목표 레벨로, 완갑은 25로 담는다(18단계 중 14개, 5개 뺌). 켜진 빌드의 같은 링크는 19개
+// (e2e/regression/spec-up-path-real-v0315.spec.mjs).
+test("실제 답의 점수 효율 순서: 시뮬레이터 링크는 방어구 재련 다섯 단계를 빼고 무기 재련만 목표 레벨로 담는다", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(characterPath("실표본1", "specup"));
+  const answer = page.getByRole("region", { name: "추천 순서", exact: true });
+  await page.getByRole("group", { name: "추천 순서 고르는 기준" }).getByRole("button", { name: "점수 효율" }).click();
+  await expect(page.getByRole("table", { name: /^추천 순서, / })).toHaveAccessibleName("추천 순서, 크라켄 점수 기준");
+  await expect(answer).toContainText("5개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.");
+  const link = answer.getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" });
+  const tried = JSON.parse(new URL(await link.getAttribute("href"), "http://x").searchParams.get("try"));
+  expect(tried.filter((c) => c.kind === "EQUIPMENT_REFINE").map((c) => [c.index, c.refine])).toEqual([[0, 25]]);
+  expect(tried.filter((c) => c.kind === "ARM_GUARD").map((c) => c.level)).toEqual([25]);
+  expect(tried).toHaveLength(14);
+});
+
 test("스펙업 목록의 방어구 줄에는 '적용해 보기'가 없고, 경로는 방어구 단계를 빼고 연다", async ({ page }) => {
   const sent = watchBodies(page);
   await page.goto(`${characterPath(NAME, "specup")}&sort=DELTA`);
