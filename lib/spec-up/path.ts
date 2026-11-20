@@ -192,3 +192,24 @@ export function pathCostNote(path: Pick<SpecUpPath, "sort" | "ruleVersion" | "st
   }
   return plain;
 }
+
+/** Why combat power stops, by the api's code (api #1029): words the web vouches for; another code gets none. */
+const CP_STOP_REASONS: Readonly<Record<string, string>> = {
+  ARMOR_REFINE_CP_UNCONFIRMED: "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.",
+};
+
+/**
+ * The note on where a path stops giving combat power (api #1029, 백엔드 11-21): a dealer's 점수 효율 path takes armor
+ * refine and arm guard steps by score, and from the first of them on (combatPowerStopOrder) the api leaves the steps'
+ * combat power out (null; a step's detail and the simulator show '—') while score and cost stay. null when the answer
+ * has no stop (null, absent: an api before #1029) or names a step the path does not have.
+ */
+export function pathCpStopNote(
+  path: Pick<SpecUpPath, "steps" | "combatPowerStopOrder" | "combatPowerStopReasonCode">,
+): string | null {
+  const order = path.combatPowerStopOrder;
+  if (order == null || !Number.isInteger(order) || order < 1 || order > path.steps.length) return null;
+  const where = order === 1 ? "이 순서는 첫 단계부터 전투력을 계산하지 않았어요." : `${order}단계부터는 전투력을 계산하지 않았어요.`;
+  const why = CP_STOP_REASONS[path.combatPowerStopReasonCode ?? ""];
+  return why ? `${where} ${why}` : where;
+}

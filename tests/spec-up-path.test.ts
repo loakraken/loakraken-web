@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort, pathCostNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathCostNote, pathCpStopNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -289,4 +289,39 @@ test("the cost note follows the order's rule on spec-up-path-v6 and v7 only (api
     ["COST", "spec-up-path-v7"],
   ])
     assert.equal(note(sort, version, [gem, polish]), plain, `${sort} ${version}`);
+});
+
+test("the backend's #1029 sample (dealer KRAKEN, arm guard at step 2) passes the contract and stops combat power at step 2", async () => {
+  const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-armor.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("점수순서", "KRAKEN", origin, { fetcher: async () => json(sample) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.deepEqual([path.sort, path.combatPowerStopOrder, path.combatPowerStopReasonCode, path.finalCombatPower], ["KRAKEN", 2, "ARMOR_REFINE_CP_UNCONFIRMED", null]);
+  // Step 1 keeps its combat power; from step 2 on (the arm guard) it is left out, the score stays.
+  assert.deepEqual(
+    path.steps.slice(0, 3).map((s) => [s.order, s.kind, s.deltaCombatPower != null, s.deltaKrakenScore != null]),
+    [
+      [1, "GEM_LEVEL", true, true],
+      [2, "ARM_GUARD", false, true],
+      [3, "GEM_LEVEL", false, true],
+    ],
+  );
+  assert.equal(
+    pathCpStopNote(path),
+    "2단계부터는 전투력을 계산하지 않았어요. 방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.",
+  );
+});
+
+test("the combat-power stop note: where, why only for a known code, none without a stop (api #1029)", () => {
+  const steps = [{ order: 1 }, { order: 2 }, { order: 3 }] as GoalStep[];
+  const note = (combatPowerStopOrder: unknown, combatPowerStopReasonCode: unknown = "ARMOR_REFINE_CP_UNCONFIRMED") =>
+    pathCpStopNote({ steps, combatPowerStopOrder, combatPowerStopReasonCode } as Parameters<typeof pathCpStopNote>[0]);
+  const why = " 방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.";
+  assert.equal(note(1), `이 순서는 첫 단계부터 전투력을 계산하지 않았어요.${why}`);
+  assert.equal(note(3), `3단계부터는 전투력을 계산하지 않았어요.${why}`);
+  // A code the web does not know: where only, no reason it cannot vouch for.
+  assert.equal(note(2, "SOMETHING_NEW"), "2단계부터는 전투력을 계산하지 않았어요.");
+  assert.equal(note(2, null), "2단계부터는 전투력을 계산하지 않았어요.");
+  // No stop (null, an api before #1029) or a step the path does not have: no note.
+  for (const order of [null, undefined, 0, 4, 1.5, "2"]) assert.equal(note(order), null, String(order));
 });

@@ -21,6 +21,7 @@ import {
   PATH_SORTS,
   extraCosts,
   pathCostNote,
+  pathCpStopNote,
   pathFigures,
   pathTotal,
   stepCandidate,
@@ -195,6 +196,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const figures = pathFigures(path, supporter);
   const { start, final } = figures;
   const total = pathTotal(path);
+  const cpStop = pathCpStopNote(path);
   const sim = simulatorPath(steps, gearTypeOf(data), useContext(KarmaSimEnabled));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
@@ -312,6 +314,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
         {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path)}`}
       </p>
+      {/* Where combat power stops (api #1029): armor refine and arm guard steps in a dealer's 점수 효율 path. */}
+      {cpStop && <p className={styles.note}>{cpStop}</p>}
       <Unpriced items={path.unpriced} scored={figures.scored} />
     </div>
   );

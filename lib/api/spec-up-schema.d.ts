@@ -484,7 +484,7 @@ export interface components {
             stopReasonCode: string;
             stopReason: string | null;
             totalCost: number | null;
-            /** @example spec-up-path-v6 */
+            /** @example spec-up-path-v7 */
             ruleVersion: string;
             /** @description 전투력을 낸 시뮬레이터 규칙 */
             simulatorRuleVersion: string;
@@ -510,6 +510,8 @@ export interface components {
              * @description 단계 비용(extraCost)을 모르는 단계 수. 0이면 totalCost = knownCostTotal. 배포 순서 때문에 계약에서는 선택 필드
              */
             unknownCostSteps?: number;
+            combatPowerStopOrder?: number | null;
+            combatPowerStopReasonCode?: string | null;
         };
         SpecUpPathExcludedResponse: {
             /** @description 스펙업 가이드 후보 id와 같은 형식 */
