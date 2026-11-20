@@ -69,13 +69,24 @@ for (const [width, clock, face] of LEGS)
 // pinned clock's state (serverHtml: false), and the real-clock first-load checks stay in home-first-paint-sweep.
 
 // 서버 시계와 기기 시계가 그날 마지막 회차 양쪽에 있을 때(#1799 후속, PM-프론트 11-20 02:50): 첫 HTML은 서버 시각의
-// 상태로, 깬 뒤에는 기기 시각의 상태로 그린다. 상태 줄과 '내일 일정 보기'가 머리의 한 줄을 늘 따로 차지해서 상태가
-// 바뀌어도 줄 수와 아래 행 자리는 그대로여야 한다. 기기 시계는 서버(실제 시각)의 반대 상태로 고정한다: 모험 섬의 마지막
-// 회차는 23시라, 실제로 23시 뒤면 기기는 12:00(다음 회차), 아니면 23:30(끝남).
+// 상태로, 깬 뒤에는 기기 시각의 상태로 그린다. 상태 줄과 '내일 일정 보기'는 늘 한 줄에 함께 있고(머리 폭 440px 아래는
+// 그 줄 따로, 위는 제목 줄), 상태가 바뀌어도 머리 높이와 아래 행 자리는 그대로여야 한다. 기기 시계는 서버(실제 시각,
+// 목 서버도 실제 시각)의 반대 상태로 고정한다: 모험 섬의 마지막 회차는 23시라, 실제로 23시 뒤면 기기는 12:00(다음 회차),
+// 아니면 23:30(끝남). 서버 쪽 상태는 깨기 전에 잡아, 상태가 정말 바뀐 판만 통과로 친다.
 const kstToday = (hhmm) => Date.parse(`${kstNow().toISOString().slice(0, 10)}T${hhmm}:00+09:00`);
 
-for (const width of [320, 390])
-  test(`@A7 홈 ${width}: 서버와 기기 시계가 마지막 회차 양쪽이어도 일정 섹션 머리 줄 수와 행 자리가 그대로 @regression`, async ({ page }) => {
+// [label, viewport width or the head width to reach]: phones, the 440 cut and both sides of it, desktop.
+const SKEW_LEGS = [
+  ["320", { viewport: 320 }],
+  ["390", { viewport: 390 }],
+  ["머리 439", { head: 439 }],
+  ["머리 440", { head: 440 }],
+  ["머리 441", { head: 441 }],
+  ["1280", { viewport: 1280 }],
+];
+
+for (const [label, size] of SKEW_LEGS)
+  test(`@A7 홈 ${label}: 서버와 기기 시계가 마지막 회차 양쪽이어도 일정 섹션 머리 높이와 행 자리가 그대로 @regression`, async ({ page }) => {
     test.slow();
     const serverDone = kstNow().getUTCHours() >= 23;
     const client = serverDone ? "12:00" : "23:30";
@@ -90,6 +101,7 @@ for (const width of [320, 390])
           return {
             name: section.getAttribute("aria-label"),
             state: head?.querySelector("[data-state]")?.getAttribute("data-state") ?? null,
+            width: head ? Math.round(head.getBoundingClientRect().width) : null,
             head: head ? Math.round(head.getBoundingClientRect().height) : null,
             rows: rows ? Math.round(rows.getBoundingClientRect().top - top) : null,
           };
@@ -101,20 +113,34 @@ for (const width of [320, 390])
       };
       new MutationObserver(take).observe(document, { childList: true, subtree: true });
     });
-    await page.setViewportSize({ width, height: 1000 });
-    await gotoReady(page, "/");
+    const headWidth = async () => Math.round(await islands(page).locator("header").evaluate((head) => head.getBoundingClientRect().width));
+    if (size.head) {
+      // Find the viewport that gives the islands' head this width (the card's column sets it), then load anew.
+      let width = size.head + 60;
+      await page.setViewportSize({ width, height: 1000 });
+      await gotoReady(page, "/");
+      for (let i = 0; i < 4 && (await headWidth()) !== size.head; i++) {
+        width += size.head - (await headWidth());
+        await page.setViewportSize({ width, height: 1000 });
+      }
+      expect(await headWidth(), "머리 폭").toBe(size.head);
+      await page.reload();
+    } else {
+      await page.setViewportSize({ width: size.viewport, height: 1000 });
+      await gotoReady(page, "/");
+    }
     await page.waitForFunction(() => window.__lkHydrated);
-    const head = islands(page).locator("header [data-state]");
-    await expect(head).toHaveAttribute("data-state", serverDone ? "upcoming" : "done");
+    await expect(islands(page).locator("header [data-state]")).toHaveAttribute("data-state", serverDone ? "upcoming" : "done");
     const before = await page.evaluate(() => window.__headsAtServer);
     const after = await page.evaluate(() => window.__snapHeads());
     expect(before, "깨기 전 서버가 그린 머리를 잡지 못함").not.toBeNull();
     const at = (list, name) => list.find((section) => section.name === name);
     // The leg tests something only if the state really changed after the page woke.
     expect(at(before, "모험 섬").state, "서버 상태").toBe(serverDone ? "done" : "upcoming");
+    if (size.head) expect(at(after, "모험 섬").width, "머리 폭").toBe(size.head);
     for (const section of after) {
       const server = at(before, section.name);
-      expect({ head: section.head, rows: section.rows }, `${section.name}: ${server?.state} → ${section.state}`).toEqual({ head: server?.head, rows: server?.rows });
+      expect({ head: section.head, rows: section.rows }, `${section.name} (머리 ${section.width}px): ${server?.state} → ${section.state}`).toEqual({ head: server?.head, rows: server?.rows });
     }
     await expectNoHorizontalOverflow(page);
   });

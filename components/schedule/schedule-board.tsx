@@ -343,12 +343,12 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          // The status and the '내일 일정 보기' button have a line of their own in every state and at every width
-          // (#1799 follow-up). The board shows the server's hour until the client clock starts; when the two sit on
-          // either side of the day's last round (a device clock off, or staying on the page through the round),
-          // the state changes after the page woke. On one shared line that change re-wrapped the head (320: one
-          // line → three) and pushed the rows down. The done line is short enough for the button at 320 (no
-          // countdown to tomorrow: the time is enough there).
+          // The status and the '내일 일정 보기' button stay together on one line (#1799 follow-up): its own line in a
+          // narrow head, the title's line in a wide one, the same in every state (home.module.css). The board shows
+          // the server's hour until the client clock starts; when the two sit on either side of the day's last round
+          // (a device clock off, or staying on the page through the round), the state changes after the page woke.
+          // On the old wrapping line that change re-wrapped the head (320: one line → three) and pushed the rows
+          // down. The done line is short enough for the button at 320 (no countdown to tomorrow: the time is enough).
           <span className={styles.statusLine}>
             {/* Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
                 line in a phone's own font. */}

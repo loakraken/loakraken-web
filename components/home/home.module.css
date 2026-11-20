@@ -415,6 +415,8 @@
   align-items: baseline;
   gap: 4px 8px;
   margin-bottom: 6px;
+  /* The status line's place depends on the head's own width (below), not the viewport's: the card's column sets it. */
+  container-type: inline-size;
 }
 .section h3 {
   font-size: 14px;
@@ -424,8 +426,11 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-/* The status and its '내일 일정 보기' button: a line of their own in every state (#1799 follow-up), so a state
-   that changes after the page woke (the server's hour vs the device's) rewrites text, never the head's lines. */
+/* The status and its '내일 일정 보기' button (#1799 follow-up). The board shows the server's hour until the device
+   clock starts, so a state can change after the page woke; it must rewrite text, never the head's lines.
+   - Head under 440px: the line of its own in every state. The done line plus the button is ~210px (320 head: 258).
+   - Head 440px and wider: on the title's line in every state. The longest done head on one line is ~325px
+     (title + count + done line + button, site font), so a wider phone face still fits. */
 .section header .statusLine {
   flex: 1 0 100%;
   display: flex;
@@ -440,6 +445,15 @@
 }
 .section header .statusLine .textButton {
   margin-left: auto;
+}
+@container (min-width: 440px) {
+  .section header .statusLine {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .section header .statusLine .textButton {
+    margin-left: 0;
+  }
 }
 .next[data-state="done"] {
   color: var(--muted-foreground);
