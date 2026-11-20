@@ -33,17 +33,18 @@ function runStep(files: string[], { brokenAwk = false } = {}) {
   for (const file of files) assert.ok(!file.includes("'"), `작은따옴표 없는 이름만: ${file}`);
   const prelude = [
     "EVENT=pull_request",
-    // The step's outputs come back on stdout ('run=…' lines), so no file or folder is shared with bash: a temp
-    // file of bash's own, printed when the step exits (run_all ends it with exit 0). WSL's bash cannot open
-    // /dev/stdout when stdout is a Windows pipe.
+    // GITHUB_OUTPUT is a temp file of bash's own, so no file or folder is shared with bash; when the step exits
+    // (run_all ends it with exit 0) the trap writes that file, and only that file, to the real stdout (fd 3). The
+    // step's own stdout goes to stderr, so a 'run=…' it merely echoes never counts as its output (#1833 review).
+    // WSL's bash cannot open /dev/stdout when stdout is a Windows pipe; a duplicated fd works.
+    "exec 3>&1 1>&2",
     "GITHUB_OUTPUT=$(mktemp)",
-    `trap 'cat "$GITHUB_OUTPUT"; rm -f "$GITHUB_OUTPUT"' EXIT`,
+    `trap 'cat "$GITHUB_OUTPUT" >&3; rm -f "$GITHUB_OUTPUT"' EXIT`,
     `git() { printf '%s' '${files.join("\n")}'; }`,
     ...(brokenAwk ? ["awk() { return 2; }"] : []),
   ].join("\n");
   const res = spawnSync("bash", ["-e", "-s"], { input: `${prelude}\n${changesStep()}\n`, encoding: "utf8" });
-  const output = (res.stdout ?? "").split("\n").filter((line) => line.startsWith("run=")).join("\n");
-  return { status: res.status, log: `${res.stdout}${res.stderr}${res.error ?? ""}`, output };
+  return { status: res.status, log: `${res.stderr}${res.error ?? ""}`, output: res.stdout ?? "" };
 }
 
 test("글만 바뀐 PR은 run=false", () => {
