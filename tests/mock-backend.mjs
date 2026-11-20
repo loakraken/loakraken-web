@@ -970,12 +970,8 @@ createServer(async (req, res) => {
     // '실표본<n>' serves spec-up-fixtures/v0315/<n>-<SORT>.json as saved, names already placeholders.
     if (who?.startsWith("실표본")) {
       const file = new URL(`./spec-up-fixtures/v0315/${who.slice(3)}-${sort}.json`, import.meta.url);
-      // Saved on a stub api with the support-order switch off; on, as in production, so 점수 효율 shows.
-      if (existsSync(file)) {
-        const saved = JSON.parse(readFileSync(file, "utf8"));
-        saved.data.supportOrderAvailable = true;
-        return send(saved);
-      }
+      // 점수 효율 is offered by the list answer's supportOrderAvailable (on for '실표본', below).
+      if (existsSync(file)) return send(JSON.parse(readFileSync(file, "utf8")));
     }
     // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
@@ -1301,7 +1297,7 @@ createServer(async (req, res) => {
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
-    if (who === "점수순서딜러" || who?.startsWith("점수순서방어구")) envelope.data.supportOrderAvailable = true;
+    if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who?.startsWith("실표본")) envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
     // '적용해 보기' off the armour row.
