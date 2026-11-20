@@ -1,7 +1,7 @@
 // Simulator input history and saved inputs (PM-프론트 10-11 16:37 ②·L6).
 // Pure: the screen keeps the state in a reducer and the browser storage
 // behind try/catch. Nothing here is sent to the server.
-import { NO_EDITS, arkPassiveMax, type Edits } from "./model";
+import { KARMA_MAX, KARMA_TREE, NO_EDITS, arkPassiveMax, type Edits } from "./model";
 
 /** How many steps 이전 can go back. */
 export const HISTORY_LIMIT = 50;
@@ -101,6 +101,8 @@ export function targetsOf(identity: Identity): Required<Targets> {
     engraving: Object.fromEntries(identity.engravings.map((e) => [e.name, e.name])),
     stone: Object.fromEntries(identity.stones.map((e) => [e.name, e.name])),
     arkPassive: Object.fromEntries(identity.arkPassive.map((a) => [a.tree, a.tree])),
+    // 깨달음 카르마 레벨 (api #1004) is aimed at the 깨달음 tree.
+    karma: Object.fromEntries(identity.arkPassive.filter((a) => a.tree === KARMA_TREE).map((a) => [a.tree, a.tree])),
     core: Object.fromEntries(identity.cores.map((c) => [String(c.slotIndex), c.name])),
   };
 }
@@ -117,6 +119,7 @@ const GROUPS = [
   "engraving",
   "stone",
   "arkPassive",
+  "karma",
   "core",
   "armGuard",
 ] as const;
@@ -204,6 +207,10 @@ export function parseSaved(text: string | null): Saved | null {
     // Held to the tree's in-game maximum (도약 70), so the field shows what is sent (review P3 #1706).
     arkPassive: Object.fromEntries(
       Object.entries(numbers("arkPassive")).map(([tree, points]) => [tree, Math.min(points, arkPassiveMax(tree))]),
+    ),
+    // An older save has none; only the karma range the request takes (0~30, api #1004).
+    karma: Object.fromEntries(
+      Object.entries(numbers("karma")).filter(([tree, level]) => tree === KARMA_TREE && Number.isInteger(level) && level >= 0 && level <= KARMA_MAX),
     ),
     core: cores as Edits["core"],
     braceletName: isRecord(source.braceletName)

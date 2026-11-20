@@ -6,9 +6,11 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useContext } from "react";
 import { readTryPath } from "@/lib/spec-up/model";
 import type { Character } from "@/lib/character/model";
 import { Panel } from "./panel";
+import { KarmaSimEnabled } from "./tabs";
 import styles from "./detail.module.css";
 
 const Simulator = dynamic(
@@ -25,6 +27,7 @@ const Simulator = dynamic(
 
 export function SimulatorTab({ data }: { data: Character }) {
   const tryText = useSearchParams().get("try");
+  const karma = useContext(KarmaSimEnabled);
   return (
     <Panel
       title="전투력 시뮬레이터"
@@ -40,6 +43,7 @@ export function SimulatorTab({ data }: { data: Character }) {
           key={tryText ?? ""}
           name={data.characterName}
           initial={data}
+          karma={karma}
           start={readTryPath(tryText)}
           head={<p className={styles.simulatorLead}>값을 바꾸면 전투력이 얼마나 바뀌는지 항목별로 바로 계산해요.</p>}
         />

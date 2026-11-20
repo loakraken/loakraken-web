@@ -3,7 +3,7 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ARM_GUARD_GRADES, GRADES, isRefineOpen, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+import { ARM_GUARD_GRADES, GRADES, isRefineOpen, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
 
 const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
@@ -315,10 +315,22 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
           }
         : null;
     }
+    // 깨달음 카르마 (api #1004): a KARMA_LEVEL step's change is ARK_PASSIVE_POINT 깨달음 with karmaLevel (no
+    // points). Point changes still open nothing here (깨달음 points stay locked).
+    case "ARK_PASSIVE_POINT":
+      return change.tree === KARMA_TREE && isKarmaLevel(change.karmaLevel)
+        ? { ...base, karma: { ...base.karma, [KARMA_TREE]: change.karmaLevel } }
+        : null;
     default:
       return null;
   }
 }
+
+const isKarmaLevel = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0 && (value as number) <= KARMA_MAX;
+
+/** A 깨달음 karma-level change (api #1004 karmaChange: ARK_PASSIVE_POINT with karmaLevel). */
+export const isKarmaChange = (change: SpecUpChange) => change.kind === "ARK_PASSIVE_POINT" && change.karmaLevel != null;
 
 /** The slot type of an equipment index ("무기", "투구" …), from the character on screen. */
 export type GearType = (index: number) => string | null | undefined;
@@ -384,6 +396,10 @@ function changeOf(value: unknown): SpecUpChange | null {
           option: typeof v.option === "string" && v.option.length <= 32 ? v.option : null,
           ...(isGrade(v.grade) ? { grade: v.grade } : {}),
         }
+      : {}),
+    // 깨달음 카르마 steps (api #1004): the tree and the level. Dropped, a path opened without its karma step.
+    ...(v.kind === "ARK_PASSIVE_POINT" && v.tree === KARMA_TREE && isKarmaLevel(v.karmaLevel)
+      ? { tree: KARMA_TREE, karmaLevel: v.karmaLevel }
       : {}),
   };
 }

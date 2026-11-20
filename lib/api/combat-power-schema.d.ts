@@ -121,7 +121,7 @@ export interface components {
             tree?: string;
             /**
              * Format: int32
-             * @description 아크 패시브 포인트
+             * @description 아크 패시브 포인트(0~999, 도약은 0~70)
              */
             points?: number;
             /**
@@ -134,6 +134,11 @@ export interface components {
              * @description 아크 그리드 코어 포인트
              */
             point?: number;
+            /**
+             * Format: int32
+             * @description 깨달음 카르마 레벨(0~30, ARK_PASSIVE_POINT tree 깨달음만, points·level과 함께 쓰지 않음). 딜러만 계산한다(무기 공격력 레벨당 +0.1%)
+             */
+            karmaLevel?: number;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseCombatPowerSimulationResponse: {
