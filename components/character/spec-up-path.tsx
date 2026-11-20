@@ -23,6 +23,8 @@ import {
   pathCostNote,
   pathCpStopNote,
   pathFigures,
+  PATH_SCOPE_LEAD,
+  pathScopeNote,
   pathTotal,
   stepCandidate,
   stepFigures,
@@ -157,9 +159,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
       <p className={styles.lead}>
         가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요.
       </p>
-      {/* The kinds the path takes (PM 총괄 11-01 wording). 장신구 연마 (api #951) and 깨달음 카르마 joined later; the line still
-          said both were left out while the real answers listed them (v0.3.15 readiness, 11-21). */}
-      <p className={styles.lead}>보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤·장신구 연마·깨달음 카르마 단계를 다뤄요.</p>
+      {/* The kinds every path takes (PM 총괄 11-01). 장신구 연마 and 깨달음 카르마 depend on api switches, so the answer's own
+          note says whether this one takes them (pathScopeNote, PM 총괄 11-21). */}
+      <p className={styles.lead}>{PATH_SCOPE_LEAD}</p>
       {failure && !path.isFetching ? (
         <div className={detail.specUpFailure} role="alert">
           <p>{failureText(failure.code, "limit" in failure ? failure.limit : undefined)}</p>
@@ -312,6 +314,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
         {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path)}`}
       </p>
+      {/* Whether this answer takes 장신구 연마 · 깨달음 카르마 steps (api switches, both off on production). */}
+      <p className={styles.note}>{pathScopeNote(path)}</p>
       {/* Where combat power stops (api #1029): armor refine and arm guard steps in a dealer's 점수 효율 path. */}
       {cpStop && <p className={styles.note}>{cpStop}</p>}
       <Unpriced items={path.unpriced} scored={figures.scored} />

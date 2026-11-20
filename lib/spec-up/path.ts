@@ -213,3 +213,21 @@ export function pathCpStopNote(
   const why = CP_STOP_REASONS[path.combatPowerStopReasonCode ?? ""];
   return why ? `${where} ${why}` : where;
 }
+
+/** Kinds every path takes; the lead line above the answer names only these (it shows before any answer). */
+export const PATH_SCOPE_LEAD = "보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요.";
+
+/**
+ * Whether this answer takes 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21): each joins the path only behind its own api
+ * switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production, and the
+ * answer carries no field for it yet (asked of 백엔드), so a kind counts as taken when the answer has a step of it. A kind
+ * not taken keeps the words the lead line had before (11-01).
+ */
+export function pathScopeNote(path: Pick<SpecUpPath, "steps">): string {
+  const polish = path.steps.some((step) => step.kind === "POLISH");
+  const karma = path.steps.some((step) => step.kind === "KARMA_LEVEL");
+  if (polish && karma) return "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.";
+  if (polish) return "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
+  if (karma) return "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더해요.";
+  return "장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
+}
