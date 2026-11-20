@@ -83,6 +83,33 @@ test("guard on: exactly index + refine / index + level, inside the api's bounds"
     assert.equal(parseSimulateRequest(body(bad), on), null, JSON.stringify(bad));
 });
 
+test("an extra key on a refine change is a local 400, not stripped and sent on (PM-프론트 #1843 P2)", () => {
+  const on = { armor: true };
+  for (const change of [
+    { kind: "EQUIPMENT_REFINE", index: 1, refine: 20, extra: true },
+    { kind: "EQUIPMENT_REFINE", index: 1, refine: 20, characterName: "x" },
+    { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20, extra: "dropped?" },
+  ])
+    assert.equal(parseSimulateRequest(body(change), on), null, JSON.stringify(change));
+});
+
+test("완갑: exactly level 0..25 and a grade the simulator offers (PM-프론트 P3)", () => {
+  const guard = { kind: "ARM_GUARD", level: 20, grade: "고대" };
+  for (const armor of [false, true]) {
+    assert.deepEqual(parseSimulateRequest(body(guard), { armor })?.changes, [guard]);
+    assert.deepEqual(parseSimulateRequest(body({ ...guard, level: 0, grade: "영웅" }), { armor })?.changes, [{ ...guard, level: 0, grade: "영웅" }]);
+    for (const bad of [
+      { ...guard, level: 26 },
+      { ...guard, level: -1 },
+      { ...guard, grade: "에스더" },
+      { kind: "ARM_GUARD", level: 20 },
+      { ...guard, extra: true },
+      { ...guard, index: 3 },
+    ])
+      assert.equal(parseSimulateRequest(body(bad), { armor }), null, JSON.stringify(bad));
+  }
+});
+
 test("open checks: off as before (weapon 재련 only, no 상급 재련); on, armour 재련 and 상급 재련, never weapon 상급 재련", () => {
   assert.equal(isRefineOpen("무기"), true);
   assert.equal(isRefineOpen("투구"), false);

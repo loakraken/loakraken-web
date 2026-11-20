@@ -453,20 +453,33 @@ const karmaAllowed = (out: Record<string, unknown>, karma: boolean) =>
   (out.karmaLevel as number) >= 0 &&
   (out.karmaLevel as number) <= KARMA_MAX;
 
-const only = (out: Record<string, unknown>, keys: string[]) =>
-  Object.keys(out).every((key) => key === "kind" || keys.includes(key)) && keys.every((key) => out[key] !== undefined);
+/**
+ * Exactly these fields on the change as it came in (`raw`, before the general pass drops unknown keys): an extra key
+ * is a local 400, never stripped and sent on (PM-프론트 #1843 P2).
+ */
+const only = (raw: Record<string, unknown>, keys: string[]) =>
+  Object.keys(raw).every((key) => key === "kind" || keys.includes(key)) && keys.every((key) => raw[key] !== undefined);
 
 /**
- * 재련 · 상급 재련 with the armour CP gate (ARMOR_CP_SIM on, PM 총괄 11-21): exactly the fields the simulator sends,
- * inside the api's bounds (REFINE_MIN..REFINE_MAX, 0..ADVANCED_REFINE_MAX). The proxy cannot tell armour from the
- * weapon (index is the search answer's equipment position), so off, 재련 goes as before and every 상급 재련 is
- * refused: the screen never sends one there, and the api holds its own switch.
+ * 재련 · 상급 재련 · 완갑: exactly the fields the simulator sends, inside the api's bounds.
+ * - 상급 재련 with the armour CP gate (ARMOR_CP_SIM on, PM 총괄 11-21): index + level, 0..ADVANCED_REFINE_MAX. The
+ *   proxy cannot tell armour from the weapon (index is the search answer's equipment position), so off every 상급 재련
+ *   is refused: the screen never sends one there, and the api holds its own switch.
+ * - 재련 with ARMOR_CP_SIM on: index + refine, REFINE_MIN..REFINE_MAX; off, as before (the weapon's, api #884).
+ * - 완갑 (api #342): level 0..ARM_GUARD_MAX and a grade the simulator offers (the api rejects others; PM-프론트 P3).
  */
-const refineAllowed = (out: Record<string, unknown>, armor: boolean) => {
+const changeAllowed = (raw: Record<string, unknown>, out: Record<string, unknown>, armor: boolean) => {
   if (out.kind === "EQUIPMENT_ADVANCED_REFINE")
-    return armor && only(out, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
+    return armor && only(raw, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
   if (out.kind === "EQUIPMENT_REFINE" && armor)
-    return only(out, ["index", "refine"]) && (out.index as number) >= 0 && (out.refine as number) >= REFINE_MIN && (out.refine as number) <= REFINE_MAX;
+    return only(raw, ["index", "refine"]) && (out.index as number) >= 0 && (out.refine as number) >= REFINE_MIN && (out.refine as number) <= REFINE_MAX;
+  if (out.kind === "ARM_GUARD")
+    return (
+      only(raw, ["level", "grade"]) &&
+      (out.level as number) >= 0 &&
+      (out.level as number) <= ARM_GUARD_MAX &&
+      (ARM_GUARD_GRADES as readonly unknown[]).includes(out.grade)
+    );
   return true;
 };
 
@@ -502,7 +515,7 @@ export function parseSimulateRequest(
       out[key] = change[key];
     }
     if (out.karmaLevel !== undefined && !karmaAllowed(out, karma)) return null;
-    if (!refineAllowed(out, armor)) return null;
+    if (!changeAllowed(change, out, armor)) return null;
     clean.push(out as Change);
   }
   return { characterName: normalizeCharacterName(characterName), changes: clean };
