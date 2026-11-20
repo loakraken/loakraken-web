@@ -328,15 +328,26 @@ test("the combat-power stop note: where, why only for a known code, none without
   // No stop (null, an api before #1029) or a step the path does not have: no note.
   for (const order of [null, undefined, 0, 4, 1.5, "2"]) assert.equal(note(order), null, String(order));
 });
-test("pathScopeNote: 장신구 연마 · 깨달음 카르마 are named as taken only when the answer has such a step (PM 총괄 11-21)", () => {
-  const note = (...kinds: string[]) => pathScopeNote({ steps: kinds.map((kind, i) => ({ order: i + 1, kind })) as GoalStep[] });
-  assert.equal(note("GEM_LEVEL", "POLISH", "KARMA_LEVEL"), "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.");
-  assert.equal(note("POLISH"), "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.");
-  assert.equal(note("KARMA_LEVEL", "GEM_LEVEL"), "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더해요.");
-  // Production (both api switches off): neither kind, the words the lead line had before.
+test("pathScopeNote: 장신구 연마 · 깨달음 카르마 follow the answer's switch fields; missing is false (PM 총괄 11-21)", () => {
+  const steps = (...kinds: string[]) => kinds.map((kind, i) => ({ order: i + 1, kind })) as GoalStep[];
+  const note = (fields: Record<string, unknown>, ...kinds: string[]) =>
+    pathScopeNote({ steps: steps(...kinds), ...fields } as Parameters<typeof pathScopeNote>[0]);
+  const both = "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.";
   const off = "장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
-  assert.equal(note("GEM_LEVEL", "EQUIPMENT_REFINE"), off);
-  assert.equal(note(), off);
-  // A karma change inside another kind of step does not count: the step's own kind does (KARMA_LEVEL).
-  assert.equal(note("ARK_PASSIVE_POINT"), off);
+  assert.equal(note({ polishStepsConsidered: true, karmaStepsConsidered: true }, "POLISH", "KARMA_LEVEL"), both);
+  // On with none picked: the field, not the steps.
+  assert.equal(note({ polishStepsConsidered: true, karmaStepsConsidered: true }, "GEM_LEVEL"), both);
+  assert.equal(
+    note({ polishStepsConsidered: true, karmaStepsConsidered: false }, "POLISH"),
+    "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.",
+  );
+  assert.equal(
+    note({ polishStepsConsidered: false, karmaStepsConsidered: true }),
+    "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더해요.",
+  );
+  // Production (both switches off), an api before the fields (missing) and anything but true: today's words, steps or not.
+  assert.equal(note({ polishStepsConsidered: false, karmaStepsConsidered: false }), off);
+  assert.equal(note({}, "POLISH", "KARMA_LEVEL"), off);
+  assert.equal(note({ polishStepsConsidered: null, karmaStepsConsidered: null }, "POLISH"), off);
+  assert.equal(note({ polishStepsConsidered: "true", karmaStepsConsidered: 1 }), off);
 });
