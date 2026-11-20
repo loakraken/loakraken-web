@@ -1591,7 +1591,11 @@ createServer(async (req, res) => {
     const times = (...hours) => hours.map((h) => at(h));
     // Real calendar minutes (backend 2026-10-09): chaos gates at :50, others mixed.
     const timesAt = (minute, ...hours) => hours.map((h) => at(h, minute));
-    const next = (list) => list.find((t) => Date.parse(t) > Date.now()) ?? (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
+    // nextAt = the next day's first round, at any real hour (#1816). The web reads nextAt only once a section has no
+    // round left today ('오늘 일정 종료 · 내일 09:00'); a spec that pins the page past the day's last round must get
+    // tomorrow's time, as the backend would answer at that hour, not the next round after the mock's own clock (which
+    // the page has already passed). A section with rounds still ahead uses its startTimes, not nextAt.
+    const next = (list) => (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
     const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
     // Rewards (backend #118): ItemLevel groups in official order; timed = tied to that day's rounds.
     const rw = (name, grade, timed = false) => ({ name, icon: null, grade, timed });
