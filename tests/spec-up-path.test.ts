@@ -252,17 +252,32 @@ test("the backend's #993 sample (SpecUpIntegrationTest, api develop 7f9aff63) pa
   assert.deepEqual(extraCosts(path.steps), [600_000, 2_000_000, null]);
 });
 
-test("the cost note follows the order's rule (api #993 paidCost, PM 총괄 11-20 P1)", () => {
-  // 효율 우선 and 점수 효율: a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its whole new
-  // price each step; only a tradeable one takes the step before off.
+test("the cost note follows the order's rule on spec-up-path-v6 only (api #993 paidCost / marginal; PM-프론트 #1793 P3)", () => {
+  const gem = { kind: "GEM_LEVEL" } as GoalStep;
+  const polish = { kind: "POLISH" } as GoalStep;
+  const note = (sort: string, ruleVersion = "spec-up-path-v6", steps = [gem]) => pathCostNote({ sort, ruleVersion, steps });
+  // 효율 우선 and 점수 효율 (paidCost): a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its
+  // whole new price each step; only a tradeable one takes the step before off.
   const perStep =
     "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
-  assert.equal(pathCostNote("EFFICIENCY"), perStep);
-  assert.equal(pathCostNote("KRAKEN"), perStep);
-  // 전투력 우선 is unchanged: the old sentence.
-  assert.equal(pathCostNote("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
-  // An answer without a sort reads as the api's default order (EFFICIENCY).
-  assert.equal(pathCostNote(undefined), perStep);
-  // The old sentence never shows under an order that pays per step.
-  assert.ok(!perStep.includes("보석은 같은 칸의 앞 단계 비용을 빼고"));
+  assert.equal(note("EFFICIENCY"), perStep);
+  assert.equal(note("KRAKEN"), perStep);
+  // 전투력 우선 (marginal): a gem, an ability stone and an accessory (polish) step take the same slot's step before
+  // off; accessories only when the answer has a polish step.
+  assert.equal(note("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 스톤은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
+  assert.equal(
+    note("DELTA", undefined, [gem, polish]),
+    "비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 스톤·장신구는 같은 칸의 앞 단계 비용을 빼고 셌어요.",
+  );
+  // Another rule version (before v6 the orders counted differently, after it nobody has checked) or an order the
+  // web does not know: only what a step cost means, no claim on how it was counted.
+  const plain = "비용은 그 단계에서 더 드는 골드예요.";
+  for (const [sort, version] of [
+    ["EFFICIENCY", "spec-up-path-v5"],
+    ["KRAKEN", "spec-up-path-v1"],
+    ["DELTA", "spec-up-path-v5"],
+    ["EFFICIENCY", "spec-up-path-v7"],
+    ["COST", "spec-up-path-v6"],
+  ])
+    assert.equal(note(sort, version, [gem, polish]), plain, `${sort} ${version}`);
 });
