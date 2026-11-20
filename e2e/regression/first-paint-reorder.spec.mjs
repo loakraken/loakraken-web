@@ -7,20 +7,28 @@ import { cutEverywhere } from "../support/first-paint.mjs";
 
 const A = '<div class="a"><p>앞 칸 글자</p></div>';
 const B = '<div class="b"><p>뒤 칸 글자</p></div>';
+const X = '<div class="x"><p>첫 칸</p></div>';
 const CASES = [
   ["column-reverse", "display:flex;flex-direction:column-reverse", true],
   ["wrap-reverse", "display:flex;flex-wrap:wrap-reverse;flex-direction:row", true],
   ["grid-row", "display:grid", true, ".a{grid-row:2}.b{grid-row:1}"],
   ["order", "display:flex;flex-direction:column", true, ".a{order:2}"],
+  // PM-프론트 #1819 P3 (codex web-1819.md): an end-only row (grid-row: span 1 / 3, start "span 1"); a display: contents
+  // wrapper (the parent's only child, its children laid out by the parent); a column-flow grid (B in the next column
+  // grows the shared row above A); a named grid area whose name begins with "span".
+  ["grid-row end only", "display:grid", true, ".a{grid-row:span 1 / 3}"],
+  ["display: contents wrapper", "display:flex;flex-direction:column-reverse", true, "", `<div style="display:contents">${A}${B}</div>`],
+  ["grid-auto-flow: column", "display:grid;grid-auto-flow:column;grid-template-rows:auto auto", true, "", `${X}${A}${B}`],
+  ["named area 'span…'", "display:grid;grid-template-areas:'spanb' 'spana'", true, ".a{grid-area:spana}.b{grid-area:spanb}"],
   ["plain column", "display:flex;flex-direction:column", false],
 ];
 
-for (const [name, parent, reordered, extra = ""] of CASES)
+for (const [name, parent, reordered, extra = "", html = A + B] of CASES)
   test(`첫 그림 도우미: ${name} ${reordered ? "앞 칸 끝도 자른다" : "더 자르지 않는다"} @regression`, async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 600 });
     // wrap-reverse: each child takes a whole line, so B's line is drawn above A's.
     const css = `body{margin:0;font:16px sans-serif}.box{${parent}}.box>div{width:100%}.a p{margin:0;height:40px}.b{height:1200px}.b p{margin:0}${extra}`;
-    await page.setContent(`<!doctype html><html><head><style>${css}</style></head><body><main class="box">${A}${B}</main></body></html>`);
+    await page.setContent(`<!doctype html><html><head><style>${css}</style></head><body><main class="box">${html}</main></body></html>`);
     // The helper waits for React to claim <body>; this page has no React.
     await page.evaluate(() => (document.body["__reactFiber$selftest"] = true));
     const cut = await cutEverywhere(page, "main|앞 칸", null, { serverHtml: false });
