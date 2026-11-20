@@ -113,7 +113,8 @@ for (const width of [320, 1280]) {
     const folded = page.getByRole("region", { name: "아직 계산하지 않은 후보" });
     const group = folded.locator("summary").filter({ hasText: TEXT });
     await expect(group).toHaveCount(1);
-    await expect(group).toContainText("재련·상급 재련 2개 —");
+    // Kinds in candidate-id order: EQUIPMENT_ADVANCED_REFINE before EQUIPMENT_REFINE.
+    await expect(group).toContainText("상급 재련·재련 2개 —");
     await group.click();
     await expect(folded.getByRole("listitem").filter({ hasText: "+19 테스트 투구 (+19 → +20)" })).toHaveCount(1);
     await expectNoHorizontalOverflow(page);
@@ -123,7 +124,8 @@ for (const width of [320, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${characterPath(OPEN, "specup")}&sort=DELTA`);
     const goal = page.getByRole("region", { name: "목표 전투력" });
-    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("99999");
+    // Past both armour steps at the end of the mock path (12,498.02 and 12,506.27).
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12507");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
     await expect(goal.getByText("상급 재련 20단계").first()).toBeVisible();
     await expect(goal).not.toContainText("시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요");
