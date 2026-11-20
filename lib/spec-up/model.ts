@@ -109,7 +109,20 @@ export const kindLabel = (kind: string) =>
  * The 스펙업 tab's lead sentence (the tab draws it, not the guide, so it is in the server HTML: the tab's LCP at
  * 320 on a slow network, #1858). A supporter's depends on their first answer (`pathOpen`: 추천 순서 by score runs).
  */
-export function specUpLead({ supporter, pathOpen, pathEnabled }: { supporter: boolean; pathOpen: boolean; pathEnabled: boolean }) {
+export function specUpLead({
+  supporter,
+  pathOpen,
+  pathEnabled,
+  roleKnown = true,
+}: {
+  supporter: boolean;
+  pathOpen: boolean;
+  pathEnabled: boolean;
+  /** False when the role is not settled (a support class whose 깨달음 nodes do not tell, positionOf null). */
+  roleKnown?: boolean;
+}) {
+  // Neither 전투력 nor 점수 until the role is known (#1862: it read the dealer's, now in the server HTML).
+  if (!roleKnown) return "바꿨을 때 얼마나 오르는지와 드는 골드를 함께 보여 드려요. 정렬은 아래에서 바꿀 수 있어요.";
   if (supporter)
     return pathOpen
       ? // A supporter's first view is 추천 순서 by score once it runs (PM 총괄 11-15).

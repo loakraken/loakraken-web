@@ -15,3 +15,9 @@ test("supporter: 추천 순서 by score only when it runs for them (pathOpen), e
     "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요.",
   );
 });
+
+test("unknown role (positionOf null): a neutral sentence, neither 전투력 nor 점수 (#1862)", () => {
+  const lead = specUpLead({ supporter: false, pathOpen: true, pathEnabled: true, roleKnown: false });
+  assert.equal(lead, "바꿨을 때 얼마나 오르는지와 드는 골드를 함께 보여 드려요. 정렬은 아래에서 바꿀 수 있어요.");
+  assert.doesNotMatch(lead, /전투력|점수/);
+});
