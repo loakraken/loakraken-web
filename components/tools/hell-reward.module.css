@@ -38,15 +38,18 @@
     transition: none;
   }
 }
+/* Whole-px line heights here too (codex #1823 P3: they kept the inherited 1.43, 21.45 and 17.16px). */
 .sectionTitle {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
+  line-height: 21px;
 }
 .stage {
   display: grid;
   gap: 4px;
   font-size: 12px;
+  line-height: 18px;
   color: var(--muted-foreground);
 }
 .stage select {
