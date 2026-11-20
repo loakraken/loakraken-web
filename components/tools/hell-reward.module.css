@@ -72,11 +72,13 @@
 .sums dt {
   color: var(--muted-foreground);
   font-size: 12px;
+  line-height: 18px;
 }
 .sums dd {
   margin: 2px 0 0;
   font-size: 15px;
   font-weight: 700;
+  line-height: 22px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow-wrap: normal;
@@ -85,6 +87,7 @@
   margin: 0 0 8px;
   color: var(--muted-foreground);
   font-size: 12px;
+  line-height: 18px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -133,9 +136,11 @@
 }
 /* The best box's name: two lines held, so another box taking the lead never moves the row. */
 .boxName {
-  min-height: calc(2 * 1.4em);
-  line-height: 1.4;
+  min-height: 42px;
+  line-height: 21px;
 }
+/* Whole-px line heights from the headline down to the items (CI 44772043865: with line-height: normal the
+   blocks above the base list were 77.16 · 41.44 · 56.59px tall, and a late price moved its first item 1px). */
 .switch {
   display: inline-flex;
   min-height: 32px;
@@ -143,6 +148,7 @@
   gap: 8px;
   margin: 0 0 8px;
   font-size: 13px;
+  line-height: 18px;
 }
 .switch input {
   width: 16px;
@@ -176,6 +182,7 @@
   padding: 8px 0;
   border-top: 1px solid var(--border);
   font-size: 13px;
+  line-height: 19px;
 }
 .lines li:first-child {
   border-top: 0;
@@ -194,6 +201,7 @@
 .item small {
   color: var(--muted-foreground);
   font-size: 12px;
+  line-height: 17px;
 }
 /* The unit slot: the same width and height whatever it holds (a price, a wait note, an
    input), so a price landing or missing never moves the row. */
