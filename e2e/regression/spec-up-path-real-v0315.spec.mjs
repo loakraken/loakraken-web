@@ -151,8 +151,9 @@ for (const [who, what, kinds, note] of SCOPE)
     expect(["연마", "카르마"].filter((kind) => shown.includes(kind))).toEqual(kinds);
     await expect(answer(page).getByText(LEAD, { exact: true })).toBeVisible();
     if (note) await expect(answer(page).getByText(note, { exact: true })).toBeVisible();
-    // Only the lead line names kinds when nothing is said about these two (b): no other sentence mentions them.
-    else await expect(answer(page).locator("p", { hasText: /장신구 연마|깨달음 카르마/ })).toHaveCount(0);
+    // That sentence is the only one naming these two kinds (the old lead line's reasons are gone); with nothing to say
+    // about them (b) no sentence names them at all.
+    await expect(answer(page).locator("p", { hasText: /장신구 연마|깨달음 카르마/ })).toHaveCount(note ? 1 : 0);
     // The cost note is there, so an absence above is not of an empty answer.
     await expect(answer(page).getByText(/다시 계산한 값이에요/)).toBeVisible();
   });

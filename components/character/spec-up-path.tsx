@@ -197,6 +197,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const { start, final } = figures;
   const total = pathTotal(path);
   const cpStop = pathCpStopNote(path);
+  const scope = pathScopeNote(path);
   const sim = simulatorPath(steps, gearTypeOf(data), useContext(KarmaSimEnabled), useContext(ArmorSimEnabled));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
@@ -315,7 +316,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path)}`}
       </p>
       {/* Whether this answer takes 장신구 연마 · 깨달음 카르마 steps (api switches, both off on production). */}
-      <p className={styles.note}>{pathScopeNote(path)}</p>
+      {scope && <p className={styles.note}>{scope}</p>}
       {/* Where combat power stops (api #1029): armor refine and arm guard steps in a dealer's 점수 효율 path. */}
       {cpStop && <p className={styles.note}>{cpStop}</p>}
       <Unpriced items={path.unpriced} scored={figures.scored} />

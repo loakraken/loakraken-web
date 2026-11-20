@@ -226,19 +226,29 @@ export const PATH_SCOPE_LEAD = "보석·재련·상급 재련·품질·각인·�
  */
 export type PathScopeFields = { polishStepsConsidered?: boolean | null; karmaStepsConsidered?: boolean | null };
 
+/** The two switch-gated kinds: the answer's field, the step kind that shows one in the path, and its name. */
+const SCOPE_KINDS = [
+  { field: "polishStepsConsidered", step: "POLISH", name: "장신구 연마" },
+  { field: "karmaStepsConsidered", step: "KARMA_LEVEL", name: "깨달음 카르마" },
+] as const;
+
 /**
- * Whether this answer takes 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21): each joins the path only behind its own api
- * switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production. The
- * answer says it (polishStepsConsidered / karmaStepsConsidered, true when the switch was on and, for karma, the role
- * takes it); anything but true, a missing field included (an api before them), is false, so production keeps the
- * words the lead line had before (11-01) before and after the api ships. The steps are not read: a switch on with no
- * such step picked still takes the kind.
+ * What this answer says about 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21 05:42). Each joins the path only behind its
+ * own api switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production,
+ * and the answer says whether it was on (polishStepsConsidered / karmaStepsConsidered; for karma the role must take it).
+ * Per kind: (c) on and a step of it in the answer → covered; (b) on and none in the answer (karma already at 30, none
+ * worth it) → nothing; (a) off, which is anything but true, a missing field (an api before them) included → '… 단계는
+ * 아직 추천 순서에 넣지 않아요.' naming only the kinds that are off, with no reason (both are switch-gated now, so the old
+ * reasons no longer hold). null when there is nothing to say (no element on screen).
  */
-export function pathScopeNote(path: Pick<SpecUpPath, "steps"> & PathScopeFields): string {
-  const polish = path.polishStepsConsidered === true;
-  const karma = path.karmaStepsConsidered === true;
-  if (polish && karma) return "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.";
-  if (polish) return "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
-  if (karma) return "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더해요.";
-  return "장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
+export function pathScopeNote(path: Pick<SpecUpPath, "steps"> & PathScopeFields): string | null {
+  const on = (kind: (typeof SCOPE_KINDS)[number]) => path[kind.field] === true;
+  const covered = SCOPE_KINDS.filter((kind) => on(kind) && path.steps.some((step) => step.kind === kind.step));
+  // 깨달음 카르마 first in the 'not yet' sentence, as PM 총괄 worded it.
+  const off = SCOPE_KINDS.filter((kind) => !on(kind)).reverse();
+  const parts = [
+    covered.length > 0 ? `이 순서는 ${covered.map((kind) => kind.name).join("·")} 단계도 다뤄요.` : null,
+    off.length > 0 ? `${off.map((kind) => kind.name).join(" · ")} 단계는 아직 추천 순서에 넣지 않아요.` : null,
+  ].filter((part) => part !== null);
+  return parts.length > 0 ? parts.join(" ") : null;
 }
