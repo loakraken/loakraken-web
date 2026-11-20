@@ -1048,10 +1048,12 @@ createServer(async (req, res) => {
       );
       Object.assign(d, { krakenScore: start, finalKrakenScore: start + 7.5 * d.steps.length, krakenScoreRole: "DEALER", stopReason: "시세가 있는 항목 가운데 점수가 오르는 것을 모두 골랐어요." });
       // From the armor step on the api leaves combat power out (null), score and cost stay (api #1029).
+      // '…잔차' (api #1036, armour gate switch on): the dealer's official and equipment-built CP differ by more than 0.10%.
       if (who.startsWith("점수순서방어구")) {
         const stop = who.endsWith("첫") ? 1 : 2;
+        const code = who.endsWith("잔차") ? "ARMOR_CP_RESIDUAL_HIGH" : "ARMOR_REFINE_CP_UNCONFIRMED";
         d.steps.forEach((step) => step.order >= stop && Object.assign(step, { deltaCombatPower: null, combatPowerAfter: null, combatPowerPer10kGold: null }));
-        Object.assign(d, { finalCombatPower: null, combatPowerStopOrder: stop, combatPowerStopReasonCode: "ARMOR_REFINE_CP_UNCONFIRMED" });
+        Object.assign(d, { finalCombatPower: null, combatPowerStopOrder: stop, combatPowerStopReasonCode: code });
       }
     }
     // A stone step as api #812 words it (two engravings each side): the longest change text.
