@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -169,6 +169,12 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       ? DEFAULT_SORT
       : chosen;
   const pathShown = view === "PATH";
+  // A press draws the new list in a transition (#1852): the list for a sort already asked for is
+  // there at once, and drawing its ~50 rows inside the click kept the first paint 112~248ms away
+  // at 320 · CPU 4×. The pressed chip and the bar (cooldown toggle, why 크라켄 is off, 추천 순서's
+  // 기준) follow the press in the same paint (chip/chipSort); the list follows when drawn.
+  const [, startSwitch] = useTransition();
+  const [chip, pressChip] = useOptimistic(view);
   // The candidate list behind 추천 순서 stays the first list (the tab asked for it).
   const sort: Sort = view === "PATH" ? (supporter ? "KRAKEN" : DEFAULT_SORT) : view;
   const [pickedPathSort, setPathSort] = useState<PathSort>(supporter ? "KRAKEN" : "EFFICIENCY");
@@ -183,6 +189,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const gearType = gearTypeOf(data);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
+  const [cooldownShown, pressCooldown] = useOptimistic(cooldown);
   // The first list (the tab's first answer) tells whether the backend knows
   // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 정렬 is not
   // sent — an older backend refuses the value — and the list stays as it is.
@@ -270,9 +277,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     if (toldKey !== null) setTold(listChangeCopy(toldKey, guide.sort, guide.cooldownGemsIncluded));
   }
   // Known before the press: the efficiency list already says why (the reason
-  // does not depend on the sort), so the bar changes in the same frame.
+  // does not depend on the sort), so the bar changes in the same frame (the pressed chip's sort).
+  const chipSort: Sort = chip === "PATH" ? (supporter ? "KRAKEN" : DEFAULT_SORT) : chip;
   const offReason =
-    sort === "KRAKEN" ? (krakenKnown === false ? "DISABLED" : (guide?.krakenSortUnavailableReason ?? null)) : null;
+    chipSort === "KRAKEN" ? (krakenKnown === false ? "DISABLED" : (guide?.krakenSortUnavailableReason ?? null)) : null;
   const notice = krakenUnavailableCopy(offReason);
   const note = krakenUnavailableNote(offReason);
   const candidates = useMemo(
@@ -348,9 +356,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
               <Fragment key={item.id}>
                 <button
                   type="button"
-                  aria-pressed={view === item.id}
+                  aria-pressed={chip === item.id}
                   aria-describedby={describe ? `${sortsId}-${item.id}` : undefined}
-                  onClick={() => setView(item.id)}
+                  onClick={() =>
+                    startSwitch(() => {
+                      pressChip(item.id);
+                      setView(item.id);
+                    })
+                  }
                 >
                   {item.label}
                 </button>
@@ -372,7 +385,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
               role="group"
               aria-label="추천 순서 고르는 기준"
               className={styles.specUpPathSorts}
-              data-off={!pathShown || undefined}
+              data-off={chip !== "PATH" || undefined}
             >
               {pathSorts.map((item) => (
                 // The short name stays the button's; the rule is its description (as the chips above),
@@ -383,7 +396,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     className="hit-44"
                     aria-pressed={pathSort === item.id}
                     aria-describedby={item.describe ? `${sortsId}-path-${item.id}` : undefined}
-                    tabIndex={pathShown ? undefined : -1}
+                    tabIndex={chip === "PATH" ? undefined : -1}
                     onClick={() => setPathSort(item.id)}
                   >
                     {item.label}
@@ -400,9 +413,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           <button
             type="button"
             className={styles.specUpCooldown}
-            aria-pressed={cooldown}
-            data-off={sort !== "KRAKEN" || !!note || undefined}
-            onClick={() => setCooldown((on) => !on)}
+            aria-pressed={cooldownShown}
+            data-off={chipSort !== "KRAKEN" || !!note || undefined}
+            onClick={() =>
+              startSwitch(() => {
+                pressCooldown(!cooldown);
+                setCooldown(!cooldown);
+              })
+            }
           >
             작열 보석 포함
           </button>
