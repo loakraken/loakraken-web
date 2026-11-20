@@ -83,18 +83,26 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     // child may sit below the finished screen, so the on-screen rule above never picks it: add those cuts here.
     // Reordered (PM-프론트 #1794 P3): a child's CSS order; flex row-/column-reverse or wrap-reverse; a grid child
     // placed on an explicit row (grid-row, grid-area) or a dense grid, where a later child can take an earlier cell.
+    // PM-프론트 #1819 P3s: an end-only row (grid-row: span 1 / 3) places a child too; a line or area name that only
+    // begins with "span" is a placement, the span keyword is a word of its own; a column-flow grid puts a later child
+    // in the next column, where it can grow a row the earlier one shares.
+    const placed = (line) => line !== "auto" && !/^span(\s|$)/.test(line);
     const reorders = (parent, kids) => {
       const style = getComputedStyle(parent);
       if (kids.some((kid) => getComputedStyle(kid).order !== "0")) return true;
       if (/flex/.test(style.display)) return /reverse/.test(style.flexDirection) || style.flexWrap === "wrap-reverse";
       return (
         style.gridAutoFlow.includes("dense") ||
+        style.gridAutoFlow.includes("column") ||
         kids.some((kid) => {
-          const start = getComputedStyle(kid).gridRowStart;
-          return start !== "auto" && !start.startsWith("span");
+          const own = getComputedStyle(kid);
+          return placed(own.gridRowStart) || placed(own.gridRowEnd);
         })
       );
     };
+    // A display: contents child has no box: its children are the parent's items (PM-프론트 #1819 P3).
+    const items = (parent) =>
+      [...parent.children].flatMap((kid) => (getComputedStyle(kid).display === "contents" ? items(kid) : [kid]));
     const cuttable = (n) => {
       if (n.nodeType === 3 && !n.textContent.trim()) return false;
       if (serverHtml && !known.has(sign(n))) return false;
@@ -110,7 +118,7 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     const chosen = new Set(nodes);
     const onScreen = nodes.length;
     for (const parent of [root, ...root.querySelectorAll("*")]) {
-      const kids = [...parent.children];
+      const kids = items(parent);
       if (kids.length < 2 || !/flex|grid/.test(getComputedStyle(parent).display)) continue;
       if (!reorders(parent, kids)) continue;
       for (const kid of kids.slice(0, -1)) {
