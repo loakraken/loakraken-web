@@ -22,6 +22,30 @@ test("the karma level is read from the 깨달음 point description, as the api r
   assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 31레벨" }]), null);
 });
 
+test("the api's karmaLevel (api #1023) wins; the description is read only when the field is absent or null", () => {
+  // The field.
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨", karmaLevel: 29 }]), 29);
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: null, karmaLevel: 0 }]), 0);
+  // No field (an api before #1023) or null (the api could not read a level): the description.
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨" }]), 29);
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨", karmaLevel: null }]), 29);
+  // The field and the description disagree: the field wins.
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨", karmaLevel: 27 }]), 27);
+  // Every point carries a level (진화 '6랭크 30레벨' → 30): the 깨달음 point's, never the first one.
+  assert.equal(
+    karmaLevelOf([
+      { name: "진화", description: "6랭크 30레벨", karmaLevel: 30 },
+      { name: "깨달음", description: "6랭크 25레벨", karmaLevel: 25 },
+      { name: "도약", description: "5랭크 20레벨", karmaLevel: 20 },
+    ]),
+    25,
+  );
+  assert.equal(karmaLevelOf([{ name: "진화", description: "6랭크 30레벨", karmaLevel: 30 }]), null);
+  // A field outside 0~30 is not a level the request takes, and the description is not read in its place.
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨", karmaLevel: 31 }]), null);
+  assert.equal(karmaLevelOf([{ name: "깨달음", description: "6랭크 29레벨", karmaLevel: -1 }]), null);
+});
+
 test("a karma edit goes out as ARK_PASSIVE_POINT 깨달음 karmaLevel, never with points, and only where the screen edits it", () => {
   const current: Current = { gems: [], gear: [], arkPassive: [{ tree: "깨달음", points: 101 }], karma: 29 };
   const edits: Edits = { ...NO_EDITS, karma: { 깨달음: 30 } };
