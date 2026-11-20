@@ -29,7 +29,7 @@ import {
   type DetailStat,
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
-import { costPriceNote, gemTarget, kindLabel, koreanGold, notCachedText, polishBasis, type Candidate } from "@/lib/spec-up/model";
+import { candidateKindLabel, costPriceNote, gemTarget, koreanGold, notCachedText, polishBasis, type Candidate } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
@@ -248,7 +248,7 @@ export function SpecUpRowDetail({
               <img src={icon} alt="" width={56} height={56} referrerPolicy="no-referrer" />
             ) : undefined
           }
-          lines={[`${kindLabel(candidate.kind)} · ${candidate.from ?? "—"} → ${candidate.to ?? "—"}`]}
+          lines={[`${candidateKindLabel(candidate)} · ${candidate.from ?? "—"} → ${candidate.to ?? "—"}`]}
         >
           {/* What a 연마 row's combat power assumes (shown only with a ΔCP). */}
           {basis && <ItemLine tone="muted">{basis}</ItemLine>}

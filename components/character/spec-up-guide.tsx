@@ -17,7 +17,7 @@ import {
   editsFor,
   gearTypeOf,
   keepOrder,
-  kindLabel,
+  candidateKindLabel,
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
@@ -556,7 +556,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                           data-collapsed={collapsed || undefined}
                         >
                           <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
-                          <td data-cell="kind">{kindLabel(c.kind)}</td>
+                          <td data-cell="kind">{candidateKindLabel(c)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
                             <SpecUpRowDetail

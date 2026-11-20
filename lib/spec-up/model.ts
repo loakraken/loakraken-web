@@ -105,6 +105,13 @@ export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPowe
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
+/**
+ * A candidate's kind as the screen names it. 완갑 rows come as kind EQUIPMENT_REFINE with change.kind ARM_GUARD (api,
+ * 백엔드 11-21): named 완갑, as the path names the same step, not 재련.
+ */
+export const candidateKindLabel = (candidate: { kind: string; change?: { kind?: string | null } | null }) =>
+  candidate.change?.kind === "ARM_GUARD" ? "완갑" : kindLabel(candidate.kind);
+
 /** The site reads a gem by its role (보석은 '10겁 8작', user 10-22): gemType → word. */
 const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" };
 
@@ -243,7 +250,7 @@ export function splitCandidates(list: Candidate[]) {
       candidates: [],
     };
     entry.candidates.push(c);
-    const label = kindLabel(c.kind);
+    const label = candidateKindLabel(c);
     if (!entry.kinds.includes(label)) entry.kinds.push(label);
     folded.set(code, entry);
   }
@@ -256,7 +263,7 @@ export function splitCandidates(list: Candidate[]) {
       .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
       .map((entry) => {
         const candidates = [...entry.candidates].sort(byId);
-        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => kindLabel(c.kind)))] };
+        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => candidateKindLabel(c)))] };
       }),
   };
 }
