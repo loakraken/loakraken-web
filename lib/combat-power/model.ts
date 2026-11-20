@@ -51,12 +51,20 @@ export const isRefineOpen = (type: string | null | undefined, armor = false) =>
   isOpen("EQUIPMENT_REFINE") || type === "무기" || (armor && !!type);
 
 /**
- * 상급 재련 opens for armour with the api's armour CP gate (ARMOR_CP_SIM, `armor`): the api lifts its hold on armour
- * 재련 · 상급 재련 · 완갑 for a dealer whose item-built CP matches the official CP. The weapon's 상급 재련 stays as
- * before (locked here; the gate does not cover it).
+ * 업화 gear, by the api's own rule (CombatPowerRefineModel: the item name contains 업화). The contract has no family
+ * field, and grade / tier do not tell 업화 from 전율 (both tier 4 고대).
  */
-export const isAdvancedRefineOpen = (type: string | null | undefined, armor = false) =>
-  isOpen("EQUIPMENT_ADVANCED_REFINE") || (armor && !!type && type !== "무기");
+export const isUpgradeGear = (name: string | null | undefined) => !!name?.includes("업화");
+
+/**
+ * 상급 재련, where it opens:
+ * - The weapon when it is 업화 (`upgrade`): the api computes it and 계산 검증 matched the baseline (11-21 04:36, 1 → 40
+ *   within 0.01 CP). 전율 · 에스더 · special · 결단 weapons have no model, so their field is hidden (currentOf).
+ * - Armour with the api's armour CP gate (ARMOR_CP_SIM, `armor`): the api lifts its hold on armour 재련 · 상급 재련 ·
+ *   완갑 for a dealer whose item-built CP matches the official CP.
+ */
+export const isAdvancedRefineOpen = (type: string | null | undefined, armor = false, upgrade = false) =>
+  isOpen("EQUIPMENT_ADVANCED_REFINE") || (type === "무기" ? upgrade : armor && !!type);
 
 /**
  * The api's refine bounds (combat-power options refineMin / refineMax / advancedRefineMax; the screen reads them
@@ -212,7 +220,8 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
+  /** `upgrade`: 업화 gear (isUpgradeGear); the weapon's 상급 재련 opens only then. */
+  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null; upgrade?: boolean }[];
   /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
   polish?: { index: number; line: number; option: string; grade: Grade | null; value?: string; part?: string | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
@@ -351,13 +360,13 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
-    // Only where 상급 재련 is open (armour with ARMOR_CP_SIM): elsewhere no edit reaches here, as before.
+    // Only where 상급 재련 is open (an 업화 weapon; armour with ARMOR_CP_SIM): elsewhere no edit reaches here, as before.
     const advanced = edits.advanced[item.index];
     if (
       advanced != null &&
       item.advanced != null &&
       advanced !== item.advanced &&
-      isAdvancedRefineOpen(item.type, current.armor) &&
+      isAdvancedRefineOpen(item.type, current.armor, item.upgrade) &&
       advanced >= 0 &&
       advanced <= ADVANCED_REFINE_MAX
     )
@@ -457,14 +466,16 @@ const only = (out: Record<string, unknown>, keys: string[]) =>
   Object.keys(out).every((key) => key === "kind" || keys.includes(key)) && keys.every((key) => out[key] !== undefined);
 
 /**
- * 재련 · 상급 재련 with the armour CP gate (ARMOR_CP_SIM on, PM 총괄 11-21): exactly the fields the simulator sends,
- * inside the api's bounds (REFINE_MIN..REFINE_MAX, 0..ADVANCED_REFINE_MAX). The proxy cannot tell armour from the
- * weapon (index is the search answer's equipment position), so off, 재련 goes as before and every 상급 재련 is
- * refused: the screen never sends one there, and the api holds its own switch.
+ * 재련 · 상급 재련: exactly the fields the simulator sends, inside the api's bounds (REFINE_MIN..REFINE_MAX,
+ * 0..ADVANCED_REFINE_MAX).
+ * - 상급 재련 always (the 업화 weapon's opens without a flag, PM 총괄 11-21). The proxy cannot tell armour from the
+ *   weapon (index is the search answer's equipment position), so an armour index passes too: the api's armour switch
+ *   (spec-up.armor-cp-gate.enabled) is what holds armour 상급 재련, as it holds armour 재련 (backend must hold).
+ * - 재련 with ARMOR_CP_SIM on; off, it goes as before (the weapon's has been open since api #884).
  */
 const refineAllowed = (out: Record<string, unknown>, armor: boolean) => {
   if (out.kind === "EQUIPMENT_ADVANCED_REFINE")
-    return armor && only(out, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
+    return only(out, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
   if (out.kind === "EQUIPMENT_REFINE" && armor)
     return only(out, ["index", "refine"]) && (out.index as number) >= 0 && (out.refine as number) >= REFINE_MIN && (out.refine as number) <= REFINE_MAX;
   return true;

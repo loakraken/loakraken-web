@@ -93,7 +93,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toBeVisible();
     // The guidance under the editors names armour 재련 open and the weapon's 상급 재련 still to come.
     await expect(
-      page.getByText(/팔 보호구·재련·방어구 상급 재련·아크 그리드 코어·아크 패시브 진화와 도약을\s*바꿀 수 있어요\. 무기 상급 재련·아크 패시브 깨달음·/),
+      page.getByText(/팔 보호구·재련·상급 재련\(업화 무기·방어구\)·아크 그리드 코어·아크 패시브\s*진화와 도약을 바꿀 수 있어요\. 아크 패시브 깨달음·/),
     ).toBeVisible();
     const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");

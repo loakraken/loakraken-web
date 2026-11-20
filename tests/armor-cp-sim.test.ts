@@ -42,13 +42,17 @@ test("the guard's bounds are the api's options (the committed options fixture)",
   );
 });
 
-test("guard off: 재련 goes as before (any index, no new checks), every 상급 재련 is refused", () => {
+test("guard off: 재련 goes as before (any index, no new checks); 상급 재련 with exact fields only, any index", () => {
   const refine = { kind: "EQUIPMENT_REFINE", index: 3, refine: 24 };
   assert.deepEqual(parseSimulateRequest(body(refine))?.changes, [refine]);
   // As before: the proxy did not check the refine range or the fields beside it.
   assert.deepEqual(parseSimulateRequest(body({ ...refine, refine: 99 }))?.changes, [{ ...refine, refine: 99 }]);
-  assert.equal(parseSimulateRequest(body({ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 })), null);
-  assert.equal(parseSimulateRequest(body({ kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 20 }), { armor: false }), null);
+  // 상급 재련 opens for the 업화 weapon without a flag; the proxy cannot tell the weapon's index from armour's, so an
+  // armour index passes too, and the api's armour switch holds it (tests/weapon-advanced-refine.test.ts).
+  const advanced = { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 };
+  assert.deepEqual(parseSimulateRequest(body(advanced))?.changes, [advanced]);
+  for (const bad of [{ ...advanced, level: ADVANCED_REFINE_MAX + 1 }, { ...advanced, level: -1 }, { ...advanced, refine: 20 }, { kind: "EQUIPMENT_ADVANCED_REFINE", level: 20 }])
+    assert.equal(parseSimulateRequest(body(bad)), null, JSON.stringify(bad));
 });
 
 test("guard on: exactly index + refine / index + level, inside the api's bounds", () => {
