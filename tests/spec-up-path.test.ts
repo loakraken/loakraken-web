@@ -322,6 +322,9 @@ test("the combat-power stop note: where, why only for a known code, none without
   // A code the web does not know: where only, no reason it cannot vouch for.
   assert.equal(note(2, "SOMETHING_NEW"), "2단계부터는 전투력을 계산하지 않았어요.");
   assert.equal(note(2, null), "2단계부터는 전투력을 계산하지 않았어요.");
+  // A code that names an Object.prototype member is not a reason (codex #1835 P3: it read '[object Object]').
+  for (const code of ["__proto__", "toString", "constructor", "hasOwnProperty"])
+    assert.equal(note(2, code), "2단계부터는 전투력을 계산하지 않았어요.", code);
   // No stop (null, an api before #1029) or a step the path does not have: no note.
   for (const order of [null, undefined, 0, 4, 1.5, "2"]) assert.equal(note(order), null, String(order));
 });

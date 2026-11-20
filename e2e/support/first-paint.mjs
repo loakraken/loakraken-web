@@ -89,6 +89,8 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     const placed = (line) => line !== "auto" && !/^span(\s|$)/.test(line);
     const reorders = (parent, kids) => {
       const style = getComputedStyle(parent);
+      // Bare text is an item with no style of its own (no order, no placement): only elements can reorder.
+      kids = kids.filter((kid) => kid.nodeType === 1);
       if (kids.some((kid) => getComputedStyle(kid).order !== "0")) return true;
       if (/flex/.test(style.display)) return /reverse/.test(style.flexDirection) || style.flexWrap === "wrap-reverse";
       return (
@@ -101,8 +103,14 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
       );
     };
     // A display: contents child has no box: its children are the parent's items (PM-프론트 #1819 P3).
+    // Bare text among them is an anonymous item too, inside a wrapper or not (PM-프론트 #1831 P3): the child nodes, not
+    // only the elements.
     const items = (parent) =>
-      [...parent.children].flatMap((kid) => (getComputedStyle(kid).display === "contents" ? items(kid) : [kid]));
+      [...parent.childNodes].flatMap((kid) => {
+        if (kid.nodeType === 3) return kid.textContent.trim() ? [kid] : [];
+        if (kid.nodeType !== 1) return [];
+        return getComputedStyle(kid).display === "contents" ? items(kid) : [kid];
+      });
     const cuttable = (n) => {
       if (n.nodeType === 3 && !n.textContent.trim()) return false;
       if (serverHtml && !known.has(sign(n))) return false;

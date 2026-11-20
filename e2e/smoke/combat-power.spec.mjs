@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤·연마·팔찌·팔 보호구·코어·아크 패시브 진화는 바꾸고, 방어구 재련은 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·연마·팔찌·팔 보호구·코어·아크 패시브 진화와 방어구 재련(ARMOR_CP_SIM)을 바꾼다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -74,25 +74,26 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     const changes = page.getByRole("region", { name: "바꾼 것" });
     await expect(changes.getByText("스톤 원한")).toBeVisible();
     await expect(changes.getByText("4 → 3")).toBeVisible();
-    for (const name of ["투구 재련 단계", "투구 상급 재련 단계"])
-      await expect(page.getByRole("combobox", { name })).toHaveCount(0);
+    // Armour 재련 · 상급 재련 open with ARMOR_CP_SIM (on in e2e, off on production until the api's gate opens;
+    // off is held in tests/armor-cp-sim.test.ts).
+    for (const name of ["투구 재련 단계", "투구 상급 재련 단계"]) await expect(page.getByRole("combobox", { name })).toBeVisible();
     // api #838: the core opens (PM 총괄 11-15); api #965 opens 진화 (PM 총괄 11-16).
     await expect(page.getByRole("combobox", { name: "테스트 코어 등급" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트", exact: true })).toHaveValue("120");
     await expect(page.getByRole("region", { name: "아크 패시브", exact: true })).not.toContainText("준비 중");
-    await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+    await expect(page.getByText("재련 +19 · 준비 중")).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 
-  test("무기 재련은 바꿀 수 있고 방어구 재련은 '준비 중'으로 남는다(api #884, PM 총괄 11-12)", async ({ page }) => {
-    // The backend computes the weapon's refine; armour refine is UNSUPPORTED (MODEL_UNCONFIRMED) until its
-    // formula is confirmed, so only the weapon row opens. The item level is today's value, said so.
+  test("무기 재련은 무기 한 줄만 보내고, 방어구 재련이 열린 안내를 보인다(api #884, ARMOR_CP_SIM)", async ({ page }) => {
+    // The backend computes the weapon's refine. Armour 재련 · 상급 재련 open with ARMOR_CP_SIM (on in e2e); the
+    // api's armour CP gate decides per character (tests/armor-cp-sim.test.ts holds the flag-off screen). The item
+    // level is today's value, said so.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
-    await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
-    await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
-    // The guidance under the editors says the weapon is open and armour is not (PM 총괄 11-13).
+    await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toBeVisible();
+    // The guidance under the editors names armour 재련 open and the weapon's 상급 재련 still to come.
     await expect(
-      page.getByText(/무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수 있어요\. 방어구 재련·상급 재련·아크 패시브 깨달음·/),
+      page.getByText(/팔 보호구·재련·방어구 상급 재련·아크 그리드 코어·아크 패시브 진화와 도약을\s*바꿀 수 있어요\. 무기 상급 재련·아크 패시브 깨달음·/),
     ).toBeVisible();
     const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
@@ -230,8 +231,8 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(row).toContainText("상급 재련 없음");
     await expect(row).not.toContainText("상급 0");
     await expect(page.getByRole("combobox", { name: "상의 상급 재련 단계" })).toHaveCount(0);
-    // 상급이 있는 장비는 그대로 '준비 중'.
-    await expect(page.getByRole("listitem").filter({ hasText: "+19 테스트 투구" })).toContainText("상급 10 · 준비 중");
+    // 상급이 있는 방어구는 ARMOR_CP_SIM(e2e에서 켜짐)으로 바꿀 수 있다.
+    await expect(page.getByRole("combobox", { name: "투구 상급 재련 단계" })).toHaveText("10");
   });
 
   for (const width of [1280, 360])
