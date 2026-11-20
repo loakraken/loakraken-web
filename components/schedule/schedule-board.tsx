@@ -343,26 +343,39 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          // Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
-          // line in a phone's own font.
-          <span className={styles.next} data-state={status.state} data-fp-whole="">
-            {status.state === "done" && "오늘 일정 종료"}
-            {status.state === "done" && status.next && " · "}
-            {status.next && (
-              <>
-                {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
-                {kstTime(status.next)} · <Countdown to={status.next} fallback={now} />
-                {status.state !== "upcoming" && " 후"}
-              </>
+          // The status and the '내일 일정 보기' button have a line of their own in every state and at every width
+          // (#1799 follow-up). The board shows the server's hour until the client clock starts; when the two sit on
+          // either side of the day's last round (a device clock off, or staying on the page through the round),
+          // the state changes after the page woke. On one shared line that change re-wrapped the head (320: one
+          // line → three) and pushed the rows down. The done line is short enough for the button at 320 (no
+          // countdown to tomorrow: the time is enough there).
+          <span className={styles.statusLine}>
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
+                line in a phone's own font. */}
+            <span className={styles.next} data-state={status.state} data-fp-whole="">
+              {status.state === "done" ? (
+                <>
+                  오늘 일정 종료
+                  {status.next && ` · ${dayLabel(status.next, now)} ${kstTime(status.next)}`}
+                </>
+              ) : (
+                status.next && (
+                  <>
+                    {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
+                    {kstTime(status.next)} · <Countdown to={status.next} fallback={now} />
+                    {status.state !== "upcoming" && " 후"}
+                  </>
+                )
+              )}
+              <FpEnd />
+            </span>
+            {status.state === "done" && onShowTomorrow && (
+              // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
+              <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
+                내일 일정 보기
+              </button>
             )}
-            <FpEnd />
           </span>
-        )}
-        {status?.state === "done" && onShowTomorrow && (
-          // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
-          <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
-            내일 일정 보기
-          </button>
         )}
         <FpEnd />
       </header>

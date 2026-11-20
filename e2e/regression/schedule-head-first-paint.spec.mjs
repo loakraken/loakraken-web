@@ -67,3 +67,54 @@ for (const [width, clock, face] of LEGS)
 // No whole-page first-load shift check here: page.clock pins the browser only, while the server renders the first HTML
 // at its own hour, so such a check would depend on when it runs again. The cuts above run after the page woke, on the
 // pinned clock's state (serverHtml: false), and the real-clock first-load checks stay in home-first-paint-sweep.
+
+// 서버 시계와 기기 시계가 그날 마지막 회차 양쪽에 있을 때(#1799 후속, PM-프론트 11-20 02:50): 첫 HTML은 서버 시각의
+// 상태로, 깬 뒤에는 기기 시각의 상태로 그린다. 상태 줄과 '내일 일정 보기'가 머리의 한 줄을 늘 따로 차지해서 상태가
+// 바뀌어도 줄 수와 아래 행 자리는 그대로여야 한다. 기기 시계는 서버(실제 시각)의 반대 상태로 고정한다: 모험 섬의 마지막
+// 회차는 23시라, 실제로 23시 뒤면 기기는 12:00(다음 회차), 아니면 23:30(끝남).
+const kstToday = (hhmm) => Date.parse(`${kstNow().toISOString().slice(0, 10)}T${hhmm}:00+09:00`);
+
+for (const width of [320, 390])
+  test(`@A7 홈 ${width}: 서버와 기기 시계가 마지막 회차 양쪽이어도 일정 섹션 머리 줄 수와 행 자리가 그대로 @regression`, async ({ page }) => {
+    test.slow();
+    const serverDone = kstNow().getUTCHours() >= 23;
+    const client = serverDone ? "12:00" : "23:30";
+    await page.clock.setFixedTime(kstToday(client));
+    // The heads as the server drew them: taken when the islands' rows first exist, before the page wakes.
+    await page.addInitScript(() => {
+      const snap = () =>
+        [...document.querySelectorAll("#schedule section[aria-label]")].map((section) => {
+          const head = section.querySelector("header");
+          const rows = section.querySelector("ul");
+          const top = section.getBoundingClientRect().top;
+          return {
+            name: section.getAttribute("aria-label"),
+            state: head?.querySelector("[data-state]")?.getAttribute("data-state") ?? null,
+            head: head ? Math.round(head.getBoundingClientRect().height) : null,
+            rows: rows ? Math.round(rows.getBoundingClientRect().top - top) : null,
+          };
+        });
+      window.__snapHeads = snap;
+      const take = () => {
+        if (window.__headsAtServer !== undefined || !document.querySelector('#schedule section[aria-label="모험 섬"] ul li')) return;
+        window.__headsAtServer = window.__lkHydrated ? null : snap();
+      };
+      new MutationObserver(take).observe(document, { childList: true, subtree: true });
+    });
+    await page.setViewportSize({ width, height: 1000 });
+    await gotoReady(page, "/");
+    await page.waitForFunction(() => window.__lkHydrated);
+    const head = islands(page).locator("header [data-state]");
+    await expect(head).toHaveAttribute("data-state", serverDone ? "upcoming" : "done");
+    const before = await page.evaluate(() => window.__headsAtServer);
+    const after = await page.evaluate(() => window.__snapHeads());
+    expect(before, "깨기 전 서버가 그린 머리를 잡지 못함").not.toBeNull();
+    const at = (list, name) => list.find((section) => section.name === name);
+    // The leg tests something only if the state really changed after the page woke.
+    expect(at(before, "모험 섬").state, "서버 상태").toBe(serverDone ? "done" : "upcoming");
+    for (const section of after) {
+      const server = at(before, section.name);
+      expect({ head: section.head, rows: section.rows }, `${section.name}: ${server?.state} → ${section.state}`).toEqual({ head: server?.head, rows: server?.rows });
+    }
+    await expectNoHorizontalOverflow(page);
+  });
