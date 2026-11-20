@@ -20,6 +20,8 @@ const CASES = [
   ["display: contents wrapper", "display:flex;flex-direction:column-reverse", true, "", `<div style="display:contents">${A}${B}</div>`],
   ["grid-auto-flow: column", "display:grid;grid-auto-flow:column;grid-template-rows:auto auto", true, "", `${X}${A}${B}`],
   ["named area 'span…'", "display:grid;grid-template-areas:'spanb' 'spana'", true, ".a{grid-area:spana}.b{grid-area:spanb}"],
+  // PM-프론트 #1831 P3: bare text inside a display: contents wrapper is an anonymous item of the parent.
+  ["display: contents text", "display:flex;flex-direction:column-reverse", true, "", `<div style="display:contents">앞 칸 글자${B}</div>`],
   ["plain column", "display:flex;flex-direction:column", false],
 ];
 
