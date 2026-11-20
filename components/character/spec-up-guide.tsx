@@ -187,7 +187,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const simulator = useContext(SimulatorEnabled);
   const armor = useContext(ArmorSimEnabled);
   // Refine opens for the weapon only (api #884): the button needs the slot of a refine step (#1567).
-  const gearType = gearTypeOf(data);
+  const gearType = useMemo(() => gearTypeOf(data), [data]);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   const [cooldownShown, pressCooldown] = useOptimistic(cooldown);
@@ -315,15 +315,131 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     eff: (c) => (krakenShown ? c.krakenScorePer100kGold : c.combatPowerPer10kGold),
   });
   // Tint only: the cells carry no arrow of their own room (no width change).
-  const pulseOf = (id: string, key: string) => {
-    const pulse = changed.pulse(id, key);
-    return pulse && { ...pulse, dir: 0 as const };
-  };
+  const changedPulse = changed.pulse;
+  const pulseOf = useCallback(
+    (id: string, key: string) => {
+      const pulse = changedPulse(id, key);
+      return pulse && { ...pulse, dir: 0 as const };
+    },
+    [changedPulse],
+  );
   // Each cost basis once, under the table (the same code is the same sentence).
   // In code order, so a new sort does not reorder these lines (A7).
   const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, basis]) => basis);
+
+  // The rows, drawn again only when what they show changes (#1852): a press redraws the guide at once
+  // (the pressed chip), and while a new sort's answer is coming the list on screen is the same answer, so
+  // its ~50 rows (each with its detail popover and query) are not drawn again before the first paint.
+  const cooldownIncluded = guide?.cooldownGemsIncluded ?? null;
+  const rows = useMemo(
+    () =>
+      groups.flatMap((group, i) => {
+        // One row per target (#26): its other stages open under it.
+        const open = openGroups.has(group.head.id);
+        // Closed stages stay in the table, collapsed: the columns keep
+        // the same widths whichever stage heads a group (a new sort
+        // moved the header by a few px otherwise, A7).
+        return [group.head, ...group.more].map((c, j) => {
+        const sub = j > 0;
+        const collapsed = sub && !open;
+        // The simulator is combat power: no link for a supporter, nor where it is off.
+        // Not for a 연마 row: it changes several lines and `change` is only one (the path opens the whole step).
+        const tryable =
+          simulator &&
+          !supporter &&
+          c.kind !== "POLISH" &&
+          editsFor(c.change, NO_EDITS, gearType, armor) != null &&
+          c.change;
+        return (
+          // Keyed by the order of the list on screen: a new sort
+          // or '새 순서로 보기' draws new rows instead of sliding
+          // the old ones (A7).
+          <tr
+            key={`${listKey}:${generation}:${c.id}`}
+            data-sub={sub || undefined}
+            data-collapsed={collapsed || undefined}
+          >
+            <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
+            <td data-cell="kind">{candidateKindLabel(c)}</td>
+            <th scope="row" data-cell="target">
+              {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
+              <SpecUpRowDetail
+                characterName={name}
+                fetchedAt={data.fetchedAt}
+                candidate={c}
+                cooldownGemsIncluded={cooldownIncluded}
+              />
+              {!sub && group.more.length > 0 && (
+                <button
+                  type="button"
+                  className={`${styles.specUpMore} hit-44`}
+                  aria-expanded={open}
+                  onClick={() =>
+                    setOpenGroups((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(group.head.id)) next.delete(group.head.id);
+                      else next.add(group.head.id);
+                      return next;
+                    })
+                  }
+                >
+                  {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
+                </button>
+              )}
+            </th>
+            <td data-cell="change">
+              {c.from ?? "—"} → {c.to ?? "—"}
+            </td>
+            {krakenShown ? (
+              <td
+                data-cell="gain"
+                data-label={supporter ? "서포터 점수" : "크라켄 점수"}
+                className={styles.specUpGain}
+                data-figure=""
+              >
+                {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
+              </td>
+            ) : (
+              <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
+                {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
+                {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
+              </td>
+            )}
+            <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
+            {krakenShown ? (
+              <td data-cell="eff" data-label="10만G당" data-figure="">
+                <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                  {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
+                </ChangeMark>
+              </td>
+            ) : (
+              <td data-cell="eff" data-label="1만G당" data-figure="">
+                <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                  {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
+                </ChangeMark>
+              </td>
+            )}
+            <td data-cell="try">
+              {tryable && (
+                <Link
+                  href={`?${new URLSearchParams({ tab: "simulator", try: tryParam(tryable) })}`}
+                  replace
+                  scroll={false}
+                  className="hit-44"
+                  aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
+                >
+                  적용해 보기
+                </Link>
+              )}
+            </td>
+          </tr>
+        );
+        });
+      }),
+    [groups, openGroups, simulator, supporter, gearType, armor, listKey, generation, name, data.fetchedAt, cooldownIncluded, krakenShown, pulseOf, now],
+  );
 
   return (
     <SpecUpExpired.Provider value={expiry}>
@@ -553,109 +669,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     </tr>
                   </thead>
                   <tbody>
-                    {groups.flatMap((group, i) => {
-                      // One row per target (#26): its other stages open under it.
-                      const open = openGroups.has(group.head.id);
-                      // Closed stages stay in the table, collapsed: the columns keep
-                      // the same widths whichever stage heads a group (a new sort
-                      // moved the header by a few px otherwise, A7).
-                      return [group.head, ...group.more].map((c, j) => {
-                      const sub = j > 0;
-                      const collapsed = sub && !open;
-                      // The simulator is combat power: no link for a supporter, nor where it is off.
-                      // Not for a 연마 row: it changes several lines and `change` is only one (the path opens the whole step).
-                      const tryable =
-                        simulator &&
-                        !supporter &&
-                        c.kind !== "POLISH" &&
-                        editsFor(c.change, NO_EDITS, gearType, armor) != null &&
-                        c.change;
-                      return (
-                        // Keyed by the order of the list on screen: a new sort
-                        // or '새 순서로 보기' draws new rows instead of sliding
-                        // the old ones (A7).
-                        <tr
-                          key={`${listKey}:${generation}:${c.id}`}
-                          data-sub={sub || undefined}
-                          data-collapsed={collapsed || undefined}
-                        >
-                          <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
-                          <td data-cell="kind">{candidateKindLabel(c)}</td>
-                          <th scope="row" data-cell="target">
-                            {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
-                            <SpecUpRowDetail
-                              characterName={name}
-                              fetchedAt={data.fetchedAt}
-                              candidate={c}
-                              cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
-                            />
-                            {!sub && group.more.length > 0 && (
-                              <button
-                                type="button"
-                                className={`${styles.specUpMore} hit-44`}
-                                aria-expanded={open}
-                                onClick={() =>
-                                  setOpenGroups((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(group.head.id)) next.delete(group.head.id);
-                                    else next.add(group.head.id);
-                                    return next;
-                                  })
-                                }
-                              >
-                                {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
-                              </button>
-                            )}
-                          </th>
-                          <td data-cell="change">
-                            {c.from ?? "—"} → {c.to ?? "—"}
-                          </td>
-                          {krakenShown ? (
-                            <td
-                              data-cell="gain"
-                              data-label={supporter ? "서포터 점수" : "크라켄 점수"}
-                              className={styles.specUpGain}
-                              data-figure=""
-                            >
-                              {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
-                            </td>
-                          ) : (
-                            <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
-                              {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
-                              {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
-                            </td>
-                          )}
-                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
-                          {krakenShown ? (
-                            <td data-cell="eff" data-label="10만G당" data-figure="">
-                              <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
-                              </ChangeMark>
-                            </td>
-                          ) : (
-                            <td data-cell="eff" data-label="1만G당" data-figure="">
-                              <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
-                              </ChangeMark>
-                            </td>
-                          )}
-                          <td data-cell="try">
-                            {tryable && (
-                              <Link
-                                href={`?${new URLSearchParams({ tab: "simulator", try: tryParam(tryable) })}`}
-                                replace
-                                scroll={false}
-                                className="hit-44"
-                                aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
-                              >
-                                적용해 보기
-                              </Link>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                      });
-                    })}
+                    {rows}
                   </tbody>
                 </table>
               </div>
