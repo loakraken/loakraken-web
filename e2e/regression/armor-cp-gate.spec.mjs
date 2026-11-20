@@ -116,7 +116,7 @@ for (const width of [320, 1280]) {
     // Kinds in candidate-id order: EQUIPMENT_ADVANCED_REFINE before EQUIPMENT_REFINE.
     await expect(group).toContainText("상급 재련·재련 2개 —");
     await group.click();
-    await expect(folded.getByRole("listitem").filter({ hasText: "+19 테스트 투구 (+19 → +20)" })).toHaveCount(1);
+    await expect(folded.locator("details li").filter({ hasText: "+19 테스트 투구 (+19 → +20)" })).toHaveCount(1);
     await expectNoHorizontalOverflow(page);
   });
 
