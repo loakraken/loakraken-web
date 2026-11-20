@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 // e2e.yml의 'Find changes other than text' 단계를 그대로 떼어 bash로 돌려 본다. git은 바뀐 파일 목록을 내는
 // 가짜로 바꾸고, 판정이 실패하는 경우는 awk를 실패하는 가짜로 바꿔 만든다. 판정이 실패해도 단계는 통과하고
 // run=true여야 한다. 러너는 shell을 안 준 run을 bash -e로 돌리므로 시험도 bash -e로 돌린다.
+// 경로와 환경 변수는 bash로 넘기지 않는다: Windows에서 PowerShell로 돌리면 bash가 WSL의 /bin/bash라 Windows
+// 경로(백슬래시)도 PATH · 환경 변수도 받지 못했다(#1808 뒤 로컬 3/3 실패). 단계는 표준 입력으로, 가짜는 셸
+// 함수로, 변수는 앞머리에서 정하고, 단계의 출력(GITHUB_OUTPUT)은 표준 출력의 'run=' 줄로 받는다.
 const root = fileURLToPath(new URL("..", import.meta.url));
 
 function changesStep(): string {
@@ -28,30 +30,21 @@ function changesStep(): string {
 }
 
 function runStep(files: string[], { brokenAwk = false } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "e2e-changes-"));
-  try {
-    const bin = join(dir, "bin");
-    mkdirSync(bin);
-    writeFileSync(join(bin, "git"), '#!/bin/sh\nprintf \'%s\' "$STUB_FILES"\n', { mode: 0o755 });
-    if (brokenAwk) writeFileSync(join(bin, "awk"), "#!/bin/sh\nexit 2\n", { mode: 0o755 });
-    const script = join(dir, "step.sh");
-    const output = join(dir, "output");
-    writeFileSync(script, changesStep());
-    writeFileSync(output, "");
-    const res = spawnSync("bash", ["-e", script], {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        PATH: `${bin}${delimiter}${process.env.PATH}`,
-        EVENT: "pull_request",
-        GITHUB_OUTPUT: output,
-        STUB_FILES: files.join("\n"),
-      },
-    });
-    return { status: res.status, log: `${res.stdout}${res.stderr}`, output: readFileSync(output, "utf8") };
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  for (const file of files) assert.ok(!file.includes("'"), `작은따옴표 없는 이름만: ${file}`);
+  const prelude = [
+    "EVENT=pull_request",
+    // GITHUB_OUTPUT is a temp file of bash's own, so no file or folder is shared with bash; when the step exits
+    // (run_all ends it with exit 0) the trap writes that file, and only that file, to the real stdout (fd 3). The
+    // step's own stdout goes to stderr, so a 'run=…' it merely echoes never counts as its output (#1833 review).
+    // WSL's bash cannot open /dev/stdout when stdout is a Windows pipe; a duplicated fd works.
+    "exec 3>&1 1>&2",
+    "GITHUB_OUTPUT=$(mktemp)",
+    `trap 'cat "$GITHUB_OUTPUT" >&3; rm -f "$GITHUB_OUTPUT"' EXIT`,
+    `git() { printf '%s' '${files.join("\n")}'; }`,
+    ...(brokenAwk ? ["awk() { return 2; }"] : []),
+  ].join("\n");
+  const res = spawnSync("bash", ["-e", "-s"], { input: `${prelude}\n${changesStep()}\n`, encoding: "utf8" });
+  return { status: res.status, log: `${res.stderr}${res.error ?? ""}`, output: res.stdout ?? "" };
 }
 
 test("글만 바뀐 PR은 run=false", () => {
