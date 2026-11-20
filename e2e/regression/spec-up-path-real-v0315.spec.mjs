@@ -6,6 +6,13 @@
 // 장신구 연마·깨달음 카르마를 뺀다고 말하지 않는다.
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
+import { readFileSync } from "node:fs";
+
+/** The saved answer the mock serves for '실표본n' and a sort. */
+const savedAnswer = (n, sort) =>
+  JSON.parse(readFileSync(new URL(`../../tests/spec-up-fixtures/v0315/${n}-${sort}.json`, import.meta.url), "utf8")).data;
+/** The screen's own number format (two decimals, Korean grouping). */
+const two = (value) => value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const answer = (page) => page.getByRole("region", { name: "추천 순서", exact: true });
 const rule = (page) => page.getByRole("group", { name: "추천 순서 고르는 기준" });
@@ -89,6 +96,16 @@ for (const width of [320, 1280])
           await expect(fold).toHaveText("앞 10줄만 보기");
         }
         await expect(pathTable(page).locator("tbody tr")).toHaveCount(steps);
+        // Each row tells its own step of the saved answer (PM-프론트 #1845 P3): a jump drawn as one level, a row out of
+        // order or a gain in the wrong figure fails here. KRAKEN rows are told in the score, the others in combat power.
+        const saved = savedAnswer(n, sort).steps;
+        const cells = (cell) => pathTable(page).locator(`tbody [data-cell="${cell}"]`).allTextContents();
+        expect(await cells("rank"), `${button} 순서`).toEqual(saved.map((s) => String(s.order)));
+        expect(await cells("change"), `${button} 변화`).toEqual(saved.map((s) => `${s.from} → ${s.to}`));
+        const gain = (s) => (sort === "KRAKEN" ? s.deltaKrakenScore : s.deltaCombatPower);
+        expect((await cells("gain")).map((text) => text.split("→")[0]), `${button} 오름`).toEqual(
+          saved.map((s) => (gain(s) == null ? "—" : `+${two(gain(s))}`)),
+        );
         if (unknown > 0) await expect(summary(page)).toContainText(` + 비용 모름 ${unknown}단계`);
         else await expect(summary(page)).not.toContainText("비용 모름");
 
