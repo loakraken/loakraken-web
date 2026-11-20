@@ -214,13 +214,20 @@ test("a line set back to its worn option (api #951 reset line) is the worn line;
 });
 
 test("advanced refining becomes EQUIPMENT_ADVANCED_REFINE (search advancedRefineLevel, web #374)", () => {
-  const gear = { ...current, gear: [{ index: 0, refine: 20, quality: 90, advanced: 10 }] };
-  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 10 } }, gear), []);
-  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, gear), [
-    { kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 20 },
+  // Armour 상급 재련 opens with ARMOR_CP_SIM (current.armor); the weapon's stays locked (PM 총괄 11-21).
+  const gear = { ...current, armor: true, gear: [{ index: 1, type: "투구", refine: 20, quality: 90, advanced: 10 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 1: 10 } }, gear), []);
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 1: 20 } }, gear), [
+    { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 },
   ]);
   // No current step read from the tooltip: nothing to change from.
-  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, current), []);
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 1: 20 } }, current), []);
+  // Flag off, or the weapon: an old save's 상급 재련 edit goes nowhere (the proxy would refuse it).
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 1: 20 } }, { ...gear, armor: false }), []);
+  const weapon = { ...gear, gear: [{ index: 0, type: "무기", refine: 20, quality: 90, advanced: 10 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, weapon), []);
+  // Past the api's 상급 재련 bound: not sent.
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 1: 41 } }, gear), []);
 });
 
 test("the proxy forwards only known kinds with integer or short string fields", () => {

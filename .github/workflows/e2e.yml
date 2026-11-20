@@ -283,6 +283,12 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: e2e
         run: npx playwright test -c playwright.byok.config.mjs
+      # 방어구 전투력 스위치(ARMOR_CP_SIM)를 끈 서버를 따로(3204) 띄워 운영 기본값 화면을 본다. 기본 설정은 켠 채로 돈다
+      # (운영이 아닌 곳의 기본값). 같은 빌드를 쓰고, 실패하면 이 job과 'e2e'가 실패한다(PM-프론트 #1843 P2).
+      - name: Run ARMOR_CP_SIM off
+        if: ${{ !cancelled() }}
+        working-directory: e2e
+        run: npx playwright test -c playwright.armor-off.config.mjs
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
