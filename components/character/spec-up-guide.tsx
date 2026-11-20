@@ -17,7 +17,8 @@ import {
   editsFor,
   gearTypeOf,
   keepOrder,
-  kindLabel,
+  candidateKindLabel,
+  noCombatPower,
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
@@ -290,6 +291,11 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  // Under 크라켄 점수 the api ranks scored rows with and without combat power together (SpecUpService: ranked = OK or a
+  // Δ점수); how many shown have none, counted by the same test the 전투력 cell uses for its dash (noCombatPower). Not
+  // for a supporter, whose rows all have none (the role note says why).
+  const noCp = krakenShown ? ok.filter(noCombatPower).length : 0;
+  const noCpNote = noCp > 0 && noCp < ok.length;
   // One row per target, its other stages behind '자세히' (사용자 제보 #26).
   const groups = useMemo(() => groupStages(ok), [ok]);
   const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
@@ -556,7 +562,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                           data-collapsed={collapsed || undefined}
                         >
                           <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
-                          <td data-cell="kind">{kindLabel(c.kind)}</td>
+                          <td data-cell="kind">{candidateKindLabel(c)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
                             <SpecUpRowDetail
@@ -597,7 +603,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                             </td>
                           ) : (
                             <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
-                              {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
+                              {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
                               {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                             </td>
                           )}
@@ -639,6 +645,12 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
             {guide.total > ok.length && (
               <p className={styles.muted}>
                 계산된 후보 {guide.total}개 중 위에서 {ok.length}개를 보여 드려요.
+                {noCpNote && ` 그중 ${noCp}개는 전투력을 아직 계산하지 않았어요.`}
+              </p>
+            )}
+            {guide.total <= ok.length && noCpNote && (
+              <p className={styles.muted}>
+                보여 드린 {ok.length}개 중 {noCp}개는 전투력을 아직 계산하지 않았어요.
               </p>
             )}
             {bases.length > 0 && (

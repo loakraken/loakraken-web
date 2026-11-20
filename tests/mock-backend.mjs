@@ -1339,6 +1339,13 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
+    // web's own limit=50 request. '실목록2전체' is 실목록2's limit=200 KRAKEN answer, for the weapon 상급 재련 row a limit-50
+    // answer never carries.
+    if (who?.startsWith("실목록")) {
+      const sort = who === "실목록2전체" ? "KRAKEN" : (url.searchParams.get("sort") ?? "EFFICIENCY");
+      return send(specUp(`v0315-list/${who}-${sort}.json`));
+    }
     // 크라켄 점수 정렬 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
     // score switched off (the answer comes as EFFICIENCY with a reason), and
     // "스펙업옛응답" is a backend from before #573 (no score fields at all).
