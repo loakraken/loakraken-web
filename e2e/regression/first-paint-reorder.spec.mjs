@@ -20,8 +20,11 @@ const CASES = [
   ["display: contents wrapper", "display:flex;flex-direction:column-reverse", true, "", `<div style="display:contents">${A}${B}</div>`],
   ["grid-auto-flow: column", "display:grid;grid-auto-flow:column;grid-template-rows:auto auto", true, "", `${X}${A}${B}`],
   ["named area 'span…'", "display:grid;grid-template-areas:'spanb' 'spana'", true, ".a{grid-area:spana}.b{grid-area:spanb}"],
-  // PM-프론트 #1831 P3: bare text inside a display: contents wrapper is an anonymous item of the parent.
-  ["display: contents text", "display:flex;flex-direction:column-reverse", true, "", `<div style="display:contents">앞 칸 글자${B}</div>`],
+  // PM-프론트 #1831 P3: bare text inside a display: contents wrapper is an anonymous item of the parent. "cut": the
+  // helper must add the cut after it (the old one skipped the wrapper, its one element child being under two items),
+  // but no shift can be read there: Chrome's layout-shift entries leave out text that only an anonymous flex item
+  // holds (the leg read 0 with the cut in place), so the leg checks the cut, not a shift.
+  ["display: contents text", "display:flex;flex-direction:column-reverse", "cut", "", `<div style="display:contents">앞 칸 글자${B}</div>`],
   ["plain column", "display:flex;flex-direction:column", false],
 ];
 
@@ -35,7 +38,9 @@ for (const [name, parent, reordered, extra = "", html = A + B] of CASES)
     await page.evaluate(() => (document.body["__reactFiber$selftest"] = true));
     const cut = await cutEverywhere(page, "main|앞 칸", null, { serverHtml: false });
     // The shift first (what the helper is for), then the count it reports.
-    if (reordered) {
+    if (reordered === "cut") {
+      expect(cut.added, "앞 칸(맨 글자) 끝에 더한 자르기").toBeGreaterThan(0);
+    } else if (reordered) {
       expect(cut.value, `잡은 흔들림: ${cut.moved.join(" / ")}`).toBeGreaterThan(0);
       expect(cut.moved.join(" "), "앞 칸 끝에서 자른 흔들림").toContain("앞 칸 글자");
       expect(cut.added, "더한 자르기").toBeGreaterThan(0);
