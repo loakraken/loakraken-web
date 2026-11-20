@@ -1,7 +1,7 @@
 // 깨달음 카르마 레벨 in the simulator (api #1004, web #1781).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { KARMA_MAX, NO_EDITS, karmaLevelOf, toChanges, type Current, type Edits } from "../lib/combat-power/model";
+import { KARMA_MAX, NO_EDITS, karmaLevelOf, parseSimulateRequest, toChanges, type Current, type Edits } from "../lib/combat-power/model";
 import { applySaved, parseSaved, targetsOf, type Identity } from "../lib/combat-power/history";
 import { simulatorPath, type GoalStep } from "../lib/spec-up/goal";
 import { editsFor, readTryPath, tryPathParam, type SpecUpChange } from "../lib/spec-up/model";
@@ -30,6 +30,15 @@ test("a karma edit goes out as ARK_PASSIVE_POINT 깨달음 karmaLevel, never wit
   assert.deepEqual(toChanges({ ...NO_EDITS, karma: { 깨달음: KARMA_MAX + 1 } }, current), []);
   assert.deepEqual(toChanges(edits, { ...current, karma: null }), []);
   assert.deepEqual(toChanges(edits, { ...current, karma: undefined }), []);
+});
+
+test("the proxy passes karmaLevel on to the api (whole numbers only)", () => {
+  const body = (change: Record<string, unknown>) => ({ characterName: "테스트", changes: [change] });
+  assert.deepEqual(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 30 }))?.changes, [
+    { kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 30 },
+  ]);
+  assert.equal(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: "30" })), null);
+  assert.equal(parseSimulateRequest(body({ kind: "ARK_PASSIVE_POINT", tree: "깨달음", karmaLevel: 2.5 })), null);
 });
 
 test("a spec-up karma step opens in the simulator with its level; 깨달음 points still open nothing", () => {

@@ -411,7 +411,8 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
     const change = raw as Record<string, unknown>;
     if (typeof change.kind !== "string" || !KINDS.has(change.kind)) return null;
     const out: Record<string, unknown> = { kind: change.kind };
-    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point"]) {
+    // karmaLevel: 깨달음 카르마 레벨 (api #1004); dropped here, the api got 깨달음 without a level (web #1781).
+    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point", "karmaLevel"]) {
       if (change[key] === undefined) continue;
       if (!int(change[key])) return null;
       out[key] = change[key];
