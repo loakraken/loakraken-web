@@ -49,6 +49,7 @@ import {
   isAdvancedRefineOpen,
   isOpen,
   isRefineOpen,
+  isUpgradeGear,
   KARMA_MAX,
   KARMA_TREE,
   karmaLevelOf,
@@ -139,9 +140,14 @@ function currentOf(data: Character, karmaSim = false, armorSim = false) {
             name: item.name ?? item.type ?? "",
             refine: item.detail?.refineLevel ?? null,
             quality: item.detail?.quality ?? null,
-            // No advanced step on 전율 gear: nothing to show or edit.
-            advanced: hasNoAdvancedRefine(item.name) ? null : (item.detail?.advancedRefineLevel ?? null),
+            // No advanced step on 전율 gear: nothing to show or edit. A weapon's opens only when it is 업화; any
+            // other weapon (에스더, special, 결단) has no model, so its field is hidden (PM 총괄 11-21).
+            advanced:
+              hasNoAdvancedRefine(item.name) || (item.type === "무기" && !isUpgradeGear(item.name))
+                ? null
+                : (item.detail?.advancedRefineLevel ?? null),
             noAdvanced: hasNoAdvancedRefine(item.name),
+            upgrade: isUpgradeGear(item.name),
           },
         ]
       : [],
@@ -394,10 +400,10 @@ function Editors({
                     상급 재련 없음
                   </span>
                 )}
-                {item.advanced != null && !isAdvancedRefineOpen(item.type, current.armor) && (
+                {item.advanced != null && !isAdvancedRefineOpen(item.type, current.armor, item.upgrade) && (
                   <Locked caption="상급" value={item.advanced} />
                 )}
-                {item.advanced != null && isAdvancedRefineOpen(item.type, current.armor) && (
+                {item.advanced != null && isAdvancedRefineOpen(item.type, current.armor, item.upgrade) && (
                   <Select
                     label={`${item.type} 상급 재련 단계`}
                     caption="상급"
@@ -703,13 +709,13 @@ function Editors({
       )}
       {current.armor ? (
         <p className={styles.later}>
-          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·재련·방어구 상급 재련·아크 그리드 코어·아크 패시브 진화와 도약을
-          바꿀 수 있어요. 무기 상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·재련·상급 재련(업화 무기·방어구)·아크 그리드 코어·아크 패시브
+          진화와 도약을 바꿀 수 있어요. 아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
         </p>
       ) : (
         <p className={styles.later}>
-          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
-          있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·업화 무기 상급 재련·아크 그리드 코어·아크 패시브 진화와
+          도약을 바꿀 수 있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
         </p>
       )}
     </div>
