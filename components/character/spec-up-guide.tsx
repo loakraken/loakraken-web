@@ -175,7 +175,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   // there at once, and drawing its ~50 rows inside the click kept the first paint 112~248ms away
   // at 320 · CPU 4×. The pressed chip and the bar (cooldown toggle, why 크라켄 is off, 추천 순서's
   // 기준) follow the press in the same paint (chip/chipSort); the list follows when drawn.
-  const [, startSwitch] = useTransition();
+  const [switching, startSwitch] = useTransition();
   const [chip, pressChip] = useOptimistic(view);
   // The candidate list behind 추천 순서 stays the first list (the tab asked for it).
   const sort: Sort = view === "PATH" ? (supporter ? "KRAKEN" : DEFAULT_SORT) : view;
@@ -191,7 +191,9 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const gearType = useMemo(() => gearTypeOf(data), [data]);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
-  const [cooldownShown, pressCooldown] = useOptimistic(cooldown);
+  // Each press flips the latest value (updater forms): two presses before the first list is drawn leave it
+  // as it was, not on twice (codex P2 on #1857).
+  const [cooldownShown, flipCooldownShown] = useOptimistic(cooldown, (on: boolean) => !on);
   // The first list (the tab's first answer) tells whether the backend knows
   // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 정렬 is not
   // sent — an older backend refuses the value — and the list stays as it is.
@@ -543,8 +545,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
             data-off={chipSort !== "KRAKEN" || !!note || undefined}
             onClick={() =>
               startSwitch(() => {
-                pressCooldown(!cooldown);
-                setCooldown(!cooldown);
+                flipCooldownShown(null);
+                setCooldown((on) => !on);
               })
             }
           >
@@ -595,7 +597,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
         // status line below tells what happened in one sentence.
         // Busy while a list is coming for the first time or for a new sort,
         // not on the quiet minute refresh.
-        aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
+        // Also while a press is being drawn: the chip already shows the new choice (codex P3 on #1857).
+        aria-busy={switching || (query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
         className={styles.specUpList}
         data-stale={query.isPlaceholderData || expired || undefined}
       >
