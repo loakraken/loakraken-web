@@ -44,6 +44,19 @@ for (const width of [320, 1280]) {
   });
 }
 
+test("스펙업 목록의 업화 무기 상급 재련 줄은 '적용해 보기'로 시뮬레이터를 그 단계로 연다 @regression", async ({ page }) => {
+  await page.goto(`/character/${encodeURIComponent(UPGRADE)}?tab=specup&sort=DELTA`);
+  const table = page.getByRole("table", { name: /스펙업 후보/ });
+  await table.locator("tbody tr").first().waitFor();
+  const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
+  await table.getByRole("link", { name: "+16 업화 테스트 무기 상급 재련 22단계 시뮬레이터에서 적용해 보기" }).click();
+  expect((await asked).postDataJSON()).toEqual({
+    characterName: UPGRADE,
+    changes: [{ kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 22 }],
+  });
+  await expect(page.getByRole("combobox", { name: "무기 상급 재련 단계" })).toHaveText("22");
+});
+
 test("방어구 상급 재련은 프록시를 지나도 api의 방어구 스위치가 꺼져 있으면 전투력 없이 돌아온다 @regression", async ({ page }) => {
   await gotoReady(page, tool("전투력계산"));
   // From the page, as the simulator sends it (the route takes same-origin requests only).
