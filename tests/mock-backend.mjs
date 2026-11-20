@@ -1039,6 +1039,10 @@ createServer(async (req, res) => {
         return send(saved);
       }
     }
+    // '범위카르마30' (api #1038, develop 7c96875d): 백엔드's real answer for a dealer whose karma is already 30 with the
+    // karma switch on (karmaStepsConsidered true, no karma step) and the polish switch off. Names are placeholders.
+    if (who === "범위카르마30")
+      return send(JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-karma-considered.json", import.meta.url), "utf8")));
     // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
     // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):

@@ -138,6 +138,8 @@ const SCOPE = [
   ["스펙순서범위켜짐", "(b) 두 필드 true, 두 종류 다 고르지 않음: 문장 없음", [], null],
   ["스펙순서범위꺼짐", "(a) 두 필드 false(운영, 스위치 꺼짐)", [], OFF],
   ["스펙순서", "(a) 필드 없음(필드 전 api)", [], OFF],
+  // api #1038's own answer (karma 30 dealer, karma switch on, polish off): nothing about karma, polish not yet.
+  ["범위카르마30", "(b)+(a) api #1038 실제 답: 카르마 켜짐·단계 없음, 연마 꺼짐", [], "장신구 연마 단계는 아직 추천 순서에 넣지 않아요."],
 ];
 for (const [who, what, kinds, note] of SCOPE)
   test(`@A37 1280 다루는 범위: ${what} @regression`, async ({ page }) => {

@@ -105,6 +105,23 @@ export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPowe
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
+/**
+ * The 스펙업 tab's lead sentence (the tab draws it, not the guide, so it is in the server HTML: the tab's LCP at
+ * 320 on a slow network, #1858). A supporter's depends on their first answer (`pathOpen`: 추천 순서 by score runs).
+ */
+export function specUpLead({ supporter, pathOpen, pathEnabled }: { supporter: boolean; pathOpen: boolean; pathEnabled: boolean }) {
+  if (supporter)
+    return pathOpen
+      ? // A supporter's first view is 추천 순서 by score once it runs (PM 총괄 11-15).
+        "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
+      : "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요.";
+  return pathEnabled
+    ? // The dealer's first view is 추천 순서 (layout A, 11-02).
+      "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
+    : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
+      "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요.";
+}
+
 /** A row with no combat power: the 전투력 cell shows a dash, and the 크라켄 점수 footer counts it (one test for both). */
 export const noCombatPower = (candidate: { deltaCombatPower?: number | null }) => candidate.deltaCombatPower == null;
 
