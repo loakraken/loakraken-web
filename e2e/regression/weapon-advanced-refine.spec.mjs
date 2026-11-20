@@ -33,12 +33,13 @@ for (const width of [320, 1280]) {
     await expectNoHorizontalOverflow(page);
   });
 
-  test(`${width}: 업화가 아닌 무기는 상급 재련 칸이 없다 @regression`, async ({ page }) => {
+  test(`${width}: 업화가 아닌 무기(에스더, 상급 10을 읽어도)는 상급 재련 칸이 없다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await gotoReady(page, tool("전투력계산"));
+    await gotoReady(page, tool("무기상재에스더"));
     await expect(page.getByRole("combobox", { name: "무기 재련 단계" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "무기 상급 재련 단계" })).toHaveCount(0);
-    await expect(page.getByRole("listitem").filter({ hasText: "테스트 무기" }).first()).not.toContainText("상급");
+    // Neither a field nor a locked '상급 10 · 준비 중': the row has no 상급 at all.
+    await expect(page.getByRole("listitem").filter({ hasText: "+8 에스더 테스트 무기" }).first()).not.toContainText("상급");
     await expectNoHorizontalOverflow(page);
   });
 }
