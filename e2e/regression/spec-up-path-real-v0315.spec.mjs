@@ -126,15 +126,19 @@ for (const width of [320, 1280])
     });
 
 // 장신구 연마 · 깨달음 카르마 join the path only behind api switches (both off on production, PM 총괄 11-21): the lead line
-// names only the kinds every path takes, and the answer's own note says whether this answer takes those two.
+// names only the kinds every path takes, and the answer's own note says whether this answer takes those two, by the
+// answer's polishStepsConsidered / karmaStepsConsidered; a missing field is false (today's words, PM 총괄 11-21).
 const LEAD = "보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요.";
+const BOTH = "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.";
+const OFF = "장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요.";
 const SCOPE = [
-  ["실표본2", "연마·카르마 둘 다 있는 답", ["연마", "카르마"], "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요."],
-  ["실표본1", "연마만 있는 답", ["연마"], "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요."],
-  ["스펙순서", "둘 다 없는 답(운영처럼 스위치 꺼짐)", [], "장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음 카르마는 전투력 계산식이 없어 넣지 않아요."],
+  ["실표본2", "두 필드 true, 두 종류 단계 있음", ["연마", "카르마"], BOTH],
+  ["실표본1", "두 필드 true, 카르마 단계는 고르지 않음(필드를 따름)", ["연마"], BOTH],
+  ["스펙순서범위꺼짐", "두 필드 false(운영, 스위치 꺼짐)", [], OFF],
+  ["스펙순서", "필드 없음(필드 전 api)", [], OFF],
 ];
 for (const [who, what, kinds, note] of SCOPE)
-  test(`@A37 1280 다루는 범위: ${what}은 그 답에 있는 종류만 다룬다고 말한다 @regression`, async ({ page }) => {
+  test(`@A37 1280 다루는 범위: ${what} @regression`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(characterPath(who, "specup"));
     await expect(pathTable(page)).toBeVisible();

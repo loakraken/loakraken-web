@@ -1006,7 +1006,15 @@ createServer(async (req, res) => {
     if (who?.startsWith("실표본")) {
       const file = new URL(`./spec-up-fixtures/v0315/${who.slice(3)}-${sort}.json`, import.meta.url);
       // 점수 효율 is offered by the list answer's supportOrderAvailable (on for '실표본', below).
-      if (existsSync(file)) return send(JSON.parse(readFileSync(file, "utf8")));
+      // The switch fields (api, v0.3.15, PM 총괄 11-21): saved on a stub api with both switches on, so 1 and 2 say so —
+      // 실표본1 has no karma step (on, none picked: the note follows the field, not the steps); 3 and 4 stay as saved,
+      // an api before the fields.
+      const considered = { 1: true, 2: true }[who.slice(3)];
+      if (existsSync(file)) {
+        const saved = JSON.parse(readFileSync(file, "utf8"));
+        if (considered) Object.assign(saved.data, { polishStepsConsidered: true, karmaStepsConsidered: true });
+        return send(saved);
+      }
     }
     // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
@@ -1024,6 +1032,9 @@ createServer(async (req, res) => {
     const withCostParts = (env) => {
       const data = env.data;
       if (data) data.ruleVersion = pathRule[who] ?? "spec-up-path-v7";
+      // '스펙순서범위꺼짐': production after the switch fields ship, both switches off (false); every other name here is an
+      // api before the fields (no field).
+      if (data && who === "스펙순서범위꺼짐") Object.assign(data, { polishStepsConsidered: false, karmaStepsConsidered: false });
       if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
       const extras = (data.steps ?? []).map((step) => step.extraCost ?? null);
       data.knownCostTotal = extras.reduce((sum, extra) => sum + (extra ?? 0), 0);
