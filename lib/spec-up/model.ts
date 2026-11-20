@@ -77,6 +77,8 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   EQUIPMENT_QUALITY: "품질",
   EQUIPMENT_REFINE: "재련",
   ADVANCED_REFINE: "상급 재련",
+  // The list's 상급 재련 candidates (업화 gear) come as EQUIPMENT_ADVANCED_REFINE (백엔드 11-21): without it they read "기타".
+  EQUIPMENT_ADVANCED_REFINE: "상급 재련",
   ENGRAVING_LEVEL: "각인",
   STONE_ENGRAVING: "스톤",
   POLISH: "연마",

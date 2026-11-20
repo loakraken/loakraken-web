@@ -1268,7 +1268,16 @@ createServer(async (req, res) => {
       });
       d.steps.push(
         step("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { kind: "EQUIPMENT_REFINE", index: 1, refine: 20 }, top + 12.5),
-        step("ADVANCED_REFINE:1:11", "EQUIPMENT_ADVANCED_REFINE", "테스트 투구 상급 재련", "10", "11", { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 }, top + 20.75),
+        // Path 상급 재련 steps go by tens (api #1019): 10 → 20.
+        step(
+          "EQUIPMENT_ADVANCED_REFINE:1:20",
+          "EQUIPMENT_ADVANCED_REFINE",
+          "+19 테스트 투구",
+          "상급 재련 10단계",
+          "상급 재련 20단계",
+          { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 },
+          top + 20.75,
+        ),
       );
       d.steps.forEach((s, i) => (s.order = i + 1));
     }
@@ -1373,7 +1382,16 @@ createServer(async (req, res) => {
       });
       envelope.data.candidates.push(
         armour("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { index: 1, refine: 20, level: null }, 12.5),
-        armour("ADVANCED_REFINE:1:11", "ADVANCED_REFINE", "테스트 투구 상급 재련", "10", "11", { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, refine: null, level: 11 }, 8.25),
+        // 상급 재련 (업화 gear only), the list's +1 step: kind and id as the api sends them (백엔드 11-21).
+        armour(
+          "EQUIPMENT_ADVANCED_REFINE:1:11",
+          "EQUIPMENT_ADVANCED_REFINE",
+          "+19 테스트 투구",
+          "상급 재련 10단계",
+          "상급 재련 11단계",
+          { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, refine: null, level: 11 },
+          8.25,
+        ),
       );
     }
     if (who !== "스펙업옛응답")

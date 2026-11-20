@@ -82,14 +82,18 @@ for (const width of [320, 1280]) {
     await page.goto(`${characterPath(OPEN, "specup")}&sort=DELTA`);
     await expandAll(page);
     const table = page.getByRole("table", { name: /스펙업 후보/ });
-    for (const target of ["+19 테스트 투구", "테스트 투구 상급 재련"]) {
-      const row = table.locator("tbody tr").filter({ hasText: target });
+    const rows = table.locator("tbody tr").filter({ hasText: "+19 테스트 투구" });
+    await expect(rows).toHaveCount(2);
+    for (const step of ["+20", "상급 재련 11단계"]) {
+      const row = rows.filter({ hasText: step });
       await expect(row).toHaveCount(1);
       await expect(row).toContainText(/\+\d+\.\d\d/);
+      // Named as 상급 재련, not '기타' (the list's EQUIPMENT_ADVANCED_REFINE kind).
+      await expect(row).not.toContainText("기타");
     }
     await expect(page.getByText(TEXT)).toHaveCount(0);
     const asked = simulateRequest(page);
-    await table.getByRole("link", { name: /^테스트 투구 상급 재련 .*시뮬레이터에서 적용해 보기$/ }).click();
+    await table.getByRole("link", { name: "+19 테스트 투구 상급 재련 11단계 시뮬레이터에서 적용해 보기" }).click();
     const body = (await asked).postDataJSON();
     const mark = await shiftMark(page);
     expect(body).toEqual({ characterName: OPEN, changes: [{ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 }] });
@@ -121,13 +125,13 @@ for (const width of [320, 1280]) {
     const goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("99999");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal.getByText("테스트 투구 상급 재련")).toBeVisible();
+    await expect(goal.getByText("상급 재련 20단계").first()).toBeVisible();
     await expect(goal).not.toContainText("시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요");
     const asked = simulateRequest(page);
     await goal.getByRole("link", { name: "이 경로를 시뮬레이터에서 열기" }).click();
     const changes = (await asked).postDataJSON().changes;
     expect(changes).toContainEqual({ kind: "EQUIPMENT_REFINE", index: 1, refine: 20 });
-    expect(changes).toContainEqual({ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 });
+    expect(changes).toContainEqual({ kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 });
     await expectNoHorizontalOverflow(page);
   });
 }
