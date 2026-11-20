@@ -985,7 +985,7 @@ createServer(async (req, res) => {
       data.unknownCostSteps = extras.filter((extra) => extra === null).length;
       return env;
     };
-    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
+    // '점수순서방어구…' (api #1029): a dealer whose 점수 효율 path stops giving combat power at step 2 ('…첫': step 1).
     if (who === "점수순서서폿" && sort === "KRAKEN") {
       const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
       Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
@@ -1020,12 +1020,18 @@ createServer(async (req, res) => {
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
     }
-    if (who === "점수순서딜러" && sort === "KRAKEN") {
+    if (krakenDealer && sort === "KRAKEN") {
       const start = 1000;
       d.steps.forEach((step, i) =>
         Object.assign(step, { deltaKrakenScore: 7.5, krakenScoreAfter: start + 7.5 * (i + 1), krakenScorePer100kGold: i === 0 ? 1.25 : 0.38 }),
       );
       Object.assign(d, { krakenScore: start, finalKrakenScore: start + 7.5 * d.steps.length, krakenScoreRole: "DEALER", stopReason: "시세가 있는 항목 가운데 점수가 오르는 것을 모두 골랐어요." });
+      // From the armor step on the api leaves combat power out (null), score and cost stay (api #1029).
+      if (who.startsWith("점수순서방어구")) {
+        const stop = who.endsWith("첫") ? 1 : 2;
+        d.steps.forEach((step) => step.order >= stop && Object.assign(step, { deltaCombatPower: null, combatPowerAfter: null, combatPowerPer10kGold: null }));
+        Object.assign(d, { finalCombatPower: null, combatPowerStopOrder: stop, combatPowerStopReasonCode: "ARMOR_REFINE_CP_UNCONFIRMED" });
+      }
     }
     // A stone step as api #812 words it (two engravings each side): the longest change text.
     if (who === "스펙순서스톤") {
@@ -1274,12 +1280,12 @@ createServer(async (req, res) => {
       if (who === "상세서포터" || who === "점수순서서폿")
         for (const c of kraken.data.candidates)
           Object.assign(c, { deltaCombatPower: null, combatPowerPer10kGold: null, deltaPercent: null });
-      if (who === "점수순서딜러" || who === "점수순서서폿")
+      if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who === "점수순서서폿")
         Object.assign(kraken.data, { supportOrderAvailable: true, krakenScoreRole: who === "점수순서서폿" ? "SUPPORT" : "DEALER" });
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
-    if (who === "점수순서딜러") envelope.data.supportOrderAvailable = true;
+    if (who === "점수순서딜러" || who?.startsWith("점수순서방어구")) envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
     // '적용해 보기' off the armour row.
