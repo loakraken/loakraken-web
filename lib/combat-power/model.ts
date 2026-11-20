@@ -398,8 +398,22 @@ export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {
 const KINDS = new Set(Object.keys(KIND_LABEL));
 const int = (value: unknown) => Number.isInteger(value);
 
-/** Server-side guard before the body leaves the proxy. */
-export function parseSimulateRequest(body: unknown): SimulateRequest | null {
+/**
+ * A 깨달음 카르마 change as the api takes it (api #1004): ARK_PASSIVE_POINT, tree 깨달음, a level 0~30, no points or
+ * level beside it. Only with KARMA_SIM on: off (production until the api switch opens), the proxy forwards none
+ * (PM 총괄 #1815 P2).
+ */
+const karmaAllowed = (out: Record<string, unknown>, karma: boolean) =>
+  karma &&
+  out.kind === "ARK_PASSIVE_POINT" &&
+  out.tree === KARMA_TREE &&
+  out.points === undefined &&
+  out.level === undefined &&
+  (out.karmaLevel as number) >= 0 &&
+  (out.karmaLevel as number) <= KARMA_MAX;
+
+/** Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment. */
+export function parseSimulateRequest(body: unknown, { karma = false }: { karma?: boolean } = {}): SimulateRequest | null {
   if (!body || typeof body !== "object") return null;
   const { characterName, changes } = body as Record<string, unknown>;
   if (typeof characterName !== "string" || characterNameError(characterName))
@@ -423,6 +437,7 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
         return null;
       out[key] = change[key];
     }
+    if (out.karmaLevel !== undefined && !karmaAllowed(out, karma)) return null;
     clean.push(out as Change);
   }
   return { characterName: normalizeCharacterName(characterName), changes: clean };
