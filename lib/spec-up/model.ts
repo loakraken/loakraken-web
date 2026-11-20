@@ -105,6 +105,9 @@ export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPowe
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
 
+/** A row with no combat power: the 전투력 cell shows a dash, and the 크라켄 점수 footer counts it (one test for both). */
+export const noCombatPower = (candidate: { deltaCombatPower?: number | null }) => candidate.deltaCombatPower == null;
+
 /**
  * A candidate's kind as the screen names it. 완갑 rows come as kind EQUIPMENT_REFINE with change.kind ARM_GUARD (api,
  * 백엔드 11-21): named 완갑, as the path names the same step, not 재련.

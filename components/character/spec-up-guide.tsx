@@ -18,6 +18,7 @@ import {
   gearTypeOf,
   keepOrder,
   candidateKindLabel,
+  noCombatPower,
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
@@ -290,10 +291,11 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
-  // The ranked rows the cut counts (status OK), and under 크라켄 점수 the scored rows without combat power after them.
-  const computedShown = ok.filter((c) => c.status === "OK").length;
-  // Only below computed rows: a supporter's list is all scored rows (combat power not computed for the role).
-  const scoredOnly = computedShown > 0 ? ok.length - computedShown : 0;
+  // Under 크라켄 점수 the api ranks scored rows with and without combat power together (SpecUpService: ranked = OK or a
+  // Δ점수); how many shown have none, counted by the same test the 전투력 cell uses for its dash (noCombatPower). Not
+  // for a supporter, whose rows all have none (the role note says why).
+  const noCp = krakenShown ? ok.filter(noCombatPower).length : 0;
+  const noCpNote = noCp > 0 && noCp < ok.length;
   // One row per target, its other stages behind '자세히' (사용자 제보 #26).
   const groups = useMemo(() => groupStages(ok), [ok]);
   const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
@@ -601,7 +603,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                             </td>
                           ) : (
                             <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
-                              {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
+                              {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
                               {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                             </td>
                           )}
@@ -640,14 +642,15 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                 </table>
               </div>
             )}
-            {(guide.total > computedShown || scoredOnly > 0) && (
-              // total counts the computed (OK) candidates before the cut, and the cut applies to them only; under
-              // 크라켄 점수 the rows the api scored without combat power come after them, all of them (v0.3.15
-              // real answers: 136 computed, 50 shown, 57 more scored). Said apart, not as '136개 중 위에서 107개'.
+            {guide.total > ok.length && (
               <p className={styles.muted}>
-                {guide.total > computedShown && `계산된 후보 ${guide.total}개 중 위에서 ${computedShown}개를 보여 드려요.`}
-                {guide.total > computedShown && scoredOnly > 0 && " "}
-                {scoredOnly > 0 && `전투력을 아직 계산하지 않은 ${scoredOnly}개는 점수 순으로 그 아래에 이어요.`}
+                계산된 후보 {guide.total}개 중 위에서 {ok.length}개를 보여 드려요.
+                {noCpNote && ` 그중 ${noCp}개는 전투력을 아직 계산하지 않았어요.`}
+              </p>
+            )}
+            {guide.total <= ok.length && noCpNote && (
+              <p className={styles.muted}>
+                보여 드린 {ok.length}개 중 {noCp}개는 전투력을 아직 계산하지 않았어요.
               </p>
             )}
             {bases.length > 0 && (
