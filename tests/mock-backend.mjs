@@ -1376,6 +1376,25 @@ createServer(async (req, res) => {
         deltaPercent: 0.4,
       });
     }
+    // An 업화 weapon's 상급 재련 candidate (the list's +1 step), computed (PM 총괄 11-21).
+    if (who === UPGRADE_WEAPON) {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      envelope.data.candidates.push({
+        ...weapon,
+        id: "EQUIPMENT_ADVANCED_REFINE:0:22",
+        kind: "EQUIPMENT_ADVANCED_REFINE",
+        target: "+16 업화 테스트 무기",
+        from: "상급 재련 21단계",
+        to: "상급 재련 22단계",
+        change: { ...weapon.change, kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, refine: null, level: 22 },
+        status: "OK",
+        deltaCombatPower: 9.12,
+        deltaPercent: 0.228,
+        reasonCode: null,
+        reason: null,
+        reasonDetail: null,
+      });
+    }
     // The armour CP gate (PR3): a 투구 재련 and a 투구 상급 재련 candidate. Inside, computed like any row (ΔCP and
     // per 10k); outside, held with the gate's code and sentence (folded at the end of the list).
     if (ARMOR_GATE_NAMES.includes(who)) {

@@ -58,3 +58,19 @@ test("the proxy takes 상급 재련 with exactly index + level inside 0..40, for
       assert.equal(parseSimulateRequest(body(bad), { armor }), null, JSON.stringify(bad));
   }
 });
+
+test("spec-up hand-offs: an 업화 weapon's 상급 재련 step opens in the simulator, any other weapon's does not", async () => {
+  const { editsFor, gearTypeOf } = await import("../lib/spec-up/model");
+  const { simulatorPath } = await import("../lib/spec-up/goal");
+  const data = (name: string) =>
+    ({ loadout: { equipment: [{ type: "무기", name }, { type: "투구", name: "+19 테스트 투구" }] } }) as unknown as Parameters<typeof gearTypeOf>[0];
+  const step = { kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 30 } as Parameters<typeof editsFor>[0];
+  assert.deepEqual(editsFor(step, NO_EDITS, gearTypeOf(data("+16 업화 테스트 무기")))?.advanced, { 0: 30 });
+  assert.equal(editsFor(step, NO_EDITS, gearTypeOf(data("+8 에스더 테스트 무기"))), null);
+  // Armour 상급 재련 still needs ARMOR_CP_SIM.
+  const armour = { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 11 } as Parameters<typeof editsFor>[0];
+  assert.equal(editsFor(armour, NO_EDITS, gearTypeOf(data("+16 업화 테스트 무기"))), null);
+  const steps = [{ change: step }, { change: armour }] as unknown as Parameters<typeof simulatorPath>[0];
+  assert.deepEqual(simulatorPath(steps, gearTypeOf(data("+16 업화 테스트 무기"))), { changes: [step], skipped: 1 });
+  assert.deepEqual(simulatorPath(steps, gearTypeOf(data("+8 에스더 테스트 무기"))), { changes: [], skipped: 2 });
+});
