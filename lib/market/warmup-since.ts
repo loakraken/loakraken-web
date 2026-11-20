@@ -6,8 +6,9 @@ import { daySlots, gapsBefore } from "./chart-gaps";
 import type { AccessoryFilter } from "./auction-accessories";
 
 // The first day (KST, YYYY-MM-DD) the accessory warmup saved prices in production; null until the switch
-// is on there. Source: the production deploy record of the day the accessory warmup switch was turned on.
-export const ACCESSORY_WARMUP_SINCE: string | null = null;
+// is on there. Source: the production deploy record of the day the accessory warmup switch was turned on
+// (v0.3.14 deploy, 2026-11-20 KST; checked 2026-11-20).
+export const ACCESSORY_WARMUP_SINCE: string | null = "2026-11-20";
 
 /** The filter the warmup keeps (the board's defaults). */
 export const isWarmedFilter = (filter: AccessoryFilter) =>
