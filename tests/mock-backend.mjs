@@ -116,13 +116,16 @@ function withArkSimulator(data) {
 }
 /**
  * 깨달음 카르마 레벨 (api #1004, web #1781): the ark rows with a 깨달음 point whose description carries the karma
- * level ("6랭크 29레벨", as the official armory writes it). '전투력카르마' opens the simulator with it;
- * '스펙순서카르마' is the spec-up path with a KARMA_LEVEL step on the same character.
+ * level ("6랭크 29레벨", as the official armory writes it), and since api #1023 the same level as karmaLevel.
+ * '전투력카르마' opens the simulator with it; '스펙순서카르마' is the spec-up path with a KARMA_LEVEL step on the
+ * same character.
  */
 const KARMA_NAMES = ["전투력카르마", "스펙순서카르마"];
 function withKarma(data) {
   withArkSimulator(data);
-  data.loadout.arkPassive.points.find((point) => point.name === "깨달음").description = "6랭크 29레벨";
+  const point = data.loadout.arkPassive.points.find((item) => item.name === "깨달음");
+  point.description = "6랭크 29레벨";
+  point.karmaLevel = 29;
   return data;
 }
 const marketRead = (name) =>

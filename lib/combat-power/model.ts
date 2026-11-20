@@ -212,15 +212,21 @@ export const KARMA_TREE = "깨달음";
 export const KARMA_MAX = 30;
 
 /**
- * The 깨달음 karma level from its point description ("6랭크 29레벨"), read as the api reads it
- * (CombatPowerRefineModel.karmaLevel: the first "N레벨"). null when it cannot be read: the field stays
- * hidden, as the api would answer that it could not read it.
+ * The 깨달음 karma level of the point named 깨달음 (not the first point with a level: 진화 and 도약 carry one too).
+ * - The api's karmaLevel (api #1023) when the field is there: it wins over the description.
+ * - The field absent (an api before #1023; the contract keeps it optional for the deploy order) or null: read the
+ *   description ("6랭크 29레벨") as the api reads it (CombatPowerRefineModel.karmaLevel: the first "N레벨").
+ * null when neither gives a level in the request's range (0~30): the field stays hidden, as the api would answer
+ * that it could not read it. A field outside that range is not read from the description instead.
  */
-export function karmaLevelOf(points: readonly { name?: string | null; description?: string | null }[] | null | undefined) {
+export function karmaLevelOf(
+  points: readonly { name?: string | null; description?: string | null; karmaLevel?: number | null }[] | null | undefined,
+) {
   const point = points?.find((item) => item.name === KARMA_TREE);
-  const level = point?.description?.match(/(\d+)레벨/)?.[1];
-  const value = level == null ? null : Number(level);
-  return value != null && value <= KARMA_MAX ? value : null;
+  if (!point) return null;
+  const parsed = point.description?.match(/(\d+)레벨/)?.[1];
+  const value = point.karmaLevel != null ? point.karmaLevel : parsed == null ? null : Number(parsed);
+  return value != null && Number.isInteger(value) && value >= 0 && value <= KARMA_MAX ? value : null;
 }
 
 export type PolishValues = NonNullable<Options["polishValues"]>;

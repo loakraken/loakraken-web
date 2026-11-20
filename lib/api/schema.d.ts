@@ -328,6 +328,7 @@ export interface components {
             name: string | null;
             value: number | null;
             description: string | null;
+            karmaLevel?: number | null;
         };
         PassiveEffectResponse: {
             name: string | null;
