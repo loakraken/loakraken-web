@@ -23,6 +23,8 @@ import {
   pathCostNote,
   pathCpStopNote,
   pathFigures,
+  PATH_SCOPE_LEAD,
+  pathScopeNote,
   pathTotal,
   stepCandidate,
   stepFigures,
@@ -157,11 +159,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
       <p className={styles.lead}>
         가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요.
       </p>
-      {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
-      <p className={styles.lead}>
-        보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음
-        카르마는 전투력 계산식이 없어 넣지 않아요.
-      </p>
+      {/* The kinds every path takes (PM 총괄 11-01). 장신구 연마 and 깨달음 카르마 depend on api switches, so the answer's own
+          note says whether this one takes them (pathScopeNote, PM 총괄 11-21). */}
+      <p className={styles.lead}>{PATH_SCOPE_LEAD}</p>
       {failure && !path.isFetching ? (
         <div className={detail.specUpFailure} role="alert">
           <p>{failureText(failure.code, "limit" in failure ? failure.limit : undefined)}</p>
@@ -197,6 +197,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const { start, final } = figures;
   const total = pathTotal(path);
   const cpStop = pathCpStopNote(path);
+  const scope = pathScopeNote(path);
   const sim = simulatorPath(steps, gearTypeOf(data), useContext(KarmaSimEnabled), useContext(ArmorSimEnabled));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
@@ -314,6 +315,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
         {/* How the costs were counted depends on the order (api #993, PM 총괄 11-20 P1): see pathCostNote. */}
         {`${figures.scored ? `${figures.name}는` : "전투력은"} 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. ${pathCostNote(path)}`}
       </p>
+      {/* Whether this answer takes 장신구 연마 · 깨달음 카르마 steps (api switches, both off on production). */}
+      {scope && <p className={styles.note}>{scope}</p>}
       {/* Where combat power stops (api #1029): armor refine and arm guard steps in a dealer's 점수 효율 path. */}
       {cpStop && <p className={styles.note}>{cpStop}</p>}
       <Unpriced items={path.unpriced} scored={figures.scored} />

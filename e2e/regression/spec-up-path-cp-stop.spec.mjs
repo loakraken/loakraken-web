@@ -30,6 +30,17 @@ for (const width of [320, 1280])
     await expect(answer(page).getByText(ANY)).toHaveCount(0);
   });
 
+// api #1036 (armour gate on): the official and equipment-built combat power differ (ARMOR_CP_RESIDUAL_HIGH, 백엔드 11-21).
+const RESIDUAL = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.";
+for (const width of [320, 1280])
+  test(`@A37 ${width} 공식 전투력과 맞지 않아 멈춘 순서는 그 까닭을 말한다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await scored(page, "점수순서방어구잔차");
+    await expect(answer(page).getByText(`2단계부터는 전투력을 계산하지 않았어요. ${RESIDUAL}`, { exact: true })).toBeVisible();
+    await expect(answer(page).getByText(REASON, { exact: false })).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
 test("@A37 1280 첫 단계부터 멈춘 순서는 '첫 단계부터'라고 말한다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await scored(page, "점수순서방어구첫");

@@ -199,6 +199,12 @@ export function pathCostNote(path: Pick<SpecUpPath, "sort" | "ruleVersion" | "st
  */
 const CP_STOP_REASONS: ReadonlyMap<string, string> = new Map([
   ["ARMOR_REFINE_CP_UNCONFIRMED", "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요."],
+  // api #1036 with the armour gate on: the dealer's official and equipment-built CP differ by more than 0.10%; the path
+  // stops as for UNCONFIRMED (every step from the stop on, 백엔드 11-21), the simulator's facts in the path's words.
+  [
+    "ARMOR_CP_RESIDUAL_HIGH",
+    "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.",
+  ],
 ]);
 
 /**
@@ -215,4 +221,40 @@ export function pathCpStopNote(
   const where = order === 1 ? "이 순서는 첫 단계부터 전투력을 계산하지 않았어요." : `${order}단계부터는 전투력을 계산하지 않았어요.`;
   const why = CP_STOP_REASONS.get(path.combatPowerStopReasonCode ?? "");
   return why ? `${where} ${why}` : where;
+}
+
+/** Kinds every path takes; the lead line above the answer names only these (it shows before any answer). */
+export const PATH_SCOPE_LEAD = "보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요.";
+
+/**
+ * The answer's switch fields (백엔드 11-21, v0.3.15; optional): whether this answer took 장신구 연마 / 깨달음 카르마 steps
+ * into account. Local until the contract sync after the api PR, then this type goes and the schema's fields are read.
+ */
+export type PathScopeFields = { polishStepsConsidered?: boolean | null; karmaStepsConsidered?: boolean | null };
+
+/** The two switch-gated kinds: the answer's field, the step kind that shows one in the path, and its name. */
+const SCOPE_KINDS = [
+  { field: "polishStepsConsidered", step: "POLISH", name: "장신구 연마" },
+  { field: "karmaStepsConsidered", step: "KARMA_LEVEL", name: "깨달음 카르마" },
+] as const;
+
+/**
+ * What this answer says about 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21 05:42). Each joins the path only behind its
+ * own api switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production,
+ * and the answer says whether it was on (polishStepsConsidered / karmaStepsConsidered; for karma the role must take it).
+ * Per kind: (c) on and a step of it in the answer → covered; (b) on and none in the answer (karma already at 30, none
+ * worth it) → nothing; (a) off, which is anything but true, a missing field (an api before them) included → '… 단계는
+ * 아직 추천 순서에 넣지 않아요.' naming only the kinds that are off, with no reason (both are switch-gated now, so the old
+ * reasons no longer hold). null when there is nothing to say (no element on screen).
+ */
+export function pathScopeNote(path: Pick<SpecUpPath, "steps"> & PathScopeFields): string | null {
+  const on = (kind: (typeof SCOPE_KINDS)[number]) => path[kind.field] === true;
+  const covered = SCOPE_KINDS.filter((kind) => on(kind) && path.steps.some((step) => step.kind === kind.step));
+  // 깨달음 카르마 first in the 'not yet' sentence, as PM 총괄 worded it.
+  const off = SCOPE_KINDS.filter((kind) => !on(kind)).reverse();
+  const parts = [
+    covered.length > 0 ? `이 순서는 ${covered.map((kind) => kind.name).join("·")} 단계도 다뤄요.` : null,
+    off.length > 0 ? `${off.map((kind) => kind.name).join(" · ")} 단계는 아직 추천 순서에 넣지 않아요.` : null,
+  ].filter((part) => part !== null);
+  return parts.length > 0 ? parts.join(" ") : null;
 }
