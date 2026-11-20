@@ -1308,7 +1308,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "이 단계로 늘어난 전투력(소수 둘째 자리). 서포터 추천 순서 sort=KRAKEN에서만 null(서포터 전투력 모델이 없어 점수로만 고름)"
+                "description": "이 단계로 늘어난 전투력(소수 둘째 자리). 서포터 추천 순서 sort=KRAKEN(서포터 전투력 모델이 없어 점수로만 고름)과, 딜러 sort=KRAKEN의 combatPowerStopOrder 단계부터(방어구 재련·상급 재련·완갑 전투력 확인 전)는 null"
               },
               {
                 "type": "null"
@@ -1319,7 +1319,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "이 단계까지 적용한 전투력(시뮬레이터). 서포터 추천 순서 sort=KRAKEN에서만 null"
+                "description": "이 단계까지 적용한 전투력(시뮬레이터). 서포터 추천 순서 sort=KRAKEN과 딜러 sort=KRAKEN의 combatPowerStopOrder 단계부터는 null"
               },
               {
                 "type": "null"
@@ -1910,7 +1910,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "마지막 단계까지 적용한 전투력(단계가 없으면 지금 전투력). 지금 전투력이 없거나 서포터 추천 순서 sort=KRAKEN이면 null"
+                "description": "마지막 단계까지 적용한 전투력(단계가 없으면 지금 전투력). 지금 전투력이 없거나, 서포터 추천 순서 sort=KRAKEN이거나, 딜러 sort=KRAKEN에서 combatPowerStopOrder가 있으면 null"
               },
               {
                 "type": "null"
@@ -1957,7 +1957,7 @@
           },
           "ruleVersion": {
             "type": "string",
-            "example": "spec-up-path-v6"
+            "example": "spec-up-path-v7"
           },
           "simulatorRuleVersion": {
             "type": "string",
@@ -2058,6 +2058,31 @@
             "type": "integer",
             "format": "int32",
             "description": "단계 비용(extraCost)을 모르는 단계 수. 0이면 totalCost = knownCostTotal. 배포 순서 때문에 계약에서는 선택 필드"
+          },
+          "combatPowerStopOrder": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "딜러 sort=KRAKEN만: 전투력을 비우기 시작한 단계 순서(order). 방어구 재련·상급 재련·완갑 단계는 점수로 고르지만 전투력을 아직 계산하지 않으므로, 그 단계부터 그 뒤 단계의 deltaCombatPower·combatPowerAfter와 finalCombatPower가 null이다(점수·비용은 그대로). 그런 단계가 없으면 null. 배포 순서 때문에 계약에서는 선택 필드",
+                "example": 3
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerStopReasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "combatPowerStopOrder의 이유 코드(문자열, 값이 늘 수 있음): ARMOR_REFINE_CP_UNCONFIRMED(방어구 재련·상급 재련·완갑 전투력 계산식 확인 전). combatPowerStopOrder가 null이면 null. 배포 순서 때문에 계약에서는 선택 필드",
+                "example": "ARMOR_REFINE_CP_UNCONFIRMED"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
