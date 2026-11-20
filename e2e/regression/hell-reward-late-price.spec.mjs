@@ -1,0 +1,56 @@
+// 회귀(CI run 44772043865 shard 2/6, PM 총괄 11-21 01:43, #1815를 막음): 360 지옥 · 나락 보상에서 시세가 깬 뒤 110ms에
+// 오자 기본 보상 첫 품목('운명의 파편', x 11 · y 667, 237x15)이 크기 그대로 1px 아래로 내려감(0.0007). 위의 칸들이 글꼴
+// 값(line-height: normal)으로 높이를 정해 소수 높이(77.16 · 41.44 · 56.59)였고, 글자나 글꼴이 바뀌면 그 소수가
+// 반올림을 넘어 1px로 보였다. 로컬(Windows)에서는 그 순간을 다시 만들지 못해(시세를 1.5초 늦춰도 0, 15번 0), 그
+// 조건을 없앴다: 머리 값·풍요 단추·0G 줄·품목 줄은 정한 px 줄 높이라 높이가 글자·글꼴에 따라 바뀌지 않는다.
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { shiftsSince, watchShifts } from "../support/shifts.mjs";
+import { useUntunedSystemFace } from "../support/fonts.mjs";
+
+// The blocks above the base list's first item and the item's own line, as the page draws them.
+const blocks = (page) =>
+  page.evaluate(() => {
+    const main = document.querySelector("main");
+    const list = main.querySelector('ul[aria-label^="기본 보상"]');
+    const els = [
+      ...main.querySelectorAll('dl[aria-live] > div, dl[aria-live] dt, dl[aria-live] dd, label:has(> input[role="switch"])'),
+      ...[...main.querySelectorAll("p")].filter((p) => p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING && p.closest("section") === list.closest("section")),
+      ...list.querySelector("li").querySelectorAll(":scope > span, strong, small"),
+    ];
+    return els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return { what: `${el.tagName.toLowerCase()} '${el.textContent.trim().slice(0, 12)}'`, h: r.height, lh: getComputedStyle(el).lineHeight };
+    });
+  });
+
+for (const width of [360, 320])
+  test(`@A7 ${width} 지옥 · 나락 보상: 기본 보상 위 칸의 줄 높이는 글자·글꼴과 상관없는 정수 px @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/tools/hell-reward");
+    await expect(page.getByRole("list", { name: /^기본 보상/ })).toBeVisible();
+    const found = await blocks(page);
+    expect(found.length, "찾은 칸").toBeGreaterThan(10);
+    const loose = found.filter((b) => b.lh === "normal" || Math.abs(b.h - Math.round(b.h)) > 0.01);
+    expect(loose.map((b) => `${b.what} h=${b.h.toFixed(2)} lh=${b.lh}`), "글꼴 값 줄 높이·소수 높이").toEqual([]);
+  });
+
+for (const face of ["site", "untuned"])
+  test(`@A7 360 지옥 · 나락 보상: 시세가 깬 뒤 늦게 와도(${face}) 기본 보상이 움직이지 않는다 @regression`, async ({ page }) => {
+    if (face === "untuned") {
+      // Held, never answered: display: optional keeps the system face.
+      await page.route(/\.woff2(\?|$)/, () => {});
+      await useUntunedSystemFace(page);
+    }
+    await page.setViewportSize({ width: 360, height: 900 });
+    // The late answer of the CI run: prices land after the page woke.
+    await page.route("**/api/markets/material-prices", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    await watchShifts(page);
+    await page.goto("/tools/hell-reward", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(/^시세 (방금|\d+분 전) 수집$/)).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(600);
+    const late = await shiftsSince(page);
+    expect(late.all, `늦은 시세 흔들림 (${late.moved})`).toBe(0);
+  });
