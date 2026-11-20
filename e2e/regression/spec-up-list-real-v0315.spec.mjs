@@ -95,9 +95,10 @@ for (const width of [320, 1280]) {
     if (width >= 768) await expect(row.locator("[data-cell='kind']")).toHaveText("상급 재련");
   });
 
-  test(`${width}: 효율 목록 — 한 번에 여러 단계 오르는 재련 줄과, 접힌 방어구 상급 재련 줄 @regression`, async ({ page }) => {
+  test(`${width}: 증가 목록 — 한 번에 여러 단계 오르는 재련 줄과, 접힌 방어구 상급 재련 줄 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
-    const table = await list(page, "실목록2", "EFFICIENCY");
+    // DELTA: the weapon's +16 → +25 row is in the limit-50 answer there (not under 효율, where the 50 cut leaves it out).
+    const table = await list(page, "실목록2", "DELTA");
     const row = table.locator("tbody tr").filter({ hasText: "+16 운명의 업화 한손검" }).filter({ hasText: "+16 → +25" });
     await expect(row).toHaveCount(1);
     await expect(row).toContainText("+141.65");
