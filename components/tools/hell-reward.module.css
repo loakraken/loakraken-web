@@ -63,8 +63,18 @@
   display: none;
   flex: none;
 }
+/* Where it shows, its room is fixed before any of it arrives: a cut first HTML (the row without the button yet, or
+   the button without its label) draws the title at its final width and the row at its final height (A7 rest sweep). */
+:global(:root[data-pip]) .titleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  min-height: 32px;
+}
 :global(:root[data-pip]) .pipButton {
   display: inline-flex;
+  width: 96px;
+  padding: 0;
+  overflow: hidden;
 }
 .pipButton[aria-pressed="true"] {
   background: var(--control);
