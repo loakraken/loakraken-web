@@ -100,12 +100,38 @@ function useRoomOnScreen(open: boolean) {
   return panel;
 }
 
+/**
+ * (ours, M53) The row the arrows reach stays in view inside the scroll box:
+ * the input keeps focus (aria-activedescendant), so the browser never scrolls
+ * to it, and at 320 the list runs past the box. A row the pointer entered is
+ * already under the pointer and is left alone, so a hover never scrolls.
+ */
+function useActiveInView(activeId: string | null | undefined, panelId: string) {
+  const box = useRef<HTMLDivElement>(null);
+  const pointed = useRef(false);
+  useLayoutEffect(() => {
+    if (pointed.current) {
+      pointed.current = false;
+      return;
+    }
+    const view = box.current;
+    const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
+    if (!view || !row || !view.contains(row)) return;
+    const outer = view.getBoundingClientRect();
+    const inner = row.getBoundingClientRect();
+    if (inner.top < outer.top) view.scrollTop -= outer.top - inner.top;
+    else if (inner.bottom > outer.bottom) view.scrollTop += inner.bottom - outer.bottom;
+  }, [activeId, panelId]);
+  return { box, pointed };
+}
+
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
 function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
   const panel = useRoomOnScreen(open);
+  const { box: scrollBox, pointed } = useActiveInView(open ? activeId : null, id);
   let order = 0;
   return (
     <LazyMotion features={loadFeatures}>
@@ -144,7 +170,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
             }}
           >
             {header && <div className="rsp-top">{header}</div>}
-            <div className="rsp-scroll" id={id} role="listbox" aria-label={label}>
+            <div ref={scrollBox} className="rsp-scroll" id={id} role="listbox" aria-label={label}>
               {groups.map((group) =>
                 group.items.length === 0 && !group.reserve ? null : (
                   <div key={group.id} role="group" aria-labelledby={group.title ? `${id}-g-${group.id}` : undefined}>
@@ -167,7 +193,10 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                           /* the input keeps focus; a press must not take it */
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => onPick(item)}
-                          onPointerEnter={() => onActive?.(item.id)}
+                          onPointerEnter={() => {
+                            if (item.id !== activeId) pointed.current = true;
+                            onActive?.(item.id);
+                          }}
                           /* they deal out under the card rather than
                              arriving with it — four rows appearing at
                              once is a panel, four arriving in order is
