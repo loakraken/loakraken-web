@@ -54,3 +54,53 @@ for (const width of [320, 1280])
     await expect(still).toHaveCount(0);
     expect(await boxOf(canvas)).toEqual(before);
   });
+
+// codex P3s on #1871: a failed library load or a canvas that cannot draw leaves the still in the box (never an empty
+// one), and a failed load is no unhandled rejection. The network error of the refused chunk is the console line
+// this allows; page errors (uncaught throws, unhandled rejections) are collected and must stay empty.
+test.describe("구슬이 그려지지 못할 때", () => {
+  test.use({ allowConsoleErrors: true });
+
+  const toLoadingScreen = async (page) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await gotoReady(page, "/");
+    const search = page.getByRole("textbox", { name: "캐릭터 이름" });
+    await search.fill("로딩긴");
+    await search.press("Enter");
+    const main = page.locator("main[aria-busy]");
+    await expect(main.getByRole("status")).toHaveText("캐릭터 정보를 조회하고 있어요.");
+    return main;
+  };
+
+  test("320: 라이브러리 묶음을 못 받으면 정지 화면이 남고, 처리 안 된 거부가 없다 @regression", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    await page.route(/\/_next\/static\/chunks\/.+\.js$/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes(MARKER)) return route.abort("failed");
+      await route.fulfill({ response, body });
+    });
+    const main = await toLoadingScreen(page);
+    await page.waitForTimeout(2500);
+    await expect(main.locator("svg")).toBeVisible();
+    expect(await boxOf(main.locator("svg"))).toMatchObject({ w: 64, h: 64 });
+    await expect(main.locator("canvas")).toHaveCount(0);
+    expect(pageErrors, "처리 안 된 오류 · 거부").toEqual([]);
+  });
+
+  test("320: 캔버스가 그릴 수 없으면(2D 문맥 없음) 정지 화면이 그 상자에 남는다 @regression", async ({ page }) => {
+    await page.addInitScript(() => {
+      const native = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+        return kind === "2d" ? null : native.call(this, kind, ...rest);
+      };
+    });
+    const main = await toLoadingScreen(page);
+    await page.waitForTimeout(3000);
+    const still = main.locator("svg").first();
+    await expect(still).toBeVisible();
+    expect(await boxOf(still)).toMatchObject({ w: 64, h: 64 });
+    expect(await still.locator("path").count()).toBeGreaterThan(10);
+  });
+});
