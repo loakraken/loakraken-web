@@ -314,6 +314,20 @@ export function splitCandidates(
   };
 }
 
+/** The api's armour CP gate hold (ArmorCpGate, spec-up.armor-cp-gate.enabled): same code as the simulator's. */
+export const ARMOR_CP_HELD = "ARMOR_CP_RESIDUAL_HIGH";
+export const ARMOR_HELD_POINTER = "그 후보는 목록 아래 '아직 계산하지 않은 후보'에 있어요.";
+
+/**
+ * The notice above a list whose armour rows the api held (PM 총괄 11-22): the folded line sits under the whole list,
+ * so a held dealer did not see why armour has no 전투력. The api's sentence once (one folded group per code) and where
+ * the rows are; null when no row folded with that code (gate off, inside the gate, or ranked under 크라켄 점수).
+ */
+export function armorHeldNotice(folded: readonly { code: string; reason: string }[]): string | null {
+  const group = folded.find((g) => g.code === ARMOR_CP_HELD);
+  return group ? `${group.reason} ${ARMOR_HELD_POINTER}` : null;
+}
+
 /**
  * The simulator's inputs for one candidate (적용해 보기): the change the
  * backend ran, in the simulator's own edit shape. Kinds the simulator does
