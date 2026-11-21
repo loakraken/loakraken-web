@@ -105,3 +105,44 @@ test("energy-cost reduction: the cuts add up and the energy rounds down (calc ve
   const none = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 60, category: 60 });
   assert.equal(none.usePer100Energy, null, "no energy left: no per-energy figure");
 });
+
+test("직접 채집: a gathered material costs 0 (not missing even without a price), the others keep their price", async () => {
+  const { craftResult, gatheredNames, gatherOptions } = await import("../lib/tools/abidos-craft");
+  const prices: Record<string, number> = { "아비도스 목재": 10, "부드러운 목재": 2, 목재: 1, "아비도스 융화 재료": 90 };
+  const unit = (name: string) => prices[name] ?? null;
+  const base = craftResult("abidos", "logging", unit, 0, 0);
+  const gathered = craftResult("abidos", "logging", unit, 0, 0, undefined, false, gatheredNames(["logging.common"]));
+  // 목재 86 × 1 left out of the cost; everything else unchanged.
+  assert.equal(gathered.cost, (base.cost as number) - 86);
+  assert.deepEqual(gathered.materials.find((m) => m.name === "목재"), { name: "목재", qty: 86, unit: 0, gold: 0, gathered: true });
+  // A gathered material with no price is not missing (it is 0 by choice).
+  const noPrice = (name: string) => (name === "목재" ? null : unit(name));
+  assert.equal(craftResult("abidos", "logging", noPrice, 0, 0).cost, null);
+  assert.notEqual(craftResult("abidos", "logging", noPrice, 0, 0, undefined, false, gatheredNames(["logging.common"])).cost, null);
+  // Codes: 6 skills × 3 materials, unique; unknown codes ignored.
+  const codes = gatherOptions().flatMap((o) => o.materials.map((m) => m.code));
+  assert.equal(codes.length, 18);
+  assert.equal(new Set(codes).size, 18);
+  assert.deepEqual([...gatheredNames(["mining.abidos", "nope.common"])], ["아비도스 철광석"]);
+});
+
+test("직접 채집 with the exchange vendor: a gathered material is a free source, the chains it feeds cost 0 too (#1877 P2)", async () => {
+  const { craftResult, gatheredNames } = await import("../lib/tools/abidos-craft");
+  const prices: Record<string, number> = { "아비도스 목재": 10, "부드러운 목재": 2, 목재: 1, "아비도스 융화 재료": 90 };
+  const unit = (name: string) => prices[name] ?? null;
+  const craftGold = craftResult("abidos", "logging", unit, 0, 0).craftGold;
+  const r = craftResult("abidos", "logging", unit, 0, 0, undefined, true, gatheredNames(["logging.common"]));
+  // 목재 gathered → powder → the other grades: every material 0, only the craft gold left.
+  assert.equal(r.cost, craftGold);
+  assert.deepEqual(r.materials.find((m) => m.name === "목재"), { name: "목재", qty: 86, unit: 0, gold: 0, gathered: true });
+  for (const m of r.materials.filter((m) => m.name !== "목재")) {
+    assert.equal(m.gold, 0, m.name);
+    assert.equal(m.via?.[0], "목재", `${m.name} made from the gathered 목재`);
+    assert.equal(m.gathered, undefined, "made by exchange, not gathered itself");
+  }
+  // Exchange off: only the gathered line is 0.
+  const plain = craftResult("abidos", "logging", unit, 0, 0, undefined, false, gatheredNames(["logging.common"]));
+  assert.ok((plain.cost as number) > craftGold);
+  // Nothing gathered: the exchange result is unchanged by the new argument.
+  assert.deepEqual(craftResult("abidos", "logging", unit, 0, 0, undefined, true, new Set()), craftResult("abidos", "logging", unit, 0, 0, undefined, true));
+});
