@@ -87,7 +87,7 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
   const card = page.getByRole("region", { name: "블루 크리스탈" });
   const field = card.getByRole("textbox", { name: /게임 안 교환소 시세/ });
   const royal = card.getByRole("definition").nth(1);
-  const message = /1 이상의 정수로 넣어 주세요\. 쉼표는 세 자리마다 쓸 수 있어요\./;
+  const message = /1 이상의 정수로 넣어 주세요\./;
   for (const typed of ["-27300", "1.5", "2,73,00", "0"]) {
     await field.fill(typed);
     await expect(field, typed).toHaveValue(typed);
@@ -115,30 +115,58 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
   const gain = page.getByText(/로열 크리스탈로 환산한 가치/).first();
   await expect(shopField).toHaveValue("27300");
   await expect(gain).toBeVisible();
-  // No error: the empty live region adds no gap to the settings column (codex P3 on #1889).
-  const spacing = await shopField.evaluate((input) => {
-    const label = input.closest("label");
-    // The hint (the field's description while it is valid) is the next box in the column.
-    const hint = document.getElementById(input.getAttribute("aria-describedby"));
-    const status = label.parentElement.querySelector('[role="status"]');
-    return {
-      // The column's gap plus the hint's own top margin, as before the status line existed.
-      gap: parseFloat(getComputedStyle(label.parentElement).rowGap) + parseFloat(getComputedStyle(hint).marginTop),
-      between: hint.getBoundingClientRect().top - label.getBoundingClientRect().bottom,
-      inPage: !!status,
-    };
-  });
-  expect(spacing.inPage, "상태 줄은 늘 페이지에").toBe(true);
-  expect(Math.abs(spacing.between - spacing.gap), JSON.stringify(spacing)).toBeLessThan(0.5);
+  // The field and its error slot are one item of the settings column: the hint follows that group by the column's
+  // gap plus its own margin, and the live region is always in the page (codex P3s on #1889).
+  const layout = () =>
+    shopField.evaluate((input) => {
+      const group = input.closest("label").parentElement;
+      // The hint (the field's description while it is valid) is the next box in the column.
+      const hint = document.getElementById(input.getAttribute("aria-describedby").split(" ").at(-1));
+      return {
+        gap: parseFloat(getComputedStyle(group.parentElement).rowGap) + parseFloat(getComputedStyle(hint).marginTop),
+        between: hint.getBoundingClientRect().top - group.getBoundingClientRect().bottom,
+        hintTop: hint.getBoundingClientRect().top + window.scrollY,
+        inPage: !!group.querySelector('[role="status"]'),
+      };
+    });
+  const valid = await layout();
+  expect(valid.inPage, "상태 줄은 늘 필드 묶음 안에").toBe(true);
+  expect(Math.abs(valid.between - valid.gap), JSON.stringify(valid)).toBeLessThan(0.5);
   await shopField.fill("1.5");
   await expect(shopField).toHaveValue("1.5");
   await expect(shopField).toHaveAttribute("aria-invalid", "true");
   await expect(shopField).toHaveAccessibleDescription(message);
   await expect(page.getByRole("status").filter({ hasText: message })).toHaveCount(1);
   await expect(page.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+  // The message takes its own slot: the hint (and the list under it) stays where it was.
+  expect((await layout()).hintTop, "오류가 나와도 설명 자리 그대로").toBeCloseTo(valid.hintTop, 0);
+  await shopField.fill("27300");
+  await expect(shopField).not.toHaveAttribute("aria-invalid");
+  expect((await layout()).hintTop, "고쳐도 설명 자리 그대로").toBeCloseTo(valid.hintTop, 0);
+  await shopField.fill("1.5");
+  await expect(shopField).toHaveAttribute("aria-invalid", "true");
   await page.reload();
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).toHaveValue("27300");
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).not.toHaveAttribute("aria-invalid");
   await expect(gain).toBeVisible();
   await expect(page.getByText(message)).toHaveCount(0);
+});
+
+// codex P3 on #1889: a rate saved in another tab reaches this tab's card at once (the storage event), with no reload;
+// clearing it there empties it here.
+test("1280: 다른 탭에서 바꾼 교환소 시세가 이 탭의 카드에 바로 들어온다 @regression", async ({ page, context }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market");
+  const royal = page.getByRole("region", { name: "블루 크리스탈" }).getByRole("definition").nth(1);
+  const field = page.getByRole("region", { name: "블루 크리스탈" }).getByRole("textbox", { name: /게임 안 교환소 시세/ });
+  await expect(field).toHaveValue("");
+  const other = await context.newPage();
+  await gotoReady(other, "/tools/loa-shop");
+  await other.getByRole("textbox", { name: SHOP_RATE }).fill("27500");
+  await expect(field).toHaveValue("27500");
+  await expect(royal).toContainText("약 10골드");
+  await other.getByRole("textbox", { name: SHOP_RATE }).fill("");
+  await expect(field).toHaveValue("");
+  await expect(royal).toContainText("—");
+  await other.close();
 });
