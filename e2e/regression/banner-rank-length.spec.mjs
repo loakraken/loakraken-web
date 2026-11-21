@@ -203,14 +203,22 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
     await gotoReady(page, characterPath("순위큰수"));
     const row = rowOf(page, "순위큰수");
     await expect(row.getByRole("button")).toBeVisible();
-    // Find the width where it wraps (one line at w, two at w - 1).
+    // A width change settles over a frame or two (fonts, the row's own fit after the resize): read lines only after.
+    const resize = async (width) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
+    };
+    // Find where it wraps (one line at w, two at w - 1), then compare 4px clear of that edge on both sides: at the
+    // exact pixel a sub-pixel or font-timing difference flipped the count (1 in 3 on develop, 11-21).
     let w = 400;
     for (; w > 320; w--) {
-      await page.setViewportSize({ width: w - 1, height: 900 });
+      await resize(w - 1);
       if ((await measure(row)).lines === 2) break;
     }
-    expect(w, "줄이 바뀌는 너비").toBeGreaterThan(320);
-    // Every box in the banner's left column, at w (one line) and w - 1 (two lines).
+    expect(w, "줄이 바뀌는 너비").toBeGreaterThan(328);
+    const wide = w + 4;
+    const narrow = w - 1 - 4;
+    // Every box in the banner's left column, at wide (one line) and narrow (two lines).
     const boxes = () =>
       page.getByRole("region", { name: "순위큰수 캐릭터 요약" }).evaluate((region) => {
         const rank = region.querySelector("p[class*=bannerRank]");
@@ -221,11 +229,11 @@ test.describe("배너 순위 맞춤: 첫 그림·늦게 온 순위·너비 바�
           return { el: el === rank ? "rank" : `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]}`, top: r.top, height: r.height, rank: el === rank };
         });
       });
-    await page.setViewportSize({ width: w, height: 900 });
-    expect((await measure(row)).lines).toBe(1);
+    await resize(wide);
+    await expect.poll(async () => (await measure(row)).lines).toBe(1);
     const one = await boxes();
-    await page.setViewportSize({ width: w - 1, height: 900 });
-    expect((await measure(row)).lines).toBe(2);
+    await resize(narrow);
+    await expect.poll(async () => (await measure(row)).lines).toBe(2);
     const two = await boxes();
     const at = one.findIndex((b) => b.rank);
     const delta = two[at].height - one[at].height;
