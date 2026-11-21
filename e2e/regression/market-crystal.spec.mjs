@@ -104,7 +104,8 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
     const hint = document.getElementById(input.getAttribute("aria-describedby"));
     const status = label.parentElement.querySelector('[role="status"]');
     return {
-      gap: parseFloat(getComputedStyle(label.parentElement).rowGap),
+      // The column's gap plus the hint's own top margin, as before the status line existed.
+      gap: parseFloat(getComputedStyle(label.parentElement).rowGap) + parseFloat(getComputedStyle(hint).marginTop),
       between: hint.getBoundingClientRect().top - label.getBoundingClientRect().bottom,
       inPage: !!status,
     };
