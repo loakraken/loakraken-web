@@ -12,11 +12,14 @@ async function openSearch(page) {
   return { box, list: page.getByRole("listbox", { name: "검색 결과" }) };
 }
 
-/** A row's top inside the scroll box's content (independent of how far the box is scrolled). */
+/** A row's top inside the scroll box's content (independent of how far the box is scrolled or how far the card has unfolded). */
 const contentTop = (row) =>
   row.evaluate((el) => {
     const view = el.closest(".rsp-scroll");
-    return el.getBoundingClientRect().top - view.getBoundingClientRect().top + view.scrollTop;
+    // Layout pixels: the card may still be unfolding (scaled), which a plain rect difference would read as a move.
+    const outer = view.getBoundingClientRect();
+    const scale = outer.height / view.offsetHeight;
+    return (el.getBoundingClientRect().top - outer.top) / scale + view.scrollTop;
   });
 
 /** The active row (aria-activedescendant) and whether it sits inside the panel's scroll box. */
@@ -66,7 +69,7 @@ for (const width of [320, 1280])
       expect(revealed.text).toBe(await menu.getByRole("option").nth(8).innerText());
       expect(revealed.place?.inside, JSON.stringify(revealed.place)).toBe(true);
       // Nothing above moved.
-      await expect(menu.getByRole("option").nth(7)).toHaveText(eighthText);
+      expect(await menu.getByRole("option").nth(7).innerText()).toBe(eighthText);
       expect(Math.abs((await contentTop(eighth)) - before)).toBeLessThan(0.5);
 
       // ↓ goes on to the next revealed row (or wraps to the top after the last).
