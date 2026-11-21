@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { MoreRewardTool } from "@/components/tools/more-reward";
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools/more-reward" },
 };
 
-export default function MoreRewardPage() {
+export default async function MoreRewardPage() {
+  // Rendered per request: the price basis and bound-gold switch kept in the address (M51) are in the first HTML.
+  await connection();
   return <MoreRewardTool />;
 }
