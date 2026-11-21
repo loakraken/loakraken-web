@@ -123,17 +123,23 @@ function keepInView(view: HTMLElement, row: HTMLElement) {
  * to it, and at 320 the list runs past the box. A row the pointer entered is
  * already under the pointer and is left alone, so a hover never scrolls. When
  * the screen gets shorter (a phone keyboard, a rotated or resized window) the
- * box shrinks under the active row, so it is checked again then (#1881 P3).
+ * box shrinks under the active row, so it is checked again then (#1881 P3) —
+ * only a row the keys chose: the pointer's row stays where it was, even after
+ * the pointer has left (#1883 P3).
  */
 function useActiveInView(activeId: string | null | undefined, panelId: string) {
   const box = useRef<HTMLDivElement>(null);
+  // Set by the row's pointer-enter, read (and cleared) once the active row has changed.
   const pointed = useRef(false);
+  // How the current active row was chosen, kept until it changes: the resize recheck reads it.
+  const byPointer = useRef(false);
   const find = useCallback(() => {
     const view = box.current;
     const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
     return view && row && view.contains(row) ? { view, row } : null;
   }, [activeId, panelId]);
   useLayoutEffect(() => {
+    byPointer.current = pointed.current;
     if (pointed.current) {
       pointed.current = false;
       return;
@@ -148,6 +154,7 @@ function useActiveInView(activeId: string | null | undefined, panelId: string) {
     const recheck = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        if (byPointer.current) return;
         const found = find();
         if (found) keepInView(found.view, found.row);
       });
