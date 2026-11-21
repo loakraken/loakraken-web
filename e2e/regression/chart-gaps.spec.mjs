@@ -123,12 +123,12 @@ for (const width of [320, 1280])
   });
 
 // codex 재검토 P3(#1788, PM 총괄 11-21 18:14): 320에서 차트 양 끝 빈 날의 안내 칸('이날은 기록이 없어요')이
-// 화면 밖으로 나갔다. 가장 최근 빈 날(오른쪽 끝, 위치 1)과 가장 오래된 빈 날(왼쪽 끝, 위치 28)에서 칸이 차트와 창 안에,
+// 화면 밖으로 나갔다. 끝에 가장 가까운 빈 날 — 오른쪽(위치 2: 1은 가장 최근 완료일이라 빼면 끝이 짧아질 뿐)과 왼쪽(위치 27: 28이 가장 오래된 기록) — 에서 칸이 차트와 창 안에,
 // 가로 넘침 없이, 키보드로 하루씩 옮기는 동안 흔들림 0.
 test(`320: 차트 양 끝 빈 날에서도 '${GAP}' 칸은 차트와 화면 안 @regression`, async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await watchShifts(page);
-  await dropDays(page, /\/api\/markets\/auctions\/gems\/history/, [1, 28]);
+  await dropDays(page, /\/api\/markets\/auctions\/gems\/history/, [2, 27]);
   await gotoReady(page, "/market/gems?kind=겁화&level=10");
   const box = page.getByRole("region", { name: "10레벨 겁화 최저가 추이" });
   await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "2");
