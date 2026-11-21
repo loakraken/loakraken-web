@@ -291,7 +291,12 @@ export function splitCandidates(
     const code = own?.code ?? c.reasonCode ?? (unscored ? KRAKEN_UNSCORED : "UNKNOWN");
     const entry = folded.get(code) ?? {
       code,
-      reason: own?.reason ?? c.reason ?? (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
+      // An empty or blank sentence counts as none (codex #1902 P3: the held-armour notice read only its pointer).
+      reason:
+        said(own?.reason) ??
+        said(c.reason) ??
+        KNOWN_REASON[code] ??
+        (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
       kinds: [],
       candidates: [],
     };
@@ -316,6 +321,12 @@ export function splitCandidates(
 
 /** The api's armour CP gate hold (ArmorCpGate, spec-up.armor-cp-gate.enabled): same code as the simulator's. */
 export const ARMOR_CP_HELD = "ARMOR_CP_RESIDUAL_HIGH";
+/** Its api sentence (CombatPowerReasons.ARMOR_CP_RESIDUAL_HIGH), for an answer whose sentence came empty. */
+export const ARMOR_CP_HELD_REASON =
+  "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+/** A code's own sentence when the api's came empty or blank (splitCandidates). */
+const KNOWN_REASON: Partial<Record<string, string>> = { [ARMOR_CP_HELD]: ARMOR_CP_HELD_REASON };
+const said = (text: string | null | undefined) => text?.trim() || null;
 export const ARMOR_HELD_POINTER = "그 후보는 목록 아래 ‘아직 계산하지 않은 후보’에 있어요.";
 
 /**
