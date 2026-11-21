@@ -93,9 +93,13 @@ function ChartCrosshair({ x, y0, y1, className }: { x: number; y0: number; y1: n
 /**
  * A small card that follows the reading. Place it in a position:relative box
  * the same size as the SVG; x and y are SVG units, scale = rendered px per
- * unit (box width / viewBox width). It flips to the left of the point near
- * the right edge and sits above the point. aria-hidden: the chart's readout
- * (a polite live line) is what a screen reader hears.
+ * unit (box width / viewBox width). It sits above the point and slides along
+ * it by the point's share of the box: at the left edge the card starts at the
+ * point, at the right edge it ends there, in between it keeps the same share on
+ * each side. So it never leaves the box while it is narrower than the box, with
+ * no measuring (one transform, no re-render): a flip at 62% let a wide card
+ * ('이날은 기록이 없어요') run off a 320 screen near either end (codex #1788 P3).
+ * aria-hidden: the chart's readout (a polite live line) is what a screen reader hears.
  */
 function ChartTooltip({
   x,
@@ -114,7 +118,8 @@ function ChartTooltip({
   className?: string
 }) {
   const px = x * scale
-  const flip = px > boxWidth * 0.62
+  // The point's share of the box, 0 at the left edge to 1 at the right.
+  const share = boxWidth > 0 ? Math.min(1, Math.max(0, px / boxWidth)) : 0
   return (
     <div
       data-slot="chart-tooltip"
@@ -125,7 +130,7 @@ function ChartTooltip({
         className
       )}
       style={{
-        transform: `translate(${px + (flip ? -10 : 10)}px, ${y * scale}px) translate(${flip ? "-100%" : "0"}, -100%)`,
+        transform: `translate(${px}px, ${y * scale}px) translate(${(-share * 100).toFixed(2)}%, -100%)`,
       }}
     >
       {children}
