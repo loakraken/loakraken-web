@@ -100,7 +100,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   const [copied, setCopied] = React.useState(false)
   const [error, setError] = React.useState("")
   const [status, setStatus] = React.useState("")
-  // The typed text whose whole menu list is open (메뉴 N개 더 보기, M53).
+  // The typed text, as typed, whose whole menu list is open (메뉴 N개 더 보기, M53).
   const [moreFor, setMoreFor] = React.useState<string | null>(null)
   // Client only: this hook runs in the dialog and the dropdown, both loaded
   // after a press or a focus, never in a server render.
@@ -112,8 +112,12 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   }
   const query = text.trim()
   const settled = useSettled(query)
-  // Any change of the text folds the opened menu list, also back to the same word.
-  if (moreFor !== null && moreFor !== query) setMoreFor(null)
+  // Any edit folds the opened menu list, also a space or a way back to the same word (#1881 P3:
+  // compared as typed, not trimmed), and takes its '모두 보여요' note with it.
+  if (moreFor !== null && moreFor !== text) {
+    setMoreFor(null)
+    setStatus("")
+  }
   const flags = useNavFlags(open)
   const recent = readSnapshot(React.useSyncExternalStore(subscribeRecent, recentSnapshot, () => "|[]")).list
   const favorites = parseFavorites(React.useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]"))
@@ -358,7 +362,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     // first revealed row takes the pressed row's place and becomes the active
     // one, so ↓ goes on from there and nothing above moves.
     const menus = menuMatches(query, flags, Infinity)
-    const shown = moreFor === query ? menus : menus.slice(0, MENU_ROWS)
+    const shown = moreFor === text ? menus : menus.slice(0, MENU_ROWS)
     const rest = menus.length - shown.length
     if (menus.length)
       groups.push({
@@ -373,8 +377,10 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
                   title: `메뉴 ${rest}개 더 보기`,
                   side: "전체 메뉴",
                   run: () => {
-                    setMoreFor(query)
+                    setMoreFor(text)
                     setActive(menus[MENU_ROWS].id)
+                    // Said every time, also over a favourite change still in the live region (#1881 P2).
+                    setStatus(`메뉴 ${menus.length}개 모두 보여요`)
                   },
                 },
               ]
@@ -413,7 +419,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     }
   }
 
-  /** The count read once the typed text settles, or the last favourite change. */
+  /** The count read once the typed text settles, or the last favourite change or menu expansion. */
   const announce =
     status ||
     (query && settled === query && !suggest.isFetching
