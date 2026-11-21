@@ -152,9 +152,9 @@ test.describe("구슬이 그려지지 못할 때", () => {
         const image = read.apply(this, args);
         if (!window.__orbHandoff && image.data.some((value, i) => i % 4 === 3 && value > 0)) {
           window.__orbHandoff = true;
-          const ctx = this;
+          const { canvas } = this;
           queueMicrotask(() => {
-            clear.call(ctx, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            clear.call(canvas.getContext("2d"), 0, 0, canvas.width, canvas.height);
             throw new Error("orb draw failed at handoff (test)");
           });
         }
