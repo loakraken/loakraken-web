@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { RaidCheatSheet } from "@/components/tools/raid-cheatsheet";
 
 export const metadata: Metadata = {
@@ -7,6 +8,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools/raid-cheatsheet" },
 };
 
-export default function RaidCheatSheetPage() {
+export default async function RaidCheatSheetPage() {
+  // Rendered per request: the raid, difficulty and gate kept in the address (M51) are in the first HTML.
+  await connection();
   return <RaidCheatSheet />;
 }

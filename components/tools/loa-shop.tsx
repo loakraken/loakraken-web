@@ -2,7 +2,7 @@
 
 import { HubTabs } from "@/components/site/hub-tabs";
 
-import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Box } from "@/components/ui/icons";
@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
+import { oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
@@ -300,7 +301,8 @@ function PackageCard({
 
 /** `renderedAt`: the server render time (epoch ms), the clock until the client one starts. */
 export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
+  // Kept in the address (M51, PM 총괄 11-21); the typed rate is not (it stays in this browser, below).
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
   const rateText = useSyncExternalStore(subscribeRate, readRate, () => "");
   const rateId = useId();
   const hintId = useId();
