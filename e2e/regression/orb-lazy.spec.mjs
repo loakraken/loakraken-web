@@ -138,6 +138,47 @@ test.describe("구슬이 그려지지 못할 때", () => {
     expect(pageErrors).toContain("orb draw failed (test)");
   });
 
+  // codex P3 on #1885: the listener went on in an effect after the 'painted' re-render, so a throw between the first
+  // ink and that effect was missed. Here the throw comes in a microtask right after the probe first reads ink (before
+  // any React work can run), and the library's later frames draw nothing and throw nothing (its loop is dead): only a
+  // listener attached at that very moment can bring the still back.
+  test("320: 첫 그림을 확인한 바로 그 순간에 그리기가 멈춰도 정지 화면이 돌아온다 @regression", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.addInitScript(() => {
+      const read = CanvasRenderingContext2D.prototype.getImageData;
+      const clear = CanvasRenderingContext2D.prototype.clearRect;
+      CanvasRenderingContext2D.prototype.getImageData = function (...args) {
+        const image = read.apply(this, args);
+        // The orb's own canvas on the page only: the library also reads an offscreen sprite canvas.
+        const onPage = this.canvas.isConnected && this.canvas.closest("main[aria-busy]");
+        if (!window.__orbHandoff && onPage && image.data.some((value, i) => i % 4 === 3 && value > 0)) {
+          window.__orbHandoff = true;
+          const { canvas } = this;
+          queueMicrotask(() => {
+            clear.call(canvas.getContext("2d"), 0, 0, canvas.width, canvas.height);
+            throw new Error("orb draw failed at handoff (test)");
+          });
+        }
+        return image;
+      };
+      // The library's loop is dead from then on: later frames clear and draw nothing, and throw nothing.
+      for (const name of ["fill", "stroke"]) {
+        const native = CanvasRenderingContext2D.prototype[name];
+        CanvasRenderingContext2D.prototype[name] = function (...args) {
+          return window.__orbHandoff ? undefined : native.apply(this, args);
+        };
+      }
+    });
+    const main = await toLoadingScreen(page);
+    await expect.poll(() => page.evaluate(() => window.__orbHandoff === true)).toBe(true);
+    const still = main.locator("svg");
+    await expect(still).toBeVisible();
+    await expect(main.locator("canvas")).toHaveCount(0);
+    expect(await boxOf(still)).toMatchObject({ w: 64, h: 64 });
+    expect(pageErrors).toContain("orb draw failed at handoff (test)");
+  });
+
   test("320: 구슬과 상관없는 오류에는 그리던 캔버스가 그대로다 @regression", async ({ page }) => {
     const main = await toPaintedCanvas(page);
     const thrown = page.waitForEvent("pageerror", (error) => error.message === "unrelated (test)");

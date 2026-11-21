@@ -75,32 +75,36 @@ export function Orb({ pinned, ...orb }: OrbProps) {
   }, [Drawn]);
   // The canvas takes over only once it has drawn a frame (codex P3 on #1871): a null 2D context or a drawing error
   // leaves the still in the box rather than an empty one. Checked for about two seconds of frames.
-  const box = useRef<HTMLSpanElement>(null);
-  const [painted, setPainted] = useState(false);
-  useEffect(() => {
-    if (!Drawn || painted) return;
-    let frames = 0;
-    let id = 0;
-    const check = () => {
-      if (inked(box.current?.querySelector("canvas"))) setPainted(true);
-      else if (++frames < 120) id = requestAnimationFrame(check);
-    };
-    id = requestAnimationFrame(check);
-    return () => cancelAnimationFrame(id);
-  }, [Drawn, painted]);
   // After its first frame the library draws in its own requestAnimationFrame loop, outside React's error boundary
   // (codex P3 on #1873): a frame clears the canvas before it draws, so a throw there leaves it empty and the loop
   // stopped. Any uncaught error on the page makes a painted orb look at its canvas once; an empty one hands the box
-  // back to the still. Nothing runs while nothing throws.
+  // back to the still. Nothing runs while nothing throws. The listener goes on in the same callback that finds the
+  // first ink, not in an effect after the re-render, so a throw right after that frame is heard too (codex P3 on #1885).
+  const box = useRef<HTMLSpanElement>(null);
+  const [painted, setPainted] = useState(false);
   const [blank, setBlank] = useState(false);
   useEffect(() => {
-    if (!painted || blank) return;
+    if (!Drawn || blank) return;
+    const canvas = () => box.current?.querySelector("canvas");
     const onError = () => {
-      if (!inked(box.current?.querySelector("canvas"))) setBlank(true);
+      if (!inked(canvas())) setBlank(true);
     };
-    window.addEventListener("error", onError);
-    return () => window.removeEventListener("error", onError);
-  }, [painted, blank]);
+    let frames = 0;
+    let id = 0;
+    let listening = false;
+    const check = () => {
+      if (inked(canvas())) {
+        window.addEventListener("error", onError);
+        listening = true;
+        setPainted(true);
+      } else if (++frames < 120) id = requestAnimationFrame(check);
+    };
+    id = requestAnimationFrame(check);
+    return () => {
+      cancelAnimationFrame(id);
+      if (listening) window.removeEventListener("error", onError);
+    };
+  }, [Drawn, blank]);
   // InlineOrb passes the site theme, which the server does not know: let the page theme pick the still's colour
   // there; a caller that pins a theme (the banner's light / dark pair) keeps it.
   const still = (over: boolean) => (
