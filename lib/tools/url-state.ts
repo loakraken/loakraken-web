@@ -66,12 +66,18 @@ export function useUrlState<T>(key: string, fallback: T, codec: UrlCodec<T>) {
   useLayoutEffect(() => {
     latest.current = { formatted, fallback, codec };
   });
+  // Keyed on the router's answer itself (a new object for each navigation or synced replaceState), not on this key's
+  // value (codex #1895 follow-up P3): a pick and a click on this page's tab before the router reported the pick read
+  // null → null, so a [key, raw] effect never ran and the old pick stayed on screen.
   useLayoutEffect(() => {
     if (new URL(window.location.href).searchParams.get(key) !== raw) return;
     const { formatted: shown, fallback: base, codec: c } = latest.current;
     const next = raw == null ? base : (c.parse(raw) ?? base);
     if (c.format(next) !== shown) setValue(next);
-  }, [key, raw]);
+  }, [key, raw, params]);
+  // The address is brought to what is shown: a value this field does not accept (a hand-edited or stale link, e.g.
+  // ?filter=INVALID) shows the default and leaves the address, in that history entry too (codex #1895 follow-up P3:
+  // kept on purpose, so a link copied from here opens the same screen).
   const isDefault = formatted === codec.format(fallback);
   useEffect(() => {
     writeUrlParam(key, isDefault ? null : formatted);
