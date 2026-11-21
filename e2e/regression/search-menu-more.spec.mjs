@@ -187,8 +187,25 @@ for (const width of [320, 1280])
       await last.evaluate((el) => (el.closest(".rsp-scroll").scrollTop = 0));
 
       await page.setViewportSize({ width, height: 460 });
-      await expect.poll(async () => (await activeRow(page, field)).place?.inside, { timeout: 3000 }).toBe(true);
-      expect(await last.evaluate((el) => el.closest(".rsp-scroll").scrollTop)).toBeGreaterThan(0);
+      // The last row of the list: the box scrolls to its end. There the browser's whole-pixel scroll height can leave
+      // a fraction of a pixel under the edge (measured 0.625px: row 330.625, box 330, scroll 777 = its maximum).
+      const place = () =>
+        last.evaluate((el) => {
+          const view = el.closest(".rsp-scroll");
+          const row = el.getBoundingClientRect();
+          const box = view.getBoundingClientRect();
+          return {
+            top: row.top >= box.top - 0.5,
+            under: +(row.bottom - box.bottom).toFixed(3),
+            scrollTop: view.scrollTop,
+            end: view.scrollTop >= view.scrollHeight - view.clientHeight,
+          };
+        });
+      await expect.poll(async () => (await place()).end, { timeout: 3000 }).toBe(true);
+      const shown = await place();
+      expect(shown.scrollTop, "목록이 그 줄까지 스크롤됨").toBeGreaterThan(0);
+      expect(shown.top, JSON.stringify(shown)).toBe(true);
+      expect(shown.under, JSON.stringify(shown)).toBeLessThan(1);
     });
 
     test(`@검색 ${width}: 빈 칸의 도구 바로가기는 켜진 도구만 차례대로, ↑로 닿은 마지막 줄도 보이고 Enter로 간다 @regression`, async ({ page }) => {
