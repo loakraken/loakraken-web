@@ -16,19 +16,19 @@ const PAGES = [
   ["경매 입찰가", "/tools/auction"],
 ];
 
+// One test per page (11-21): the seven pages in one test took 1.6 min at 320–390 but 3.5–4.1 min at 1280 on CI (more
+// start tags and text nodes to cut), at the 240 s limit, so a slow runner timed out (run 44841370824). Each page now
+// has its own budget, and a failure names the page.
 for (const theme of ["light", "dark"])
   for (const width of [320, 360, 390, 1280])
-    test(`@A7 ${width} ${theme} 통계·랭킹: 첫 HTML이 어디서 끊겨도 첫 화면 상자가 움직이지 않는다 @regression`, async ({ page }) => {
-      test.setTimeout(240_000);
-      await page.emulateMedia({ colorScheme: theme });
-      await page.setViewportSize({ width, height: 900 });
-      const moved = [];
-      for (const [name, path] of PAGES) {
+    for (const [name, path] of PAGES)
+      test(`@A7 ${width} ${theme} ${name}: 첫 HTML이 어디서 끊겨도 첫 화면 상자가 움직이지 않는다 @regression`, async ({ page }) => {
+        test.setTimeout(120_000);
+        await page.emulateMedia({ colorScheme: theme });
+        await page.setViewportSize({ width, height: 900 });
         await gotoReady(page, path);
         await page.evaluate(() => document.fonts.ready);
         const cut = await cutEverywhere(page, null);
         expect(cut.probed, `${name}: 잘라 본 곳`).toBeGreaterThan(20);
-        if (cut.value > 0) moved.push(`${name} ${cut.value}: ${cut.moved.join(" / ")}`);
-      }
-      expect(moved, "움직인 상자").toEqual([]);
-    });
+        expect(cut.value > 0 ? [`${name} ${cut.value}: ${cut.moved.join(" / ")}`] : [], "움직인 상자").toEqual([]);
+      });
