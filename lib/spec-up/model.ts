@@ -316,7 +316,7 @@ export function splitCandidates(
 
 /** The api's armour CP gate hold (ArmorCpGate, spec-up.armor-cp-gate.enabled): same code as the simulator's. */
 export const ARMOR_CP_HELD = "ARMOR_CP_RESIDUAL_HIGH";
-export const ARMOR_HELD_POINTER = "그 후보는 목록 아래 '아직 계산하지 않은 후보'에 있어요.";
+export const ARMOR_HELD_POINTER = "그 후보는 목록 아래 ‘아직 계산하지 않은 후보’에 있어요.";
 
 /**
  * The notice above a list whose armour rows the api held (PM 총괄 11-22): the folded line sits under the whole list,

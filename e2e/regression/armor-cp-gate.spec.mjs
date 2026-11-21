@@ -9,7 +9,7 @@ import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 const OPEN = "방어구문열림";
 const CLOSED = "방어구문닫힘";
 const TEXT = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
-const HELD_POINTER = "그 후보는 목록 아래 '아직 계산하지 않은 후보'에 있어요.";
+const HELD_POINTER = "그 후보는 목록 아래 ‘아직 계산하지 않은 후보’에 있어요.";
 const simulateRequest = (page) =>
   page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
 const tool = (name) => `/tools/combat-power?character=${encodeURIComponent(name)}`;
