@@ -38,7 +38,16 @@ function onStorage(event: StorageEvent) {
   rateListeners.forEach((listener) => listener());
 }
 const subscribeRate = (listener: () => void) => {
-  if (rateListeners.size === 0) window.addEventListener("storage", onStorage);
+  if (rateListeners.size === 0) {
+    // Nothing listened while away (no card, no shop tool on screen): another tab may have changed the rate meanwhile,
+    // with no one here to hear its storage event. Read it again (codex P3 on #1899); blocked storage keeps memory.
+    try {
+      memoryRate = window.localStorage.getItem(RATE_KEY) ?? "";
+    } catch {
+      // the value in memory stays
+    }
+    window.addEventListener("storage", onStorage);
+  }
   rateListeners.add(listener);
   return () => {
     rateListeners.delete(listener);
