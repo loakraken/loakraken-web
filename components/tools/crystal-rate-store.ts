@@ -30,10 +30,19 @@ function writeRate(value: string) {
   }
   rateListeners.forEach((listener) => listener());
 }
+// Another tab saved or cleared the rate (codex P3 on #1889): take its value and tell this tab's screens. Nothing is
+// written back. A storage clear() comes with no key.
+function onStorage(event: StorageEvent) {
+  if (event.key !== RATE_KEY && event.key !== null) return;
+  memoryRate = event.key === null ? "" : (event.newValue ?? "");
+  rateListeners.forEach((listener) => listener());
+}
 const subscribeRate = (listener: () => void) => {
+  if (rateListeners.size === 0) window.addEventListener("storage", onStorage);
   rateListeners.add(listener);
   return () => {
     rateListeners.delete(listener);
+    if (rateListeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 };
 

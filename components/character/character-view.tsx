@@ -145,6 +145,7 @@ function SearchBox({ name }: { name: string }) {
           <SearchDropdown
             open={open && !moving}
             text={value === name ? "" : value}
+            rawText={value}
             panelId={panelId}
             onLeave={() => {
               setOpen(false);

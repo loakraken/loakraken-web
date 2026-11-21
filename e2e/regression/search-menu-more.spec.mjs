@@ -161,6 +161,36 @@ for (const width of [320, 1280])
       expect(await more.evaluate((el) => el.closest(".rsp-scroll").scrollTop)).toBeGreaterThan(0);
     });
 
+    // #1891 P3: the field opens holding the shown character's name, which the search reads as "" — so clearing it
+    // ('상세' → '') left the search text '' → '' and the hover kept owning the row. The panel now hears the field's
+    // own text: the cleared field hands the row back to the keys, and a shorter screen brings it into the box.
+    test(`@검색 ${width}: 이름이 든 캐릭터 화면 검색 칸을 비워도 포인터로 고른 줄이 다시 상자 안으로 @regression`, async ({ page }) => {
+      test.skip(width <= 900, "캐릭터 화면의 검색 칸은 900px보다 넓을 때만 있다(A19: 좁으면 헤더 검색 하나)");
+      await page.setViewportSize({ width, height: 720 });
+      await gotoReady(page, characterPath("상세"));
+      const field = page.locator("#detail-search");
+      await expect(field).toHaveValue("상세");
+      await field.focus();
+      const list = page.getByRole("listbox", { name: "검색 결과" });
+      const last = list.getByRole("option").last();
+      await expect(last).toBeVisible();
+      await last.hover();
+      const lastId = await last.getAttribute("id");
+      await expect(field).toHaveAttribute("aria-activedescendant", lastId);
+      const spot = await field.boundingBox();
+      await page.mouse.move(spot.x + spot.width / 2, spot.y + spot.height / 2);
+      // Clear the name: the search text stays '' (the same rows, the same active row), the field's text changes.
+      await field.press("Control+A");
+      await field.press("Backspace");
+      await expect(field).toHaveValue("");
+      await expect(field).toHaveAttribute("aria-activedescendant", lastId);
+      await last.evaluate((el) => (el.closest(".rsp-scroll").scrollTop = 0));
+
+      await page.setViewportSize({ width, height: 460 });
+      await expect.poll(async () => (await activeRow(page, field)).place?.inside, { timeout: 3000 }).toBe(true);
+      expect(await last.evaluate((el) => el.closest(".rsp-scroll").scrollTop)).toBeGreaterThan(0);
+    });
+
     test(`@검색 ${width}: 빈 칸의 도구 바로가기는 켜진 도구만 차례대로, ↑로 닿은 마지막 줄도 보이고 Enter로 간다 @regression`, async ({ page }) => {
       const { box, list } = await openSearch(page);
       const flags = await page.evaluate(() => fetch("/api/flags").then((r) => r.json()));
