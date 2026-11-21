@@ -13,12 +13,17 @@ test("레이드 보상표 card picks: sorted pairs out, only pairs the data has 
   const { format, parse } = RAID_DIFFICULTIES_CODEC;
   assert.equal(format({ "kazeros-act2": "HARD", "kazeros-act1": "SINGLE" }), "kazeros-act1:SINGLE,kazeros-act2:HARD");
   assert.equal(format({}), "");
-  assert.deepEqual(parse("kazeros-act1:HARD,kazeros-act2:NORMAL"), { "kazeros-act1": "HARD", "kazeros-act2": "NORMAL" });
-  // A raid the data lacks, a difficulty the raid lacks (베히모스 has only NORMAL), junk: left out, the rest kept.
-  assert.deepEqual(parse("nope:HARD,behemoth:HARD,kazeros-act1:HARD,::,x"), { "kazeros-act1": "HARD" });
+  // A card back on its first difficulty leaves the address (codex #1895 P3: HARD → NORMAL kept the pair).
+  assert.equal(format({ "kazeros-act1": "NORMAL", "kazeros-act2": "HARD" }), "kazeros-act2:HARD");
+  assert.equal(format({ "kazeros-act1": "NORMAL", behemoth: "NORMAL" }), "");
+  assert.deepEqual(parse("kazeros-act1:HARD,kazeros-act2:SINGLE"), { "kazeros-act1": "HARD", "kazeros-act2": "SINGLE" });
+  // A raid the data lacks, a difficulty the raid lacks (베히모스 has only NORMAL), a first difficulty, junk: left out.
+  assert.deepEqual(parse("nope:HARD,behemoth:HARD,kazeros-act2:NORMAL,kazeros-act1:HARD,::,x"), { "kazeros-act1": "HARD" });
+  // Only exactly "raid:difficulty" (codex #1895 P3).
+  assert.deepEqual(parse("kazeros-act1:HARD:garbage,kazeros-act2:HARD"), { "kazeros-act2": "HARD" });
   assert.deepEqual(parse(""), {});
   // Round trip.
-  const picks = { behemoth: "NORMAL", "kazeros-prologue": "SINGLE" } as const;
+  const picks = { "serka": "NIGHTMARE", "kazeros-prologue": "SINGLE" } as const;
   assert.deepEqual(parse(format(picks)), picks);
 });
 

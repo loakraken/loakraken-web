@@ -48,13 +48,25 @@ export function writeUrlParam(key: string, value: string | null) {
     window.history.replaceState(null, "", next);
 }
 
-/** useState whose value is kept in the address under `key`. */
+/**
+ * useState whose value is kept in the address under `key`. An address change from outside (a link to the same page,
+ * back · forward) is taken in (codex #1895 P2: Next keeps the state across a query change, so the controls stayed
+ * on the old value). Only when the address the router reports is the browser's current one: the router can still be
+ * delivering an earlier replaceState of ours, and taking that in would undo a newer pick (and write it back).
+ */
 export function useUrlState<T>(key: string, fallback: T, codec: UrlCodec<T>) {
   const params = useSearchParams();
-  const [value, setValue] = useState<T>(() => {
-    const raw = params.get(key);
-    return raw == null ? fallback : (codec.parse(raw) ?? fallback);
-  });
+  const raw = params.get(key);
+  const read = (from: string | null) => (from == null ? fallback : (codec.parse(from) ?? fallback));
+  const [value, setValue] = useState<T>(() => read(raw));
+  const [seen, setSeen] = useState(raw);
+  if (raw !== seen) {
+    // Adjusting state from a changed input during render (React's 'storing information from previous renders').
+    setSeen(raw);
+    const current = typeof window === "undefined" ? raw : new URL(window.location.href).searchParams.get(key);
+    const next = read(raw);
+    if (current === raw && codec.format(next) !== codec.format(value)) setValue(next);
+  }
   const formatted = codec.format(value);
   const isDefault = formatted === codec.format(fallback);
   useEffect(() => {
