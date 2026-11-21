@@ -30,53 +30,82 @@ test("서버 HTML: 딜러 · 역할 모름은 딜러 문장, 서포터는 문장
   expect(supporter).not.toContain("바꿨을 때 오르는");
 });
 
+/**
+ * Opens the 스펙업 tab with the first list answer held: `whileHeld` runs with only the server HTML and the tab's frame on
+ * screen, then the answer goes and `afterAnswer` runs once the list is drawn. Returns the shifts since navigation start.
+ */
+async function heldLoad(page, width, name, { whileHeld, afterAnswer }) {
+  await page.setViewportSize({ width, height: 1000 });
+  await watchShifts(page);
+  let release;
+  const gate = new Promise((r) => (release = r));
+  await page.route(/\/api\/characters\/spec-up\?/, async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto(specUpListPath(name));
+  await expect(page.getByText("스펙업 가이드를 준비하고 있어요…")).toBeVisible();
+  await whileHeld();
+  release();
+  const table = page.getByRole("table", { name: /스펙업 후보/ });
+  await table.locator("tbody tr").first().waitFor();
+  await afterAnswer(table);
+  await page.waitForTimeout(500);
+  return shiftsSince(page, 0);
+}
+
+const above = async (upper, lower) => {
+  const [a, b] = [await upper.boundingBox(), await lower.boundingBox()];
+  expect(a.y + a.height).toBeLessThanOrEqual(b.y);
+};
+
 for (const width of [320, 1280]) {
   test(`${width}: 딜러 — 첫 답을 기다리는 동안 · 받은 뒤 문장은 한 번, 정렬 칩 위, 탐색 시작부터 흔들림 0 @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 1000 });
-    await watchShifts(page);
-    let release;
-    const gate = new Promise((r) => (release = r));
-    await page.route(/\/api\/characters\/spec-up\?/, async (route) => {
-      await gate;
-      await route.continue();
-    });
-    await page.goto(specUpListPath("실목록2"));
     const lead = page.getByText(DEALER_LEAD);
-    await expect(lead).toHaveCount(1);
-    await expect(page.getByText("스펙업 가이드를 준비하고 있어요…")).toBeVisible();
-    release();
-    const table = page.getByRole("table", { name: /스펙업 후보/ });
-    await table.locator("tbody tr").first().waitFor();
-    await expect(lead).toHaveCount(1);
-    const chips = page.getByRole("button", { name: "전투력 증가", exact: true }).first();
-    const [leadBox, chipBox] = [await lead.boundingBox(), await chips.boundingBox()];
-    expect(leadBox.y + leadBox.height).toBeLessThanOrEqual(chipBox.y);
-    await page.waitForTimeout(500);
-    const { all, moved } = await shiftsSince(page, 0);
+    const { all, moved } = await heldLoad(page, width, "실목록2", {
+      whileHeld: () => expect(lead).toHaveCount(1),
+      afterAnswer: async () => {
+        await expect(lead).toHaveCount(1);
+        await above(lead, page.getByRole("button", { name: "전투력 증가", exact: true }).first());
+      },
+    });
     expect(all, `흔들림 (${moved})`).toBe(0);
   });
 
-  test(`${width}: 서포터 — 첫 답 뒤 서포터 문장(글자 그대로) 한 번, 표 위 @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 1000 });
-    await page.goto(specUpListPath("상세서포터"));
-    const lead = page.getByText(/^바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고/);
-    await expect(lead).toHaveCount(1);
-    expect(SUPPORTER_LEADS).toContain((await lead.textContent()).trim());
-    await expect(page.getByText(DEALER_LEAD)).toHaveCount(0);
-    const table = page.getByRole("table", { name: /스펙업 후보/ });
-    await table.locator("tbody tr").first().waitFor();
-    const [leadBox, tableBox] = [await lead.boundingBox(), await table.boundingBox()];
-    expect(leadBox.y + leadBox.height).toBeLessThanOrEqual(tableBox.y);
-  });
+  // Each supporter mock's own sentence: 상세서포터's answer has no 추천 순서 by score (supportOrderAvailable absent),
+  // 점수순서서폿's has it (true), with SPEC_UP_PATH on in e2e.
+  for (const [name, sentence] of [
+    ["상세서포터", SUPPORTER_LEADS[1]],
+    ["점수순서서폿", SUPPORTER_LEADS[0]],
+  ])
+    test(`${width}: 서포터 ${name} — 기다리는 동안 문장 없음, 답 뒤 그 문장 그대로 한 번 · 표 위, 탐색 시작부터 흔들림 0 @regression`, async ({ page }) => {
+      const lead = page.getByText(sentence, { exact: true });
+      const { all, moved } = await heldLoad(page, width, name, {
+        whileHeld: async () => {
+          await expect(page.getByText(/바꿨을 때 오르는/)).toHaveCount(0);
+        },
+        afterAnswer: async (table) => {
+          await expect(lead).toHaveCount(1);
+          await expect(page.getByText(/바꿨을 때 오르는/)).toHaveCount(1);
+          await above(lead, table);
+        },
+      });
+      expect(all, `흔들림 (${moved})`).toBe(0);
+    });
 
-  test(`${width}: 역할 모름 — 딜러 문장 한 번과 딜러 순서 목록(전투력 증가 순, 전투력 칸) @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 1000 });
-    await page.goto(specUpListPath("역할모름바드"));
-    await expect(page.getByText(DEALER_LEAD)).toHaveCount(1);
-    await expect(page.getByText(/서포터 점수와 드는 골드/)).toHaveCount(0);
-    const table = page.getByRole("table", { name: /전투력 증가 순/ });
-    await table.locator("tbody tr").first().waitFor();
-    await expect(table.locator("thead th").filter({ hasText: /^전투력 증가$/ })).toHaveCount(1);
-    await expect(table.locator("thead th").filter({ hasText: /서포터 점수/ })).toHaveCount(0);
+  test(`${width}: 역할 모름 — 기다리는 동안 · 받은 뒤 딜러 문장 한 번, 딜러 순서 목록, 탐색 시작부터 흔들림 0 @regression`, async ({ page }) => {
+    const lead = page.getByText(DEALER_LEAD);
+    const { all, moved } = await heldLoad(page, width, "역할모름바드", {
+      whileHeld: () => expect(lead).toHaveCount(1),
+      afterAnswer: async (table) => {
+        await expect(lead).toHaveCount(1);
+        await expect(page.getByText(/서포터 점수와 드는 골드/)).toHaveCount(0);
+        await expect(page.getByRole("table", { name: /전투력 증가 순/ })).toBeVisible();
+        await expect(table.locator("thead th").filter({ hasText: /^전투력 증가$/ })).toHaveCount(1);
+        await expect(table.locator("thead th").filter({ hasText: /서포터 점수/ })).toHaveCount(0);
+        await above(lead, table);
+      },
+    });
+    expect(all, `흔들림 (${moved})`).toBe(0);
   });
 }
