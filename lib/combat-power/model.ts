@@ -332,6 +332,41 @@ export function polishSwapOf(
   return option;
 }
 
+/** 연마 한꺼번에 (PM 총괄 11-21, X1): every line at one grade, or every line with no scoring option. */
+export type PolishPreset = Grade | typeof POLISH_NONE;
+type PolishLine = { index: number; line: number; option: string; grade: Grade | null; value?: string };
+
+/**
+ * Every polish line at once (one setEdits, one 이전 step). A grade keeps each line's own option, the worn one (a
+ * line set to another option or to no scoring option goes back to its worn option first), at that grade: the
+ * values are the official polish table's, as for one line. POLISH_NONE makes every line a line with no scoring
+ * option (no grade). A grade a line already wears is no edit, so it sends nothing for that line.
+ */
+export function polishPreset(edits: Edits, lines: readonly PolishLine[], preset: PolishPreset): Edits {
+  const keys = lines.map((line) => `${line.index}:${line.line}`);
+  const keep = <T,>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([at]) => !keys.includes(at)));
+  if (preset === POLISH_NONE)
+    return {
+      ...edits,
+      polish: keep(edits.polish) as Edits["polish"],
+      polishOption: { ...keep(edits.polishOption), ...Object.fromEntries(keys.map((key) => [key, POLISH_NONE])) },
+    };
+  const graded = lines.flatMap((line, i) => (line.grade === preset ? [] : [[keys[i], preset] as const]));
+  return { ...edits, polish: { ...keep(edits.polish), ...Object.fromEntries(graded) }, polishOption: keep(edits.polishOption) };
+}
+
+/** The preset every line is at now (its button pressed), or null when the lines differ or there are none. */
+export function polishPresetOf(edits: Edits, lines: readonly PolishLine[]): PolishPreset | null {
+  if (lines.length === 0) return null;
+  const states = lines.map((line) => {
+    const swap = polishSwapOf(edits, line);
+    if (swap === POLISH_NONE) return POLISH_NONE;
+    if (swap != null) return null;
+    return edits.polish[`${line.index}:${line.line}`] ?? line.grade;
+  });
+  return states.every((state) => state != null && state === states[0]) ? (states[0] as PolishPreset) : null;
+}
+
 /** A polish line back to the one worn: its other option and grade go (one 이전 step). */
 export function wornPolish(edits: Edits, key: string): Edits {
   const drop = <T,>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([at]) => at !== key));
