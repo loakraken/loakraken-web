@@ -10,6 +10,7 @@ import { SEARCH_HINT, SearchTabs, useSearchResults } from "@/components/ui/searc
 export default function SearchDropdown({
   open,
   text,
+  rawText = text,
   panelId,
   onLeave,
   onEscape,
@@ -17,7 +18,10 @@ export default function SearchDropdown({
   onActiveId,
 }: {
   open: boolean
+  /** What to search for (the page may map its own name to ""). */
   text: string
+  /** The field's text exactly as typed, for the panel to notice every edit (#1891 P3); defaults to `text`. */
+  rawText?: string
   panelId: string
   /** A row opened something (the panel closes and the box empties). */
   onLeave: () => void
@@ -49,6 +53,7 @@ export default function SearchDropdown({
         groups={groups}
         activeId={current}
         onActive={results.setActive}
+        text={rawText}
         onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
         header={
           <div className="grid gap-1.5">

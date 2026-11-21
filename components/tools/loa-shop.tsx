@@ -349,25 +349,29 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
               <h2 id="settings-heading" className={styles.sectionTitle}>
                 계산 기준
               </h2>
-              <label className={styles.field} htmlFor={rateId}>
-                <span>게임 안 크리스탈 교환소 시세(블루 크리스탈 100개당 골드)</span>
-                <input
-                  id={rateId}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="비워 두면 이득을 계산하지 않아요"
-                  maxLength={20}
-                  aria-invalid={rateInvalid || undefined}
-                  aria-describedby={rateInvalid ? `${errorId} ${hintId}` : hintId}
-                  value={rateText}
-                  onChange={(event) => changeRate(event.target.value)}
-                />
-              </label>
-              {/* Always in the page (a polite live region), so the message is read when it appears. */}
-              <p id={errorId} className={styles.rateError} role="status">
-                {rateInvalid ? RATE_INVALID : ""}
-              </p>
+              {/* The field and its error slot are one item of the column: the slot is always there (one line), so a
+                  message coming or going moves nothing below (codex P3 on #1889). */}
+              <div className={styles.fieldGroup}>
+                <label className={styles.field} htmlFor={rateId}>
+                  <span>게임 안 크리스탈 교환소 시세(블루 크리스탈 100개당 골드)</span>
+                  <input
+                    id={rateId}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="비워 두면 이득을 계산하지 않아요"
+                    maxLength={20}
+                    aria-invalid={rateInvalid || undefined}
+                    aria-describedby={rateInvalid ? `${errorId} ${hintId}` : hintId}
+                    value={rateText}
+                    onChange={(event) => changeRate(event.target.value)}
+                  />
+                </label>
+                {/* Always in the page (a polite live region), so the message is read when it appears. */}
+                <p id={errorId} className={styles.rateError} role="status">
+                  {rateInvalid ? RATE_INVALID : ""}
+                </p>
+              </div>
               <p id={hintId} className={styles.small}>
                 게임 안 크리스탈 교환소에서 블루 크리스탈 100개를 살 때 드는 골드를 넣어 주세요. 이 브라우저에만 저장하고
                 서버로 보내지 않아요. 공식 상점에서 블루 크리스탈 100개는 로열 크리스탈 {count(SHOP_DATA.crystal.royalPer100)}

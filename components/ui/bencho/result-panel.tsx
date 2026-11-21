@@ -61,6 +61,8 @@ type ResultPanelProps = {
   onPick: (item: ResultItem) => void;
   /** pointer over a row: let the arrows carry on from there */
   onActive?: (id: string) => void;
+  /** the field's text as typed: an edit hands the active row back to the keys (a hover no longer owns it) */
+  text?: string;
   /** above the rows (ours, 10-12): what must not move when rows arrive later */
   header?: ReactNode;
   /** under the rows: key hints, an empty state */
@@ -125,9 +127,10 @@ function keepInView(view: HTMLElement, row: HTMLElement) {
  * the screen gets shorter (a phone keyboard, a rotated or resized window) the
  * box shrinks under the active row, so it is checked again then (#1881 P3) —
  * only a row the keys chose: the pointer's row stays where it was, even after
- * the pointer has left (#1883 P3).
+ * the pointer has left (#1883 P3). An edit of the field hands the row back to
+ * the keys, also when the edit keeps the same active row (#1887 P3).
  */
-function useActiveInView(activeId: string | null | undefined, panelId: string) {
+function useActiveInView(activeId: string | null | undefined, panelId: string, text: string | undefined) {
   const box = useRef<HTMLDivElement>(null);
   // Set by the row's pointer-enter, read (and cleared) once the active row has changed.
   const pointed = useRef(false);
@@ -147,6 +150,9 @@ function useActiveInView(activeId: string | null | undefined, panelId: string) {
     const found = find();
     if (found) keepInView(found.view, found.row);
   }, [find]);
+  useLayoutEffect(() => {
+    byPointer.current = false;
+  }, [text]);
   useEffect(() => {
     if (!activeId) return;
     let frame = 0;
@@ -174,10 +180,10 @@ function useActiveInView(activeId: string | null | undefined, panelId: string) {
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
-function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
+function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, text, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
   const panel = useRoomOnScreen(open);
-  const { box: scrollBox, pointed } = useActiveInView(open ? activeId : null, id);
+  const { box: scrollBox, pointed } = useActiveInView(open ? activeId : null, id, text);
   let order = 0;
   return (
     <LazyMotion features={loadFeatures}>
