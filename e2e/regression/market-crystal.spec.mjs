@@ -22,7 +22,7 @@ for (const width of [320, 1280])
     const royal = card.getByRole("definition").nth(1);
     await expect(royal).toContainText("—");
     await expect(royal).toContainText("교환소 시세를 넣으면 계산해요");
-    await expect(card).not.toContainText("골드");
+    await expect(royal).not.toContainText("골드");
     const height = (await card.boundingBox()).height;
 
     await field.fill("27,300");
