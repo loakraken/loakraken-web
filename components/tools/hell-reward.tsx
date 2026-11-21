@@ -274,10 +274,15 @@ export function HellRewardTool() {
   const [pipFailed, setPipFailed] = useState(false);
   const opening = useRef(false);
   const mounted = useRef(false);
+  // The window from the moment the browser gives it until it is shown in state (its code may still be loading).
+  const pending = useRef<Window | null>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      // Leaving while it opens: close the (still blank) window now, not when its code lands (codex P3 on #1903).
+      pending.current?.close();
+      pending.current = null;
     };
   }, []);
   const closedPip = useCallback(() => setPip(null), []);
@@ -297,18 +302,34 @@ export function HellRewardTool() {
     } catch (error) {
       asked = Promise.reject(error);
     }
-    Promise.all([asked, import("./hell-reward-pip")])
+    // Held from the moment it exists: the user may close the blank window before its code lands (its pagehide then
+    // comes before the view listens), and leaving the page closes it at once (codex P2 / P3 on #1903).
+    const held = asked.then((win) => {
+      if (!mounted.current) {
+        win.close();
+        return win;
+      }
+      pending.current = win;
+      win.addEventListener("pagehide", () => {
+        if (pending.current === win) pending.current = null;
+      });
+      return win;
+    });
+    Promise.all([held, import("./hell-reward-pip")])
       .then(([win, mod]) => {
-        if (!mounted.current) {
-          win.close();
+        // Closed while its code loaded (by the user, or by leaving the page): nothing to show, the button is free.
+        if (pending.current !== win || win.closed || !mounted.current) {
+          if (!win.closed) win.close();
           return;
         }
+        pending.current = null;
         mod.prepareWindow(win);
         setPip({ win, View: mod.HellPip });
       })
       .catch(() => {
         // The window may have opened while its code failed to load: close it rather than leave it empty.
         asked.then((win) => win.close()).catch(() => {});
+        pending.current = null;
         if (mounted.current) setPipFailed(true);
       })
       .finally(() => {

@@ -151,19 +151,44 @@ test("1280: 브라우저가 작은 창을 거절하면 알려 주고 다시 열 
   expect(popups).toBe(0);
 });
 
-// codex P3 on #1903: leaving the tool while the window's code is still coming closes the window it already opened.
-test("1280: 작은 창을 여는 중에 화면을 떠나면 그 창도 닫힌다 @regression", async ({ page }) => {
+// codex P3s on #1903: leaving the tool while the window's code is still coming closes the window it already opened —
+// at once, not when the code lands (held 8s here; the window must be gone well before).
+test("1280: 작은 창을 여는 중에 화면을 떠나면 그 창이 바로 닫힌다 @regression", async ({ page }) => {
+  test.setTimeout(60_000);
   await withPip(page);
-  await delayPipChunk(page, 2500);
+  await delayPipChunk(page, 8000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, "/tools/hell-reward");
   const opened = page.waitForEvent("popup", { timeout: 3000 });
   await page.getByRole("button", { name: "작은 창" }).click();
   const pip = await opened;
-  const gone = pip.waitForEvent("close", { timeout: 10_000 });
+  const gone = pip.waitForEvent("close", { timeout: 3000 });
   await page.getByRole("link", { name: "LOAKraken 홈" }).click();
   await expect(page).toHaveURL(/\/$/);
   await gone;
+});
+
+// codex P2 on #1903: the user closes the still-blank window while its code loads. The button must not stay 'open'
+// on a closed window (it then only 'closed' it again, dead until a reload): it is free, and a new press opens anew.
+test("1280: 코드를 받는 중에 빈 작은 창을 닫아도 단추는 살아 있고 다시 누르면 새 창이 열린다 @regression", async ({ page }) => {
+  test.setTimeout(60_000);
+  await withPip(page);
+  await delayPipChunk(page, 2500);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  const button = page.getByRole("button", { name: "작은 창" });
+  const opened = page.waitForEvent("popup", { timeout: 3000 });
+  await button.click();
+  const blank = await opened;
+  await blank.close();
+  // The code lands (2.5s) and finds the window closed: nothing is shown, the button stays unpressed.
+  await page.waitForTimeout(3500);
+  await expect(button).toHaveAttribute("aria-pressed", "false");
+  const again = page.waitForEvent("popup", { timeout: 3000 });
+  await button.click();
+  const pip = await again;
+  await expect(pip.getByRole("heading", { level: 1 })).toHaveText(/단계$/);
+  await expect(button).toHaveAttribute("aria-pressed", "true");
 });
 
 // codex P2 on #1903: a new 시세 기준 shows the old figures as not current on the page (busy, dimmed) — the window too.

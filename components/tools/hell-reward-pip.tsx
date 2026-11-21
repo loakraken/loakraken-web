@@ -68,6 +68,11 @@ export function prepareWindow(win: Window) {
 /** The result inside the window. `onClose` runs when the window goes (closed by the user, or by the page). */
 export function HellPip({ win, data, onClose }: { win: Window; data: HellPipData; onClose: () => void }) {
   useEffect(() => {
+    // Closed between being shown and this listener (its pagehide already gone): free the button now.
+    if (win.closed) {
+      onClose();
+      return;
+    }
     win.addEventListener("pagehide", onClose);
     // A theme change on the page while the window is open.
     const watch = new MutationObserver(() => copyRootLook(win));
