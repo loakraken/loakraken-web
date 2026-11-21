@@ -122,16 +122,18 @@ for (const width of [320, 1280])
     await expectNoHorizontalOverflow(page);
   });
 
-// codex 재검토 P3(#1788, PM 총괄 11-21 18:14): 320에서 차트 양 끝 빈 날의 안내 칸('이날은 기록이 없어요')이
-// 화면 밖으로 나갔다. 끝에 가장 가까운 빈 날 — 오른쪽(위치 2: 1은 가장 최근 완료일이라 빼면 끝이 짧아질 뿐)과 왼쪽(위치 27: 28이 가장 오래된 기록) — 에서 칸이 차트와 창 안에,
-// 가로 넘침 없이, 키보드로 하루씩 옮기는 동안 흔들림 0.
-test(`320: 차트 양 끝 빈 날에서도 '${GAP}' 칸은 차트와 화면 안 @regression`, async ({ page }) => {
+// codex 재검토 P3(#1788, PM 총괄 11-21 18:14): 320에서 빈 날 안내 칸('이날은 기록이 없어요')이 화면 밖으로 나갔다.
+// 칸은 62%를 넘으면 왼쪽으로 뒤집혔기에 가운데에서 오른쪽 사이의 빈 날에서 넘쳤다. 끝에 가장 가까운 빈 날(위치 2와 27;
+// 1은 가장 최근 완료일, 28은 가장 오래된 기록이라 빼면 선이 짧아질 뿐)과 그 사이 빈 날 모두에서 칸이 차트와 창 안에,
+// 가로 넘침 없이, 키보드로 하루씩 옮기는 동안 흔들림 0(가격 날과 빈 날 사이에서 칸이 바뀔 때도).
+const GAP_DAYS = [2, 6, 10, 14, 18, 22, 27];
+test(`320: 양 끝과 가운데 빈 날 모두 '${GAP}' 칸은 차트와 화면 안 @regression`, async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await watchShifts(page);
-  await dropDays(page, /\/api\/markets\/auctions\/gems\/history/, [2, 27]);
+  await dropDays(page, /\/api\/markets\/auctions\/gems\/history/, GAP_DAYS);
   await gotoReady(page, "/market/gems?kind=겁화&level=10");
   const box = page.getByRole("region", { name: "10레벨 겁화 최저가 추이" });
-  await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "2");
+  await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", String(GAP_DAYS.length));
   const figure = box.locator("figure").first();
   const svg = figure.locator("svg").first();
   const readout = figure.locator("p[aria-live]").first();
@@ -162,14 +164,10 @@ test(`320: 차트 양 끝 빈 날에서도 '${GAP}' 칸은 차트와 화면 안 
     },
     600,
   );
-  // Two gap days, one at each end.
-  expect(seen.length, "빈 날 둘").toBe(2);
-  for (const s of seen) {
-    expect(s.left, `${s.step}번째 날: 칸 왼쪽이 차트 안`).toBeGreaterThanOrEqual(s.chartLeft - 0.5);
-    expect(s.right, `${s.step}번째 날: 칸 오른쪽이 차트 안`).toBeLessThanOrEqual(s.chartRight + 0.5);
-    expect(s.left, "창 안").toBeGreaterThanOrEqual(0);
-    expect(s.right, "창 안").toBeLessThanOrEqual(s.width);
-  }
+  // Every gap day: the two nearest the ends and those across the middle.
+  expect(seen.length, "빈 날 수").toBe(GAP_DAYS.length);
+  const outside = seen.filter((s) => s.left < s.chartLeft - 0.5 || s.right > s.chartRight + 0.5 || s.left < 0 || s.right > s.width);
+  expect(outside, "차트나 창 밖으로 나간 칸").toEqual([]);
   expect(moved.all, `흔들림 (${moved.moved})`).toBe(0);
   await expectNoHorizontalOverflow(page);
 });
