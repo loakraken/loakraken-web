@@ -35,7 +35,9 @@ const DARK_QUERY = "(prefers-color-scheme: dark)"
 // Old stored values ("light"/"dark") read the same as before. The choice
 // itself goes on <html> as data-theme-choice, so the header button shows the
 // chosen mode's icon from the first paint (CSS below), before hydration.
-const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function c(){var s=null;try{s=localStorage.getItem(k)}catch(e){}return s==="light"||s==="dim"||s==="dark"?s:"system"}function a(){var v=c(),t=v==="system"?(m.matches?"dark":"light"):v;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=v}a();try{if(localStorage.getItem("${MOTION_STORAGE_KEY}")==="paused")d.setAttribute("data-motion-paused","")}catch(e){}m.addEventListener("change",function(){if(c()==="system")a()})}catch(e){}})()`
+// data-pip marks a browser with Document Picture-in-Picture, so a '작은 창' button (and the room for it) is drawn
+// from the first paint where it works and never appears later (M52, CLS 0).
+const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function c(){var s=null;try{s=localStorage.getItem(k)}catch(e){}return s==="light"||s==="dim"||s==="dark"?s:"system"}function a(){var v=c(),t=v==="system"?(m.matches?"dark":"light"):v;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=v}a();try{if(localStorage.getItem("${MOTION_STORAGE_KEY}")==="paused")d.setAttribute("data-motion-paused","")}catch(e){}if(typeof documentPictureInPicture=="object")d.setAttribute("data-pip","");m.addEventListener("change",function(){if(c()==="system")a()})}catch(e){}})()`
 
 const listeners = new Set<() => void>()
 
