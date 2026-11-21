@@ -150,7 +150,9 @@ test.describe("구슬이 그려지지 못할 때", () => {
       const clear = CanvasRenderingContext2D.prototype.clearRect;
       CanvasRenderingContext2D.prototype.getImageData = function (...args) {
         const image = read.apply(this, args);
-        if (!window.__orbHandoff && image.data.some((value, i) => i % 4 === 3 && value > 0)) {
+        // The orb's own canvas on the page only: the library also reads an offscreen sprite canvas.
+        const onPage = this.canvas.isConnected && this.canvas.closest("main[aria-busy]");
+        if (!window.__orbHandoff && onPage && image.data.some((value, i) => i % 4 === 3 && value > 0)) {
           window.__orbHandoff = true;
           const { canvas } = this;
           queueMicrotask(() => {

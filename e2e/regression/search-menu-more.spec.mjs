@@ -134,6 +134,7 @@ for (const width of [320, 1280])
     // an edit, so a row the pointer chose before a space (the menu folds, the more row stays active) is the keys'
     // again: shrinking the screen brings it back into the box.
     test(`@검색 ${width}: 포인터로 고른 줄도 글을 고친 뒤에는 화면이 줄면 다시 상자 안으로(캐릭터 화면) @regression`, async ({ page }) => {
+      test.skip(width <= 900, "캐릭터 화면의 검색 칸은 900px보다 넓을 때만 있다(A19: 좁으면 헤더 검색 하나)");
       await page.setViewportSize({ width, height: 720 });
       await gotoReady(page, characterPath("상세"));
       const field = page.locator("#detail-search");
