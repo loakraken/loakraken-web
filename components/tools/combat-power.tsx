@@ -57,6 +57,8 @@ import {
   polishOptionText,
   polishSwapOf,
   polishSwapValue,
+  polishPreset,
+  polishPresetOf,
   wornPolish,
   POLISH_NONE,
   refineEdit,
@@ -69,6 +71,7 @@ import {
   type Current,
   type Edits,
   type Options,
+  type PolishPreset,
   type PolishValues,
   type Simulation,
 } from "@/lib/combat-power/model";
@@ -248,6 +251,14 @@ function Card({
 }
 
 const LOCKED_NOTE = "계산식을 확인하고 있어 아직 바꿀 수 없어요. 확인되는 대로 열어요.";
+
+/** 연마 한꺼번에: the grades the options offer, then no scoring option. */
+const POLISH_PRESETS: readonly { value: PolishPreset; label: string }[] = [
+  { value: "HIGH", label: "모두 상" },
+  { value: "MID", label: "모두 중" },
+  { value: "LOW", label: "모두 하" },
+  { value: POLISH_NONE, label: "모두 없음" },
+];
 
 /** A control the 1차판 keeps closed: the current value and "준비 중". */
 function Locked({ caption, value }: { caption: string; value: ReactNode }) {
@@ -467,6 +478,27 @@ function Editors({
 
       {current.polish.length > 0 && (
         <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
+          {/* 연마 한꺼번에 (PM 총괄 11-21, X1): every line at one grade on its own option, or every line with no
+              scoring option. One press is one 이전; a button is pressed while every line is at it. */}
+          {isOpen("POLISH") && (
+            <li className={styles.presetRow}>
+              <div className={styles.presets} role="group" aria-label="연마 모든 줄 한꺼번에">
+                {POLISH_PRESETS.filter((preset) => preset.value === POLISH_NONE || options.polishGrades.includes(preset.value)).map(
+                  (preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className={`${styles.preset} hit-44`}
+                      aria-pressed={polishPresetOf(edits, current.polish) === preset.value}
+                      onClick={() => setEdits((prev) => polishPreset(prev, current.polish, preset.value))}
+                    >
+                      {preset.label}
+                    </button>
+                  ),
+                )}
+              </div>
+            </li>
+          )}
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
             // A spec-up 연마 step (api #951) puts another accessory in: the line names its new option, the one worn

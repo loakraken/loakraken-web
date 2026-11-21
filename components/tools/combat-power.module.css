@@ -263,6 +263,54 @@
   gap: 8px 12px;
   min-height: 44px;
 }
+/* 연마 한꺼번에 (X1): one row of pill buttons above the lines, wrapping at 320. */
+.rows li.presetRow {
+  min-height: 0;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Where hit-44 is on (phones, touch), the 32px buttons take 44px to tap: rows 12px apart (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .presets {
+    row-gap: 12px;
+  }
+}
+.preset {
+  /* A31: one line, never split. */
+  flex: none;
+  white-space: nowrap;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--control);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-meta);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out,
+    color 160ms ease-out;
+}
+.preset[aria-pressed="true"] {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--primary-foreground);
+}
+.preset:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .preset {
+    transition: none;
+  }
+  .preset:active {
+    transform: none;
+  }
+}
 .rowName {
   flex: 1 1 160px;
   min-width: 0;
