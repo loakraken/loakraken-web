@@ -66,6 +66,7 @@ import { BoardSearch } from "./board-search";
 import { MarketCategoryRow } from "./category-row";
 import { useTallest } from "@/components/ui/use-tallest";
 import styles from "./market.module.css";
+import { CrystalCard, type CrystalShopRate } from "./crystal-card";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { pendingProps } from "@/lib/api/pending";
@@ -684,9 +685,12 @@ function BoardRows({
 function MarketContent({
   initial,
   initialItem,
+  crystal,
 }: {
   initial: BoardQuery;
   initialItem: number | null;
+  /** The official shop's crystal rate, read on the server (the shop data stays out of this page's script). */
+  crystal: CrystalShopRate;
 }) {
   // The address is the board's state: picks write it in place (replaceState, below), and Back / Forward
   // restore an entry whose server props are those of its first render (QA 11-15: /market → 요리 → 보석 →
@@ -1079,6 +1083,7 @@ function MarketContent({
               )}
             </section>
           </div>
+          <CrystalCard {...crystal} />
         </div>
       </main>
       <footer className={quote.footer}>
@@ -1091,6 +1096,7 @@ function MarketContent({
 export function MarketBoardView(props: {
   initial: BoardQuery;
   initialItem: number | null;
+  crystal: CrystalShopRate;
 }) {
   return (
     <LandingMotion>
