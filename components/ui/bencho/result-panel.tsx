@@ -21,7 +21,7 @@
 //  6. Reduced motion: the card and rows appear at once.
 // The springs and their reasons are Bencho's and are kept as published.
 import "./result-panel.css";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { AnimatePresence, LazyMotion, m as motion, useReducedMotion } from "motion/react";
 
 const loadFeatures = () => import("@/lib/motion-dom-animation").then((mod) => mod.default);
@@ -101,34 +101,66 @@ function useRoomOnScreen(open: boolean) {
 }
 
 /**
+ * Scrolls the box just enough to show the row, in layout pixels at the row's
+ * resting place: the card may still be unfolding (scaled down to 0.72 tall),
+ * and a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
+ */
+function keepInView(view: HTMLElement, row: HTMLElement) {
+  const outer = view.getBoundingClientRect();
+  const rect = row.getBoundingClientRect();
+  const scale = view.offsetHeight ? outer.height / view.offsetHeight : 1;
+  const transform = getComputedStyle(row).transform;
+  const lift = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
+  const top = (rect.top - outer.top) / scale - view.clientTop - lift + view.scrollTop;
+  const bottom = top + row.offsetHeight;
+  if (top < view.scrollTop) view.scrollTop = top;
+  else if (bottom > view.scrollTop + view.clientHeight) view.scrollTop = bottom - view.clientHeight;
+}
+
+/**
  * (ours, M53) The row the arrows reach stays in view inside the scroll box:
  * the input keeps focus (aria-activedescendant), so the browser never scrolls
  * to it, and at 320 the list runs past the box. A row the pointer entered is
- * already under the pointer and is left alone, so a hover never scrolls.
+ * already under the pointer and is left alone, so a hover never scrolls. When
+ * the screen gets shorter (a phone keyboard, a rotated or resized window) the
+ * box shrinks under the active row, so it is checked again then (#1881 P3).
  */
 function useActiveInView(activeId: string | null | undefined, panelId: string) {
   const box = useRef<HTMLDivElement>(null);
   const pointed = useRef(false);
+  const find = useCallback(() => {
+    const view = box.current;
+    const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
+    return view && row && view.contains(row) ? { view, row } : null;
+  }, [activeId, panelId]);
   useLayoutEffect(() => {
     if (pointed.current) {
       pointed.current = false;
       return;
     }
-    const view = box.current;
-    const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
-    if (!view || !row || !view.contains(row)) return;
-    // In layout pixels, where the row comes to rest: the card may still be unfolding (scaled down to
-    // 0.72 tall), and a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
-    const outer = view.getBoundingClientRect();
-    const rect = row.getBoundingClientRect();
-    const scale = view.offsetHeight ? outer.height / view.offsetHeight : 1;
-    const transform = getComputedStyle(row).transform;
-    const lift = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
-    const top = (rect.top - outer.top) / scale - view.clientTop - lift + view.scrollTop;
-    const bottom = top + row.offsetHeight;
-    if (top < view.scrollTop) view.scrollTop = top;
-    else if (bottom > view.scrollTop + view.clientHeight) view.scrollTop = bottom - view.clientHeight;
-  }, [activeId, panelId]);
+    const found = find();
+    if (found) keepInView(found.view, found.row);
+  }, [find]);
+  useEffect(() => {
+    if (!activeId) return;
+    let frame = 0;
+    // After the card's own room is fitted to the new height (useRoomOnScreen, same events).
+    const recheck = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const found = find();
+        if (found) keepInView(found.view, found.row);
+      });
+    };
+    const view = window.visualViewport;
+    window.addEventListener("resize", recheck);
+    view?.addEventListener("resize", recheck);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", recheck);
+      view?.removeEventListener("resize", recheck);
+    };
+  }, [activeId, find]);
   return { box, pointed };
 }
 

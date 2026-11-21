@@ -54,6 +54,11 @@ for (const width of [320, 1280])
       const before = await contentTop(eighth);
       const eighthText = await eighth.innerText();
 
+      // A favourite change first (Shift+Enter on the lookup row): its note holds the live region (#1881 P2).
+      const live = page.locator('p[role="status"]');
+      await box.press("Shift+Enter");
+      await expect(live.filter({ hasText: "‘기’ 즐겨찾기 추가" })).toHaveCount(1);
+
       // ↑ from the lookup row wraps to the last row: the more row, scrolled into the box.
       await page.keyboard.press("ArrowUp");
       const onMore = await activeRow(page, box);
@@ -63,6 +68,9 @@ for (const width of [320, 1280])
       await page.keyboard.press("Enter");
       await expect(more).toHaveCount(0);
       await expect(menu.getByRole("option")).toHaveCount(8 + rest);
+      // Said every time, also over the favourite note.
+      await expect(live.filter({ hasText: new RegExp(`^메뉴 ${8 + rest}개 모두 보여요$`) })).toHaveCount(1);
+      await expect(live.filter({ hasText: "즐겨찾기" })).toHaveCount(0);
       // The panel stays open, the field keeps focus, and the first revealed row is the active one.
       await expect(box).toBeFocused();
       const revealed = await activeRow(page, box);
@@ -72,6 +80,11 @@ for (const width of [320, 1280])
       expect(await menu.getByRole("option").nth(7).innerText()).toBe(eighthText);
       expect(Math.abs((await contentTop(eighth)) - before)).toBeLessThan(0.5);
 
+      // A shorter screen (a phone keyboard, a resized window): the box shrinks under the active row,
+      // which is brought back into it (#1881 P3).
+      await page.setViewportSize({ width, height: 460 });
+      await expect.poll(async () => (await activeRow(page, box)).place?.inside, { timeout: 3000 }).toBe(true);
+
       // ↓ goes on to the next revealed row (or wraps to the top after the last).
       await page.keyboard.press("ArrowDown");
       const next = await activeRow(page, box);
@@ -79,7 +92,13 @@ for (const width of [320, 1280])
       else expect(next.text).toContain("정보 보기");
       expect(next.place?.inside, JSON.stringify(next.place)).toBe(true);
 
-      // Any change of the text folds it again, also back to the same word.
+      // Any edit folds it again: a space alone (the trimmed word is the same, #1881 P3) …
+      await page.keyboard.type(" ");
+      await expect(menu.getByRole("option", { name: /^메뉴 \d+개 더 보기/ })).toBeVisible();
+      await expect(menu.getByRole("option")).toHaveCount(9);
+      await expect(live.filter({ hasText: "모두 보여요" })).toHaveCount(0);
+      await page.keyboard.press("Backspace");
+      // … and a way back to the same word.
       await page.keyboard.press("Backspace");
       await page.keyboard.type("기");
       await expect(menu.getByRole("option", { name: /^메뉴 \d+개 더 보기/ })).toBeVisible();
