@@ -8,10 +8,10 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { ThinkingOrb } from "thinking-orbs";
 import { COLLECTIBLE_SPRITE, COLLECTIBLE_SPRITE_SIZE, collectibleSpriteIcon } from "@/lib/character/collectible-sprite";
 import { useLandingMotion } from "@/components/landing/motion";
 import { ORB_COLORS } from "@/components/landing/orb-colors";
+import { Orb } from "@/components/landing/orb";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
 import { bannerBackdrop, cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
 import { CharacterPortrait } from "./portrait";
@@ -354,7 +354,8 @@ export function CharacterBanner({
               aria-label="캐릭터 이미지를 준비하는 중"
             >
               <span className={styles.orbLight}>
-                <ThinkingOrb
+                <Orb
+                  pinned
                   state="searching"
                   size={64}
                   theme="light"
@@ -364,7 +365,8 @@ export function CharacterBanner({
               </span>
               {/* The loading orb's tints (ORB_COLORS: the link blue per theme), one source for every orb. */}
               <span className={styles.orbDark}>
-                <ThinkingOrb
+                <Orb
+                  pinned
                   state="searching"
                   size={64}
                   theme="dark"

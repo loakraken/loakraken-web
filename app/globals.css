@@ -1593,3 +1593,10 @@
     border-color: ButtonText;
   }
 }
+
+/* The thinking orb's still frame (components/landing/orb-still.tsx, #1632 · #1866): each dot is a hair-long
+   round-capped stroke; the page theme picks its colour before the first paint, a caller may pin one. */
+.orb-still path { fill: none; stroke: var(--orb-l); stroke-linecap: round; }
+:root:is([data-theme="dark"], [data-theme="dim"]) .orb-still path { stroke: var(--orb-d); }
+:root .orb-still[data-orb-theme="light"] path { stroke: var(--orb-l); }
+:root .orb-still[data-orb-theme="dark"] path { stroke: var(--orb-d); }
