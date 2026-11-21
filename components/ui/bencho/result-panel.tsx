@@ -118,9 +118,14 @@ function useActiveInView(activeId: string | null | undefined, panelId: string) {
     const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
     if (!view || !row || !view.contains(row)) return;
     const outer = view.getBoundingClientRect();
-    const inner = row.getBoundingClientRect();
-    if (inner.top < outer.top) view.scrollTop -= outer.top - inner.top;
-    else if (inner.bottom > outer.bottom) view.scrollTop += inner.bottom - outer.bottom;
+    const rect = row.getBoundingClientRect();
+    // Where the row comes to rest: a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
+    const transform = getComputedStyle(row).transform;
+    const lift = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
+    const top = rect.top - lift;
+    const bottom = rect.bottom - lift;
+    if (top < outer.top) view.scrollTop -= outer.top - top;
+    else if (bottom > outer.bottom) view.scrollTop += bottom - outer.bottom;
   }, [activeId, panelId]);
   return { box, pointed };
 }
