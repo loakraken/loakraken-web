@@ -23,7 +23,8 @@ export function checkRate(value: string): { rate: number | null; invalid: boolea
 export const parseRate = (value: string): number | null => checkRate(value).rate;
 
 /** What the field says under an invalid rate (both pages). */
-export const RATE_INVALID = "1 이상의 정수로 넣어 주세요. 쉼표는 세 자리마다 쓸 수 있어요.";
+// One line at 320, so it fits the shop tool's fixed error slot.
+export const RATE_INVALID = "1 이상의 정수로 넣어 주세요.";
 
 /** Gold for one royal crystal through the official path: royal → blue crystals (shop) → gold (in-game exchange). */
 export const goldPerRoyal = (goldPer100: number, royalPer100: number) => goldPer100 / royalPer100;
