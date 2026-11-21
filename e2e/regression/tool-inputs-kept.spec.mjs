@@ -10,6 +10,12 @@ async function openFold(page) {
   }
 }
 
+// 더보기 손익 keeps the price basis and the bound-gold switch under a closed 고급 설정 <details>.
+async function openAdvanced(page) {
+  const fold = page.locator("details").filter({ has: page.locator("summary", { hasText: "고급 설정" }) });
+  if (!(await fold.evaluate((el) => el.open))) await fold.locator("summary").click();
+}
+
 async function awayAndBack(page) {
   await page.goto("/tools");
   await page.goBack();
@@ -126,10 +132,12 @@ const TOOLS = [
     name: "더보기 손익",
     path: "/tools/more-reward",
     fill: async (page) => {
+      await openAdvanced(page);
       await page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "전일 평균가" }).click();
       await page.getByRole("switch", { name: /귀속 골드 비용 제외/ }).click();
     },
     check: async (page) => {
+      await openAdvanced(page);
       await expect(page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "전일 평균가" })).toBeChecked();
       await expect(page.getByRole("switch", { name: /귀속 골드 비용 제외/ })).toBeChecked();
       const params = new URL(page.url()).searchParams;
