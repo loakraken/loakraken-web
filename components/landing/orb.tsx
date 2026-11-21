@@ -88,6 +88,19 @@ export function Orb({ pinned, ...orb }: OrbProps) {
     id = requestAnimationFrame(check);
     return () => cancelAnimationFrame(id);
   }, [Drawn, painted]);
+  // After its first frame the library draws in its own requestAnimationFrame loop, outside React's error boundary
+  // (codex P3 on #1873): a frame clears the canvas before it draws, so a throw there leaves it empty and the loop
+  // stopped. Any uncaught error on the page makes a painted orb look at its canvas once; an empty one hands the box
+  // back to the still. Nothing runs while nothing throws.
+  const [blank, setBlank] = useState(false);
+  useEffect(() => {
+    if (!painted || blank) return;
+    const onError = () => {
+      if (!inked(box.current?.querySelector("canvas"))) setBlank(true);
+    };
+    window.addEventListener("error", onError);
+    return () => window.removeEventListener("error", onError);
+  }, [painted, blank]);
   // InlineOrb passes the site theme, which the server does not know: let the page theme pick the still's colour
   // there; a caller that pins a theme (the banner's light / dark pair) keeps it.
   const still = (over: boolean) => (
@@ -99,7 +112,7 @@ export function Orb({ pinned, ...orb }: OrbProps) {
       aria-label={over ? undefined : orb["aria-label"]}
     />
   );
-  if (!Drawn) return still(false);
+  if (!Drawn || blank) return still(false);
   return (
     <span ref={box} style={{ position: "relative", display: "block", width: orb.size, height: orb.size, ...orb.style }}>
       <OrbFallback fallback={still(false)}>
