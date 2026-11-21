@@ -35,6 +35,7 @@ import {
   specUpQuery,
   groupStages,
   splitCandidates,
+  armorHeldNotice,
   tryParam,
   type Candidate,
   type Sort,
@@ -302,6 +303,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  const heldNotice = armorHeldNotice(folded);
   // Under 크라켄 점수 the api ranks scored rows with and without combat power together (SpecUpService: ranked = OK or a
   // Δ점수); how many shown have none, counted by the same test the 전투력 cell uses for its dash (noCombatPower). Not
   // for a supporter, whose rows all have none (the role note says why).
@@ -642,6 +644,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           // anew, so the lines under the table are not slid down as it grows (A7).
           // The minute refresh keeps the key, and its change marks (#857).
           <Fragment key={listKey}>
+            {/* Drawn with the list, in the same render (CLS 0): armour rows the api held fold under the list. */}
+            {heldNotice && <p className={styles.muted}>{heldNotice}</p>}
             {ok.length === 0 ? (
               <p className={styles.muted}>지금 계산할 수 있는 후보가 없어요.</p>
             ) : (
