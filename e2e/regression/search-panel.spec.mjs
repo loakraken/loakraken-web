@@ -111,7 +111,8 @@ test("@A7 빈 칸: 순서는 최근 본 → 인기 → 기능, 인기가 늦게 
   expect(moved.all, `인기가 온 뒤 흔들림(누른 직후 포함): ${moved.moved}`).toBe(0);
   const order = await list.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby"))?.textContent));
   // The tab list (최근 본 캐릭터 / 즐겨찾기, #1119) is named by its tabs, not a group title.
-  expect(order).toEqual([null, "실시간 인기 캐릭터", "기능"]);
+  // 도구 바로가기 (M53) after 기능, last, so a late flag row moves nothing above it.
+  expect(order).toEqual([null, "실시간 인기 캐릭터", "기능", "도구 바로가기"]);
   await expect(page.getByRole("tab", { name: "최근 본 캐릭터" })).toHaveAttribute("aria-selected", "true");
 });
 
