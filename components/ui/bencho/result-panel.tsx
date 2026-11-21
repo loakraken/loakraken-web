@@ -117,15 +117,17 @@ function useActiveInView(activeId: string | null | undefined, panelId: string) {
     const view = box.current;
     const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
     if (!view || !row || !view.contains(row)) return;
+    // In layout pixels, where the row comes to rest: the card may still be unfolding (scaled down to
+    // 0.72 tall), and a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
     const outer = view.getBoundingClientRect();
     const rect = row.getBoundingClientRect();
-    // Where the row comes to rest: a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
+    const scale = view.offsetHeight ? outer.height / view.offsetHeight : 1;
     const transform = getComputedStyle(row).transform;
     const lift = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
-    const top = rect.top - lift;
-    const bottom = rect.bottom - lift;
-    if (top < outer.top) view.scrollTop -= outer.top - top;
-    else if (bottom > outer.bottom) view.scrollTop += bottom - outer.bottom;
+    const top = (rect.top - outer.top) / scale - view.clientTop - lift + view.scrollTop;
+    const bottom = top + row.offsetHeight;
+    if (top < view.scrollTop) view.scrollTop = top;
+    else if (bottom > view.scrollTop + view.clientHeight) view.scrollTop = bottom - view.clientHeight;
   }, [activeId, panelId]);
   return { box, pointed };
 }
