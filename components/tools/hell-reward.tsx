@@ -1,11 +1,11 @@
 "use client";
 
-import { useId, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { HubTabs } from "@/components/site/hub-tabs";
 import { SiteHeader } from "@/components/site/site-header";
-import { ArrowLeft, Gift } from "@/components/ui/icons";
+import { ArrowLeft, Gift, Layer } from "@/components/ui/icons";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 import { MINUTE, useClock } from "@/components/home/clock";
@@ -258,6 +258,29 @@ export function HellRewardTool() {
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
   // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
   const zeroManual = zeroManualCount(value, base);
+  // The small window (M52): its code arrives on the first press; the window shows this render's figures.
+  const [pip, setPip] = useState<{ win: Window; View: typeof import("./hell-reward-pip").HellPip } | null>(null);
+  const opening = useRef(false);
+  const closedPip = useCallback(() => setPip(null), []);
+  const togglePip = async () => {
+    if (pip) {
+      pip.win.close(); // its pagehide clears the state
+      return;
+    }
+    if (opening.current) return;
+    opening.current = true;
+    try {
+      const mod = await import("./hell-reward-pip");
+      const win = await mod.openPipWindow();
+      setPip({ win, View: mod.HellPip });
+    } catch {
+      // Refused (no user gesture left, or the browser said no): the button stays as it was.
+    } finally {
+      opening.current = false;
+    }
+  };
+  // Leaving the tool closes the window with it.
+  useEffect(() => () => pip?.win.close(), [pip]);
 
 
   return (
@@ -326,9 +349,23 @@ export function HellRewardTool() {
                 setRankedManual(manualKey);
               }}
             >
-              <h2 id="hell-value-heading" className={styles.sectionTitle}>
-                {kindLabel} {level} · {stage}단계 고정 보상
-              </h2>
+              {/* The button is in the server's HTML and shown only where the browser has Document PiP (<html
+                  data-pip>, set before the first paint): it never appears later, so nothing moves (M52). */}
+              <div className={styles.titleRow}>
+                <h2 id="hell-value-heading" className={styles.sectionTitle}>
+                  {kindLabel} {level} · {stage}단계 고정 보상
+                </h2>
+                <button
+                  type="button"
+                  className={`${quote.outlinePill} ${styles.pipButton} hit-44`}
+                  aria-pressed={!!pip}
+                  title={pip ? "작은 창 닫기" : "결과를 항상 위에 뜨는 작은 창으로 보기"}
+                  onClick={togglePip}
+                >
+                  <Layer size={14} aria-hidden="true" />
+                  작은 창
+                </button>
+              </div>
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -481,6 +518,23 @@ export function HellRewardTool() {
         </div>
       </main>
       <footer className={quote.footer}>LOAKraken · 거래소 시세 기반 계산</footer>
+      {pip && (
+        <pip.View
+          win={pip.win}
+          onClose={closedPip}
+          data={{
+            title: `${kindLabel} ${level} · ${stage}단계`,
+            bestLabel: best?.label ?? "",
+            bestValue: `${goldText(best?.value ?? 0)}G`,
+            age: age?.short ?? "",
+            baseLabel: abundance ? "기본 보상 (풍요 ×10)" : "기본 보상",
+            baseValue: base ? `${goldText(base.value)}G` : kind === "abyss" ? "없음" : "확인 중",
+            boxes: boxes.map((box) => ({ id: box.id, label: box.label, amount: `${goldText(box.value)}G` })),
+            waiting: !restored || (!loaded && !failure),
+            failed: !!failure,
+          }}
+        />
+      )}
     </div>
   );
 }

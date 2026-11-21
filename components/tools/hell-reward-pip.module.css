@@ -1,0 +1,77 @@
+/* (ours, M52) The 지옥 · 나락 보상 result in its small window: the site's tokens (copied stylesheets and <html>
+   attributes), one narrow column. */
+.pip {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 14px 14px 16px;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.43;
+}
+.pip[data-waiting] .sums dd,
+.pip[data-waiting] .boxes {
+  opacity: 0.45;
+}
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+}
+.note {
+  margin: 6px 0 0;
+  color: var(--destructive);
+  font-size: 12px;
+}
+.sums {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+.sums > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.sums dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.sums dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.age {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.boxes {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.boxes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.boxes li:first-child {
+  font-weight: 700;
+}
+.amount {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
