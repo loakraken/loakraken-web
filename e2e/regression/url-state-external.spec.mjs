@@ -47,16 +47,25 @@ test("레이드 보상표: 짝이 아닌 값('…:HARD:garbage')은 버리고 �
   await expect.poll(() => param(page, "difficulty")).toBeNull();
 });
 
-// codex #1895 follow-up P3 (1): the pick and a click on this page's tab in one task, so the router never reports the
-// pick before the tab's default address (null → KAZEROS → null shows as null → null). The chips still follow it.
-test("레이드 보상표: 고르자마자 같은 화면 탭을 눌러도(라우터가 고른 값을 알리기 전) 분류가 처음으로", async ({ page }) => {
+// codex #1895 follow-up P3 (1): the tab click lands right after the pick reached the address but before the router
+// reported it (forced: clicked inside the hook's own replaceState call), so the router goes null → (KAZEROS) → null
+// and may report null → null. The chips still follow the tab's default address.
+test("레이드 보상표: 고른 값이 주소에 쓰인 직후(라우터가 알리기 전) 같은 화면 탭을 눌러도 분류가 처음으로", async ({ page }) => {
   await gotoReady(page, "/tools/raid-rewards");
   const chips = page.getByRole("group", { name: "레이드 분류" });
   await page.evaluate(() => {
-    const chip = [...document.querySelectorAll('[aria-label="레이드 분류"] button')].find((b) => b.textContent === "카제로스 레이드");
     const tab = [...document.querySelectorAll('nav[aria-label="레이드 화면"] a')].find((a) => a.textContent === "보상표");
-    chip.click();
-    tab.click();
+    const replace = history.replaceState;
+    history.replaceState = function (state, unused, url) {
+      const out = replace.call(this, state, unused, url);
+      // The hook writes with a null state (writeUrlParam); the router's own calls carry its object.
+      if (state == null && String(url).includes("filter=KAZEROS")) {
+        history.replaceState = replace;
+        tab.click();
+      }
+      return out;
+    };
+    [...document.querySelectorAll('[aria-label="레이드 분류"] button')].find((b) => b.textContent === "카제로스 레이드").click();
   });
   await expect.poll(() => param(page, "filter")).toBeNull();
   await expect(chips.getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
