@@ -48,6 +48,24 @@ for (const width of [320, 1280])
       }
     }
 
+    // Nothing in the card is wider than the card, whatever the font (CI #1889: the input's own ~20-character width
+    // widened the field's grid to 348px at 320, Linux fonts; Windows fonts fit). Squeezed to 180px, every box stays
+    // inside the card's content box, and the field fills it.
+    const squeezed = await card.evaluate((el) => {
+      el.style.width = "180px";
+      const style = getComputedStyle(el);
+      const inner = el.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+      const over = [...el.querySelectorAll("*")]
+        .filter((node) => node.getBoundingClientRect().right > inner + 0.5)
+        .map((node) => `${node.tagName.toLowerCase()} right=${Math.round(node.getBoundingClientRect().right)} "${(node.textContent ?? "").trim().slice(0, 24)}"`);
+      const input = el.querySelector("input").getBoundingClientRect();
+      const label = el.querySelector("label").getBoundingClientRect();
+      el.style.width = "";
+      return { over, inner: Math.round(inner), fills: Math.abs(input.width - label.width) < 0.5 };
+    });
+    expect(squeezed.over, `카드 밖으로 나간 상자(카드 안쪽 오른쪽 ${squeezed.inner})`).toEqual([]);
+    expect(squeezed.fills, "입력칸이 칸 너비를 채운다").toBe(true);
+
     // Kept in this browser, and the 로아샵 계산기 reads the same value.
     await page.reload();
     await expect(page.getByRole("region", { name: "블루 크리스탈" }).getByRole("textbox", { name: /게임 안 교환소 시세/ })).toHaveValue("27300");

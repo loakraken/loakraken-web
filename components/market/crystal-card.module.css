@@ -51,11 +51,18 @@
 }
 .field {
   display: grid;
+  /* One column the card's width: no item's own width (the input's ~20 characters) may widen it (CI 320: +28px). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   margin-top: 14px;
   font-size: 13px;
 }
+.field > * {
+  min-width: 0;
+}
 .field input {
+  width: 100%;
+  box-sizing: border-box;
   /* 44px: the whole field is the tap target (A36; an input draws no ::after for hit-44). */
   min-height: 44px;
   padding: 0 12px;
