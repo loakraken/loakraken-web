@@ -93,7 +93,8 @@ for (const width of [320, 1280])
     await button.click();
     const second = await again;
     const gone = second.waitForEvent("close");
-    await page.getByRole("link", { name: "홈으로" }).click();
+    // In-app navigation (the header's logo link, at every width): the tool unmounts and takes the window with it.
+    await page.getByRole("link", { name: "LOAKraken 홈" }).click();
     await gone;
     await expect(page).toHaveURL(/\/$/);
   });
