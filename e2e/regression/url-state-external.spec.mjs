@@ -46,3 +46,29 @@ test("레이드 보상표: 짝이 아닌 값('…:HARD:garbage')은 버리고 �
   await expect(page.getByRole("radiogroup", { name: "1막 난이도" }).getByRole("radio", { name: "노말" })).toBeChecked();
   await expect.poll(() => param(page, "difficulty")).toBeNull();
 });
+
+// codex #1895 follow-up P3 (1): the pick and a click on this page's tab in one task, so the router never reports the
+// pick before the tab's default address (null → KAZEROS → null shows as null → null). The chips still follow it.
+test("레이드 보상표: 고르자마자 같은 화면 탭을 눌러도(라우터가 고른 값을 알리기 전) 분류가 처음으로", async ({ page }) => {
+  await gotoReady(page, "/tools/raid-rewards");
+  const chips = page.getByRole("group", { name: "레이드 분류" });
+  await page.evaluate(() => {
+    const chip = [...document.querySelectorAll('[aria-label="레이드 분류"] button')].find((b) => b.textContent === "카제로스 레이드");
+    const tab = [...document.querySelectorAll('nav[aria-label="레이드 화면"] a')].find((a) => a.textContent === "보상표");
+    chip.click();
+    tab.click();
+  });
+  await expect.poll(() => param(page, "filter")).toBeNull();
+  await expect(chips.getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(400);
+  expect(param(page, "filter")).toBeNull();
+  await expect(chips.getByRole("button", { name: "카제로스 레이드" })).toHaveAttribute("aria-pressed", "false");
+});
+
+// codex #1895 follow-up P3 (2): a value the page does not have shows the default, and the address is brought to what is
+// shown (the hook writes the shown value; documented in useUrlState).
+test("레이드 보상표: 없는 분류(?filter=INVALID)는 전체로, 주소도 그에 맞춘다", async ({ page }) => {
+  await gotoReady(page, "/tools/raid-rewards?filter=INVALID");
+  await expect(page.getByRole("group", { name: "레이드 분류" }).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => param(page, "filter")).toBeNull();
+});
