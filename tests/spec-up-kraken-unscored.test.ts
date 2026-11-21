@@ -66,3 +66,37 @@ test("효율 · 증가 lists are unchanged: OK rows ranked, the rest folded by t
   assert.deepEqual(ok, candidates.filter((c) => c.status === "OK"));
   assert.ok(folded.every((g) => g.code !== KRAKEN_UNSCORED));
 });
+
+test("api #1042: an unscored row the api gives a reason folds under its code with its sentence", () => {
+  const { candidates } = answer("실목록1-KRAKEN");
+  const withReason = candidates.map((c) =>
+    c.emptySlot && c.deltaKrakenScore == null
+      ? { ...c, krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT", krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요." }
+      : c,
+  );
+  const { folded } = splitKrakenCandidates(withReason);
+  const group = folded.find((g) => g.code === "KRAKEN_SCORE_EMPTY_GEM_SLOT");
+  assert.ok(group);
+  assert.equal(group.reason, "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.");
+  assert.equal(group.candidates.length, 5);
+  assert.ok(folded.every((g) => g.code !== KRAKEN_UNSCORED));
+});
+
+test("api #1042: a supporter's UNSUPPORTED empty-slot row with both reasons — 크라켄 점수 fold shows the score's, 효율 the CP's", () => {
+  const row = {
+    id: "GEM_LEVEL:0:10",
+    kind: "GEM_LEVEL",
+    status: "UNSUPPORTED",
+    reasonCode: "SUPPORTER",
+    reason: "서포터는 전투력을 계산하지 않아요.",
+    deltaKrakenScore: null,
+    emptySlot: true,
+    krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT",
+    krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.",
+  } as unknown as Candidate;
+  assert.deepEqual(
+    splitKrakenCandidates([row]).folded.map((g) => [g.code, g.reason]),
+    [["KRAKEN_SCORE_EMPTY_GEM_SLOT", "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요."]],
+  );
+  assert.deepEqual(splitCandidates([row]).folded.map((g) => [g.code, g.reason]), [["SUPPORTER", "서포터는 전투력을 계산하지 않아요."]]);
+});
