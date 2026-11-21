@@ -3,7 +3,7 @@
 // long, so a group of dots is one path. The page theme (data-theme on <html>, set before the first paint) picks the
 // light or dark colour (globals.css .orb-still), so the server's HTML is right in a dark page too; `theme` pins one
 // where the caller draws both and shows one by CSS (the banner). It also stands in the canvas's box while
-// thinking-orbs loads (Orb, #1866): display block, size × size.
+// thinking-orbs loads (Orb, #1867): display block, size × size.
 import type { CSSProperties } from "react";
 import { ORB_STILL, ORB_STILL_SIZE } from "./orb-still-data";
 

@@ -1,6 +1,6 @@
 "use client";
 
-// The thinking orb, loaded after the first paint (#1866): thinking-orbs (~17KB gzip) was in the first JS of every
+// The thinking orb, loaded after the first paint (#1867): thinking-orbs (~17KB gzip) was in the first JS of every
 // page with an orb, the character page among them, though its canvas draws only in an effect anyway. Until the
 // library is in, the orb's own still frame stands in its box (the frame it draws under reduced motion, generated at
 // build time: orb-still-data), same size and display, so nothing moves when the canvas takes over.
