@@ -16,18 +16,24 @@ export type HellPipData = {
   baseLabel: string;
   baseValue: string;
   boxes: { id: string; label: string; amount: string }[];
-  /** Prices (or the stored values) not in yet: the figures are not final. */
-  waiting: boolean;
+  /** The page's own sentence about the list's order (held, or current), and its list label. */
+  orderNote: string;
+  listLabel: string;
+  /** Figures not final, as the page marks them: stored values or prices not in yet, or a new price basis
+   * still loading (the old prices shown dimmed and busy, codex P2 on #1903). */
+  busy: boolean;
+  /** The list not known yet (prices not in): the page holds it unseen, so does the window. */
+  listWaiting: boolean;
   failed: boolean;
 };
-
-type DocumentPip = { requestWindow(options: { width: number; height: number }): Promise<Window> };
 
 // The window's own rules, written into it when it opens: a CSS module loaded with this code is not reliably in the
 // page's <head> yet when the window copies it. The site's tokens and fonts come from the page's copied stylesheets.
 const STYLE = `
 .lk-pip{box-sizing:border-box;min-height:100vh;margin:0;padding:14px 14px 16px;background:var(--background);color:var(--foreground);font-family:var(--font-ui);font-size:13px;line-height:1.43}
-.lk-pip[data-waiting] dd,.lk-pip[data-waiting] ol{opacity:.45}
+.lk-pip[data-busy] dd,.lk-pip[data-busy] ol{opacity:.45}
+.lk-pip ol[data-waiting]{visibility:hidden}
+.lk-pip-order{margin:12px 0 0;color:var(--muted-foreground);font-size:12px}
 .lk-pip h1{margin:0;font-size:15px;font-weight:700;line-height:21px}
 .lk-pip-note{margin:6px 0 0;color:var(--destructive);font-size:12px}
 .lk-pip dl{display:grid;gap:6px;margin:10px 0 0}
@@ -35,9 +41,8 @@ const STYLE = `
 .lk-pip dt{color:var(--muted-foreground);font-size:12px}
 .lk-pip dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .lk-pip-age{color:var(--muted-foreground);font-size:11px;font-weight:500}
-.lk-pip ol{display:grid;gap:2px;margin:12px 0 0;padding:0;list-style:none}
+.lk-pip ol{display:grid;gap:2px;margin:6px 0 0;padding:0;list-style:none}
 .lk-pip li{display:flex;justify-content:space-between;gap:8px;padding:6px 2px;border-bottom:1px solid var(--border)}
-.lk-pip li:first-child{font-weight:700}
 .lk-pip-amount{flex:none;font-variant-numeric:tabular-nums}
 `;
 
@@ -50,17 +55,14 @@ function copyRootLook(win: Window) {
   win.document.body.className = document.body.className;
 }
 
-/** Opens the window (the caller's click is the user gesture) and gives it the page's styles and theme. */
-export async function openPipWindow(): Promise<Window> {
-  const pip = (window as unknown as { documentPictureInPicture: DocumentPip }).documentPictureInPicture;
-  const win = await pip.requestWindow({ width: 320, height: 440 });
+/** Gives the window the page asked for (in its click, codex P2 on #1903) the page's styles and theme. */
+export function prepareWindow(win: Window) {
   for (const node of document.head.querySelectorAll('link[rel="stylesheet"], style')) win.document.head.append(node.cloneNode(true));
   const own = win.document.createElement("style");
   own.textContent = STYLE;
   win.document.head.append(own);
   win.document.title = "지옥 · 나락 보상";
   copyRootLook(win);
-  return win;
 }
 
 /** The result inside the window. `onClose` runs when the window goes (closed by the user, or by the page). */
@@ -76,7 +78,7 @@ export function HellPip({ win, data, onClose }: { win: Window; data: HellPipData
     };
   }, [win, onClose]);
   return createPortal(
-    <main className="lk-pip" aria-busy={data.waiting || undefined} data-waiting={data.waiting ? "" : undefined}>
+    <main className="lk-pip" aria-busy={data.busy || undefined} data-busy={data.busy ? "" : undefined}>
       <h1>{data.title}</h1>
       {data.failed && <p className="lk-pip-note">시세를 불러오지 못했어요. 페이지에서 다시 불러와 주세요.</p>}
       <dl>
@@ -96,7 +98,8 @@ export function HellPip({ win, data, onClose }: { win: Window; data: HellPipData
           <dd>{data.baseValue}</dd>
         </div>
       </dl>
-      <ol aria-label="상자별 값(좋은 순)">
+      <p className="lk-pip-order">{data.orderNote}</p>
+      <ol aria-label={data.listLabel} data-waiting={data.listWaiting ? "" : undefined} aria-busy={data.listWaiting || undefined}>
         {data.boxes.map((box) => (
           <li key={box.id}>
             <span>{box.label}</span>

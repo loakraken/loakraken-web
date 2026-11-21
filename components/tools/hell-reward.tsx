@@ -37,6 +37,9 @@ import quote from "./material-quote.module.css";
 import styles from "./hell-reward.module.css";
 import { FpEnd } from "@/components/ui/fp-end";
 
+/** The boxes list's name, on the page and in the small window. */
+const LIST_LABEL = "상자별 값(좋은 순)";
+
 const KINDS: { value: HellKind; label: string }[] = [
   { value: "hell", label: "지옥" },
   { value: "abyss", label: "나락" },
@@ -258,26 +261,59 @@ export function HellRewardTool() {
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
   // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
   const zeroManual = zeroManualCount(value, base);
-  // The small window (M52): its code arrives on the first press; the window shows this render's figures.
+  // What the list's order is now, said above the list (the small window says the same).
+  const orderNote = !view.stale
+    ? "지금 값 기준으로 좋은 순서예요."
+    : typing && rankedManual !== manualKey
+      ? "입력을 마치면 값 순서로 다시 정렬해요."
+      : "시세가 바뀌어 지금 값과 순서가 달라요.";
+  // The small window (M52). The window is asked for in the click itself, while the press still counts as the
+  // user's (codex P2 on #1903: asked after loading its code, a slow first load outlasted that and the browser
+  // refused); its code loads alongside. A refusal is said, not swallowed. A page left while it opens closes it.
   const [pip, setPip] = useState<{ win: Window; View: typeof import("./hell-reward-pip").HellPip } | null>(null);
+  const [pipFailed, setPipFailed] = useState(false);
   const opening = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const closedPip = useCallback(() => setPip(null), []);
-  const togglePip = async () => {
+  const togglePip = () => {
     if (pip) {
       pip.win.close(); // its pagehide clears the state
       return;
     }
-    if (opening.current) return;
+    const api = (window as unknown as { documentPictureInPicture?: { requestWindow(o: { width: number; height: number }): Promise<Window> } })
+      .documentPictureInPicture;
+    if (opening.current || !api) return;
     opening.current = true;
+    setPipFailed(false);
+    let asked: Promise<Window>;
     try {
-      const mod = await import("./hell-reward-pip");
-      const win = await mod.openPipWindow();
-      setPip({ win, View: mod.HellPip });
-    } catch {
-      // Refused (no user gesture left, or the browser said no): the button stays as it was.
-    } finally {
-      opening.current = false;
+      asked = api.requestWindow({ width: 320, height: 440 });
+    } catch (error) {
+      asked = Promise.reject(error);
     }
+    Promise.all([asked, import("./hell-reward-pip")])
+      .then(([win, mod]) => {
+        if (!mounted.current) {
+          win.close();
+          return;
+        }
+        mod.prepareWindow(win);
+        setPip({ win, View: mod.HellPip });
+      })
+      .catch(() => {
+        // The window may have opened while its code failed to load: close it rather than leave it empty.
+        asked.then((win) => win.close()).catch(() => {});
+        if (mounted.current) setPipFailed(true);
+      })
+      .finally(() => {
+        opening.current = false;
+      });
   };
   // Leaving the tool closes the window with it.
   useEffect(() => () => pip?.win.close(), [pip]);
@@ -350,8 +386,10 @@ export function HellRewardTool() {
               }}
             >
               {/* The button is in the server's HTML and shown only where the browser has Document PiP (<html
-                  data-pip>, set before the first paint): it never appears later, so nothing moves (M52). */}
-              <div className={styles.titleRow}>
+                  data-pip>, set before the first paint): it never appears later, so nothing moves (M52). The row is
+                  drawn once whole (data-fp-whole): a first HTML cut inside the title (its text comes in parts) never
+                  draws a shorter title beside the button (codex P3 on #1903). */}
+              <div className={styles.titleRow} data-fp-whole="">
                 <h2 id="hell-value-heading" className={styles.sectionTitle}>
                   {kindLabel} {level} · {stage}단계 고정 보상
                 </h2>
@@ -363,9 +401,13 @@ export function HellRewardTool() {
                   onClick={togglePip}
                 >
                   <Layer size={14} aria-hidden="true" />
-                  작은 창
+                  {pipFailed ? "다시 열기" : "작은 창"}
                 </button>
+                <FpEnd />
               </div>
+              <p className={styles.sr} role="status">
+                {pipFailed ? "작은 창을 열지 못했어요. 다시 눌러 주세요." : ""}
+              </p>
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -430,11 +472,7 @@ export function HellRewardTool() {
               <p className={styles.order}>
                 <span aria-live="polite">
                   {/* The typing line only for typed values not ranked yet; a price-driven change keeps its own. */}
-                  {!view.stale
-                    ? "지금 값 기준으로 좋은 순서예요."
-                    : typing && rankedManual !== manualKey
-                      ? "입력을 마치면 값 순서로 다시 정렬해요."
-                      : "시세가 바뀌어 지금 값과 순서가 달라요."}
+                  {orderNote}
                 </span>
                 {/* Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the line, so its label arriving grew it leftwards. */}
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)} data-fp-whole="">
@@ -447,7 +485,7 @@ export function HellRewardTool() {
                   in table order if prices fail. */}
               <ol
                 className={styles.boxes}
-                aria-label="상자별 값(좋은 순)"
+                aria-label={LIST_LABEL}
                 data-waiting={!loaded && !failure ? "" : undefined}
                 aria-busy={!loaded && !failure ? true : undefined}
               >
@@ -527,10 +565,13 @@ export function HellRewardTool() {
             bestLabel: best?.label ?? "",
             bestValue: `${goldText(best?.value ?? 0)}G`,
             age: age?.short ?? "",
+            orderNote,
+            listLabel: LIST_LABEL,
+            busy: switching || !restored || (!loaded && !failure),
+            listWaiting: !loaded && !failure,
             baseLabel: abundance ? "기본 보상 (풍요 ×10)" : "기본 보상",
             baseValue: base ? `${goldText(base.value)}G` : kind === "abyss" ? "없음" : "확인 중",
             boxes: boxes.map((box) => ({ id: box.id, label: box.label, amount: `${goldText(box.value)}G` })),
-            waiting: !restored || (!loaded && !failure),
             failed: !!failure,
           }}
         />

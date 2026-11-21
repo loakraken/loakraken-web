@@ -2,20 +2,36 @@
 // 단추가 보이고(첫 그림 전에 <html data-pip>, 나중에 나타나지 않아 흔들림 0), 누르면 작은 창에 페이지와 같은 결과가
 // 뜬다(상태 하나, 따로 불러오지 않음). 페이지에서 바꾸면 작은 창도 바뀌고, 다시 누르거나 다른 화면으로 가면 닫힌다.
 // 헤드리스 브라우저의 작은 창 대신, 같은 출처의 빈 창을 여는 requestWindow로 바꿔 그 창의 내용을 본다.
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const PRICES = "/api/markets/material-prices";
 
-/** A Document PiP whose window is an ordinary same-origin popup the test can read. */
-const withPip = (page) =>
-  page.addInitScript(() => {
+/**
+ * A Document PiP whose window is an ordinary same-origin popup the test can read. Like the real one, it opens only
+ * while the press still counts as the user's (navigator.userActivation), else it refuses with NotAllowedError —
+ * `refuse` makes it always refuse.
+ */
+const withPip = (page, { refuse = false } = {}) =>
+  page.addInitScript((refuseAll) => {
     Object.defineProperty(window, "documentPictureInPicture", {
       configurable: true,
       value: {
-        requestWindow: async ({ width, height }) => window.open("", "_blank", `popup,width=${width},height=${height}`),
+        requestWindow: ({ width, height }) =>
+          !refuseAll && navigator.userActivation.isActive
+            ? Promise.resolve(window.open("", "_blank", `popup,width=${width},height=${height}`))
+            : Promise.reject(new DOMException("no user activation", "NotAllowedError")),
       },
     });
+  }, refuse);
+
+/** Holds the JS chunk that carries the small window's view (its own style text marks it) for `ms`. */
+const delayPipChunk = (page, ms) =>
+  page.route(/\/_next\/static\/chunks\/.+\.js$/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.text();
+    if (body.includes("lk-pip-amount")) await new Promise((done) => setTimeout(done, ms));
+    await route.fulfill({ response, body });
   });
 
 /** No Document PiP (Firefox, Safari today). */
@@ -74,6 +90,11 @@ for (const width of [320, 1280])
     );
     // The page's styles came along (the window's own class is styled, not browser defaults).
     expect(await pip.locator("main").evaluate((el) => getComputedStyle(el).fontSize)).toBe("13px");
+    // The page's own sentence about the order, and no row singled out (the page marks none; codex P2 on #1903).
+    const pageNote = await page.getByText(/순서(예요|가 달라요|로 다시 정렬해요)\.$/).first().innerText();
+    await expect(pip.getByText(pageNote, { exact: true })).toBeVisible();
+    const weights = await pip.locator("ol > li").evaluateAll((items) => items.map((li) => getComputedStyle(li).fontWeight));
+    expect(new Set(weights).size, `상자 줄 굵기 ${weights}`).toBe(1);
 
     // The page changes it: 나락 instead of 지옥 — the window follows in the same render.
     await page.getByRole("radiogroup", { name: "종류" }).getByRole("radio", { name: "나락" }).click();
@@ -98,3 +119,74 @@ for (const width of [320, 1280])
     await gone;
     await expect(page).toHaveURL(/\/$/);
   });
+
+// codex P2 on #1903: the window is asked for in the click itself. Its code held 6s (past the ~5s a press counts as
+// the user's) still opens it: asked after loading the code, the browser refused and the button did nothing.
+test("1280: 작은 창 코드가 늦게 와도(6초) 누른 그 순간 창을 받아 연다 @regression", async ({ page }) => {
+  test.setTimeout(60_000);
+  await withPip(page);
+  await delayPipChunk(page, 6000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  const opened = page.waitForEvent("popup", { timeout: 3000 });
+  await page.getByRole("button", { name: "작은 창" }).click();
+  const pip = await opened;
+  // Filled once the code is in.
+  await expect(pip.getByRole("heading", { level: 1 })).toHaveText(/단계$/, { timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "작은 창" })).toHaveAttribute("aria-pressed", "true");
+});
+
+// codex P2 on #1903: a refusal is said (a polite status line, the button offers to try again), never swallowed.
+test("1280: 브라우저가 작은 창을 거절하면 알려 주고 다시 열 수 있다 @regression", async ({ page }) => {
+  await withPip(page, { refuse: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  let popups = 0;
+  page.on("popup", () => popups++);
+  await page.getByRole("button", { name: "작은 창" }).click();
+  const retry = page.getByRole("button", { name: "다시 열기" });
+  await expect(retry).toBeVisible();
+  await expect(retry).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("status").filter({ hasText: "작은 창을 열지 못했어요. 다시 눌러 주세요." })).toHaveCount(1);
+  expect(popups).toBe(0);
+});
+
+// codex P3 on #1903: leaving the tool while the window's code is still coming closes the window it already opened.
+test("1280: 작은 창을 여는 중에 화면을 떠나면 그 창도 닫힌다 @regression", async ({ page }) => {
+  await withPip(page);
+  await delayPipChunk(page, 2500);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  const opened = page.waitForEvent("popup", { timeout: 3000 });
+  await page.getByRole("button", { name: "작은 창" }).click();
+  const pip = await opened;
+  const gone = pip.waitForEvent("close", { timeout: 10_000 });
+  await page.getByRole("link", { name: "LOAKraken 홈" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await gone;
+});
+
+// codex P2 on #1903: a new 시세 기준 shows the old figures as not current on the page (busy, dimmed) — the window too.
+test("1280: 시세 기준을 바꾸는 동안 작은 창도 '불러오는 중'이다 @regression", async ({ page }) => {
+  await withPip(page);
+  let release;
+  const gate = new Promise((done) => (release = done));
+  await page.route(`**${PRICES}`, async (route) => {
+    if ((route.request().postData() ?? "").includes("CURRENT_MIN_PRICE")) await gate;
+    await route.continue();
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  await expect(page.locator("main dl[aria-live] dd").first()).not.toHaveText("");
+  const opened = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "작은 창" }).click();
+  const pip = await opened;
+  const pipMain = pip.locator("main");
+  await expect(pipMain).not.toHaveAttribute("aria-busy");
+  await chooseOption(page, page.getByRole("combobox", { name: "시세 기준" }), "현재 최저가");
+  await expect(page.locator("[data-stale]")).toHaveCount(1);
+  await expect(pipMain).toHaveAttribute("aria-busy", "true");
+  release();
+  await expect(page.locator("[data-stale]")).toHaveCount(0);
+  await expect(pipMain).not.toHaveAttribute("aria-busy");
+});
