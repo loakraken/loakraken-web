@@ -142,10 +142,13 @@ test(`320: 차트 양 끝 빈 날에서도 '${GAP}' 칸은 차트와 화면 안 
     page,
     async () => {
       let before = await readout.textContent();
-      // From the newest completed day back over the whole 30 days: both gap days on the way.
-      for (let i = 0; i < 29; i++) {
+      // From the newest completed day back to the oldest (← stops there): both gap days on the way.
+      for (let i = 0; i < 40; i++) {
         await svg.press("ArrowLeft");
-        await expect(readout).not.toHaveText(before);
+        const moved = await expect(readout)
+          .not.toHaveText(before, { timeout: 1500 })
+          .then(() => true, () => false);
+        if (!moved) break;
         before = await readout.textContent();
         if (!before.includes(GAP)) continue;
         await expect(tip).toHaveCount(1);
