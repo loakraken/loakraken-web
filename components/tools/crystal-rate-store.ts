@@ -4,7 +4,7 @@
 // the 시세 screen's 블루 크리스탈 card. It stays in this browser only and is never sent anywhere; there is no
 // default and no fetched value (no official feed of the rate exists).
 import { useSyncExternalStore } from "react";
-import { parseRate } from "@/lib/tools/crystal-rate";
+import { checkRate } from "@/lib/tools/crystal-rate";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
 const RATE_KEY = "loakraken.loa-shop.rate";
@@ -23,7 +23,7 @@ function readRate() {
 function writeRate(value: string) {
   memoryRate = value;
   try {
-    if (value) window.localStorage.setItem(RATE_KEY, value);
+    if (value.trim()) window.localStorage.setItem(RATE_KEY, value);
     else window.localStorage.removeItem(RATE_KEY);
   } catch {
     // Storage blocked: the value still works for this visit.
@@ -37,9 +37,12 @@ const subscribeRate = (listener: () => void) => {
   };
 };
 
-/** The typed text (digits only), a setter, and the rate it parses to (null when empty). */
+/**
+ * The text as typed (kept as is, so a wrong character stays visible instead of being dropped), a setter, the rate
+ * it reads as (null when empty or invalid), and whether it is invalid.
+ */
 export function useCrystalRate() {
   const text = useSyncExternalStore(subscribeRate, readRate, () => "");
-  const change = (typed: string) => writeRate(typed.replace(/[^\d]/g, ""));
-  return { text, change, rate: parseRate(text) };
+  const change = (typed: string) => writeRate(typed);
+  return { text, change, ...checkRate(text) };
 }

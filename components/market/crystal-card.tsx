@@ -7,7 +7,7 @@
 import { useId } from "react";
 import Link from "next/link";
 import { useCrystalRate } from "@/components/tools/crystal-rate-store";
-import { goldPerRoyal } from "@/lib/tools/crystal-rate";
+import { goldPerRoyal, RATE_INVALID } from "@/lib/tools/crystal-rate";
 import styles from "./crystal-card.module.css";
 
 export type CrystalShopRate = {
@@ -21,9 +21,10 @@ const whole = new Intl.NumberFormat("ko-KR");
 const fraction = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 2 });
 
 export function CrystalCard({ royalPer100, source }: CrystalShopRate) {
-  const { text, change, rate } = useCrystalRate();
+  const { text, change, rate, invalid } = useCrystalRate();
   const rateId = useId();
   const hintId = useId();
+  const errorId = useId();
   return (
     <section className={styles.card} aria-labelledby="crystal-heading">
       <h2 id="crystal-heading">블루 크리스탈</h2>
@@ -35,7 +36,7 @@ export function CrystalCard({ royalPer100, source }: CrystalShopRate) {
               100개 = 로열 크리스탈 <span className={styles.nowrap}>{whole.format(royalPer100)}개</span>
             </span>
             <span className={styles.sub}>
-              <a href={source.url} target="_blank" rel="noreferrer">
+              <a className="hit-44" href={source.url} target="_blank" rel="noreferrer">
                 공식 상점
               </a>{" "}
               판매가 기준 · 확인 {source.date}
@@ -48,7 +49,9 @@ export function CrystalCard({ royalPer100, source }: CrystalShopRate) {
             <span className={styles.value}>
               {rate == null ? "—" : `약 ${fraction.format(goldPerRoyal(rate, royalPer100))}골드`}
             </span>
-            <span className={styles.sub}>{rate == null ? "교환소 시세를 넣으면 계산해요" : "내가 넣은 교환소 시세 기준"}</span>
+            <span className={styles.sub}>
+              {invalid ? "넣은 값으로는 계산하지 않아요" : rate == null ? "교환소 시세를 넣으면 계산해요" : "내가 넣은 교환소 시세 기준"}
+            </span>
           </dd>
         </div>
       </dl>
@@ -60,16 +63,22 @@ export function CrystalCard({ royalPer100, source }: CrystalShopRate) {
           inputMode="numeric"
           autoComplete="off"
           placeholder="비워 두면 계산하지 않아요"
-          aria-describedby={hintId}
+          maxLength={20}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? `${errorId} ${hintId}` : hintId}
           value={text}
           onChange={(event) => change(event.target.value)}
         />
       </label>
+      {/* Always in the page (a polite live region), so the message is read when it appears. */}
+      <p id={errorId} className={styles.error} role="status">
+        {invalid ? RATE_INVALID : ""}
+      </p>
       <p id={hintId} className={styles.hint}>
         교환소 시세는 공식으로 받아 올 곳이 없어 직접 넣는 값이에요. 이 브라우저에만 저장하고 서버로 보내지 않아요.
         로아샵 효율 계산기와 같은 값을 써요.
       </p>
-      <Link className={styles.link} href="/tools/loa-shop">
+      <Link className={`${styles.link} hit-44`} href="/tools/loa-shop">
         로아샵 효율 계산기에서 패키지 이득 보기
       </Link>
     </section>

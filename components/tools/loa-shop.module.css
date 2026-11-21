@@ -77,6 +77,17 @@
   border-color: var(--action);
   box-shadow: var(--ring-halo);
 }
+.field input[aria-invalid] {
+  border-color: var(--destructive);
+}
+/* An invalid rate is said under the field (a polite live region, empty while the rate is fine). */
+.rateError {
+  color: var(--destructive);
+  font-size: var(--text-caption);
+}
+.rateError:not(:empty) {
+  margin-top: 6px;
+}
 .basis {
   margin-top: var(--space-3);
 }

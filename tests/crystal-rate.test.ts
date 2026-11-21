@@ -1,13 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { goldPerRoyal, parseRate } from "../lib/tools/crystal-rate";
+import { checkRate, goldPerRoyal, parseRate } from "../lib/tools/crystal-rate";
 import { parseRate as shopParseRate, SHOP_DATA } from "../lib/tools/loa-shop";
 
 test("crystal rate: one parser for the 로아샵 계산기 and the 시세 card (X6)", () => {
   assert.equal(shopParseRate, parseRate);
   assert.equal(parseRate(""), null);
-  assert.equal(parseRate("0"), null);
   assert.equal(parseRate("27,300"), 27300);
+});
+
+test("crystal rate: nothing is stripped silently — a sign, a decimal point or stray commas are invalid (codex P2 on #1889)", () => {
+  const ok = (rate: number) => ({ rate, invalid: false });
+  const bad = { rate: null, invalid: true };
+  assert.deepEqual(checkRate(""), { rate: null, invalid: false });
+  assert.deepEqual(checkRate("   "), { rate: null, invalid: false });
+  assert.deepEqual(checkRate("27300"), ok(27300));
+  assert.deepEqual(checkRate("27,300"), ok(27300));
+  assert.deepEqual(checkRate(" 27300 "), ok(27300));
+  assert.deepEqual(checkRate("1,027,300"), ok(1027300));
+  assert.deepEqual(checkRate("-27300"), bad); // not 27300
+  assert.deepEqual(checkRate("+27300"), bad);
+  assert.deepEqual(checkRate("1.5"), bad); // not 15
+  assert.deepEqual(checkRate("2,73,00"), bad); // not 27300
+  assert.deepEqual(checkRate("27,30"), bad);
+  assert.deepEqual(checkRate(",273"), bad);
+  assert.deepEqual(checkRate("27 300"), bad);
+  assert.deepEqual(checkRate("0"), bad);
+  assert.deepEqual(checkRate("0,000"), bad);
+  assert.deepEqual(checkRate("99999999999999999999"), bad); // past the safe range
+  assert.deepEqual(checkRate("abc"), bad);
 });
 
 test("crystal rate: gold per royal crystal = gold per 100 blue ÷ royal per 100 blue (official shop)", () => {
