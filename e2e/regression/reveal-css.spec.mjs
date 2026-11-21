@@ -96,3 +96,23 @@ test.describe("JS 없이", () => {
       await expect(page.locator(selector).first()).toHaveCSS("opacity", "1");
   });
 });
+
+test("관찰자가 알려 오지 않아도 탭을 바꾼 패널은 1초쯤 뒤 보인다(opacity 0에 남지 않음) @regression", async ({ page }) => {
+  // An IntersectionObserver that never calls back (codex P3 on #1864).
+  await page.addInitScript(() => {
+    window.IntersectionObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    };
+  });
+  await page.setViewportSize({ width: 360, height: 900 });
+  await gotoReady(page, characterPath("상세"));
+  await tabLink(page, "통계").click();
+  const panel = page.locator("[class*='tabPanel']").last();
+  await expect(panel).toHaveCSS("opacity", "1", { timeout: 3000 });
+  await expect(panel).toHaveCSS("transform", "none");
+});
