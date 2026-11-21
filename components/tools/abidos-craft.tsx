@@ -162,7 +162,14 @@ function OutputTable({ results, priced, exchange }: { results: CraftResult[]; pr
               <tr key={r.skill.id}>
                 <th scope="row">
                   {r.skill.name}
-                  <small>{r.materials.map((m) => `${m.name} ${m.qty}${m.gathered ? "(채집)" : ""}`).join(" · ")}</small>
+                  {/* Held like the exchange line: the longest it can say (every material marked) sits unseen, so
+                      ticking 직접 채집 never makes the row wrap taller at 320 (PM-프론트 #1877 P3). */}
+                  <small className={styles.via}>
+                    <span aria-hidden="true" data-reserve="">
+                      {r.materials.map((m) => `${m.name} ${m.qty}(채집)`).join(" · ")}
+                    </span>
+                    <span>{r.materials.map((m) => `${m.name} ${m.qty}${m.gathered ? "(채집)" : ""}`).join(" · ")}</span>
+                  </small>
                   {/* Held from the first paint: what the exchange vendor supplies more cheaply. */}
                   <small className={styles.via}>
                     {/* The longest it can say (every material of the recipe), unseen:

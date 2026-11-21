@@ -134,9 +134,19 @@ export function craftResult(
   const output = CRAFT_DATA.outputs.find((o) => o.id === outputId)!;
   const skill = CRAFT_DATA.skills.find((s) => s.id === skillId)!;
   const activity = activityById(skill.id);
+  // A gathered material is free as an exchange source too: whoever gathered 목재 also has the powder made from it
+  // for nothing, so the chains it feeds cost 0 as well (PM-프론트 #1877 P2, matches the copy).
   const cheapest =
     exchange && activity
-      ? cheapestUnits(activity, (role) => (role === "powder" ? Infinity : (unitPrice(roleName(activity, role)) ?? Infinity)), true)
+      ? cheapestUnits(
+          activity,
+          (role) => {
+            if (role === "powder") return Infinity;
+            const name = roleName(activity, role);
+            return gathered.has(name) ? 0 : (unitPrice(name) ?? Infinity);
+          },
+          true,
+        )
       : null;
   const materials = skill.materials[outputId].map(([name, qty], i) => {
     if (gathered.has(name)) return { name, qty, unit: 0, gold: 0, gathered: true as const };
