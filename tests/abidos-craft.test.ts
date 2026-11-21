@@ -105,3 +105,23 @@ test("energy-cost reduction: the cuts add up and the energy rounds down (calc ve
   const none = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 60, category: 60 });
   assert.equal(none.usePer100Energy, null, "no energy left: no per-energy figure");
 });
+
+test("직접 채집: a gathered material costs 0 (not missing even without a price), the others keep their price", async () => {
+  const { craftResult, gatheredNames, gatherOptions } = await import("../lib/tools/abidos-craft");
+  const prices: Record<string, number> = { "아비도스 목재": 10, "부드러운 목재": 2, 목재: 1, "아비도스 융화 재료": 90 };
+  const unit = (name: string) => prices[name] ?? null;
+  const base = craftResult("abidos", "logging", unit, 0, 0);
+  const gathered = craftResult("abidos", "logging", unit, 0, 0, undefined, false, gatheredNames(["logging.common"]));
+  // 목재 86 × 1 left out of the cost; everything else unchanged.
+  assert.equal(gathered.cost, (base.cost as number) - 86);
+  assert.deepEqual(gathered.materials.find((m) => m.name === "목재"), { name: "목재", qty: 86, unit: 0, gold: 0, gathered: true });
+  // A gathered material with no price is not missing (it is 0 by choice).
+  const noPrice = (name: string) => (name === "목재" ? null : unit(name));
+  assert.equal(craftResult("abidos", "logging", noPrice, 0, 0).cost, null);
+  assert.notEqual(craftResult("abidos", "logging", noPrice, 0, 0, undefined, false, gatheredNames(["logging.common"])).cost, null);
+  // Codes: 6 skills × 3 materials, unique; unknown codes ignored.
+  const codes = gatherOptions().flatMap((o) => o.materials.map((m) => m.code));
+  assert.equal(codes.length, 18);
+  assert.equal(new Set(codes).size, 18);
+  assert.deepEqual([...gatheredNames(["mining.abidos", "nope.common"])], ["아비도스 철광석"]);
+});
