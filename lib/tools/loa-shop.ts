@@ -198,13 +198,8 @@ export function breakEvenRate(
   return { kind: "rate", rate: Math.floor((value.gold * royalPer100) / rest) };
 }
 
-/** The typed exchange rate: a positive whole number of gold, or null. */
-export function parseRate(value: string): number | null {
-  const digits = value.replace(/[^\d]/g, "");
-  if (!digits) return null;
-  const rate = Number(digits);
-  return Number.isSafeInteger(rate) && rate > 0 ? rate : null;
-}
+/** The typed exchange rate: a positive whole number of gold, or null (shared with the 시세 screen's crystal card). */
+export { parseRate } from "./crystal-rate";
 
 /** Whether the package is still on sale at `now` (epoch ms). */
 export const onSale = (pkg: ShopPackage, now: number) => pkg.endsAt == null || now < Date.parse(pkg.endsAt);

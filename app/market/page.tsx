@@ -3,6 +3,15 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { MarketBoardView } from "@/components/market/market-board";
 import { boardQueryString, historyKey, historyRange, parseItemId, parseRange, readBoardQuery } from "@/lib/market/board";
 import { getItemHistory, getMarketBoard, getMarketTabs } from "@/lib/market/server";
+import { SHOP_DATA } from "@/lib/tools/loa-shop";
+import type { CrystalShopRate } from "@/components/market/crystal-card";
+
+/** The official shop's crystal rate and its source (X6): read here, so the client gets only these few fields. */
+const crystalShopRate = (): CrystalShopRate => {
+  const { royalPer100, source } = SHOP_DATA.crystal;
+  const { url, date } = SHOP_DATA.sources[source];
+  return { royalPer100, source: { url, date } };
+};
 
 export const metadata: Metadata = {
   title: "시세",
@@ -55,7 +64,7 @@ export default async function MarketPage({
     client.setQueryData(historyKey(first, longer), longerHistory.envelope, { updatedAt: fetchedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <MarketBoardView initial={initial} initialItem={item} />
+      <MarketBoardView initial={initial} initialItem={item} crystal={crystalShopRate()} />
     </HydrationBoundary>
   );
 }

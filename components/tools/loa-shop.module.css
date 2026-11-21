@@ -77,6 +77,18 @@
   border-color: var(--action);
   box-shadow: var(--ring-halo);
 }
+.field input[aria-invalid] {
+  border-color: var(--destructive);
+}
+/* An invalid rate is said under the field (a polite live region, empty while the rate is fine). Empty, it stays in
+   the page for the announce but out of the grid's flow (an absolutely placed child takes no cell, so no extra gap). */
+.rateError {
+  color: var(--destructive);
+  font-size: var(--text-caption);
+}
+.rateError:empty {
+  position: absolute;
+}
 .basis {
   margin-top: var(--space-3);
 }
