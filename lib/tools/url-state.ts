@@ -8,7 +8,7 @@
 // the address. The page must render per request (connection()) so the first
 // HTML already has the values.
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export type UrlCodec<T> = {
@@ -52,22 +52,26 @@ export function writeUrlParam(key: string, value: string | null) {
  * useState whose value is kept in the address under `key`. An address change from outside (a link to the same page,
  * back · forward) is taken in (codex #1895 P2: Next keeps the state across a query change, so the controls stayed
  * on the old value). Only when the address the router reports is the browser's current one: the router can still be
- * delivering an earlier replaceState of ours, and taking that in would undo a newer pick (and write it back).
+ * delivering an earlier replaceState of ours, and taking that in would undo a newer pick (and write it back). Checked
+ * in a layout effect, not in render: Next writes the history entry of a navigation in its commit (an insertion effect),
+ * so during the render the browser still shows the old address; before paint, so the old value is never drawn.
  */
 export function useUrlState<T>(key: string, fallback: T, codec: UrlCodec<T>) {
   const params = useSearchParams();
   const raw = params.get(key);
-  const read = (from: string | null) => (from == null ? fallback : (codec.parse(from) ?? fallback));
-  const [value, setValue] = useState<T>(() => read(raw));
-  const [seen, setSeen] = useState(raw);
-  if (raw !== seen) {
-    // Adjusting state from a changed input during render (React's 'storing information from previous renders').
-    setSeen(raw);
-    const current = typeof window === "undefined" ? raw : new URL(window.location.href).searchParams.get(key);
-    const next = read(raw);
-    if (current === raw && codec.format(next) !== codec.format(value)) setValue(next);
-  }
+  const [value, setValue] = useState<T>(() => (raw == null ? fallback : (codec.parse(raw) ?? fallback)));
   const formatted = codec.format(value);
+  // The latest value and codec for the effect below, without making it run on every pick.
+  const latest = useRef({ formatted, fallback, codec });
+  useLayoutEffect(() => {
+    latest.current = { formatted, fallback, codec };
+  });
+  useLayoutEffect(() => {
+    if (new URL(window.location.href).searchParams.get(key) !== raw) return;
+    const { formatted: shown, fallback: base, codec: c } = latest.current;
+    const next = raw == null ? base : (c.parse(raw) ?? base);
+    if (c.format(next) !== shown) setValue(next);
+  }, [key, raw]);
   const isDefault = formatted === codec.format(fallback);
   useEffect(() => {
     writeUrlParam(key, isDefault ? null : formatted);
