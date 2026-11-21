@@ -45,3 +45,23 @@ test("no held armour row (gate off or inside it): no notice", () => {
   assert.equal(armorHeldNotice(folded), null);
   assert.equal(armorHeldNotice([]), null);
 });
+
+// codex #1902 P3: an empty or blank api sentence fell through as is, so the notice read only the pointer.
+test("a blank or spaced api sentence: trimmed, and the known sentence for the code when nothing is left", () => {
+  for (const blank of ["", "   "]) {
+    const { folded } = splitCandidates([
+      row("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "UNSUPPORTED", "ARMOR_CP_RESIDUAL_HIGH", blank),
+      row("ARM_GUARD:0:1", "ARM_GUARD", "UNSUPPORTED", "MODEL_UNCONFIRMED", blank),
+    ]);
+    assert.deepEqual(
+      folded.map((g) => [g.code, g.reason]),
+      [
+        ["ARMOR_CP_RESIDUAL_HIGH", TEXT],
+        ["MODEL_UNCONFIRMED", "이 항목은 아직 계산하지 않았어요."],
+      ],
+    );
+    assert.equal(armorHeldNotice(folded), `${TEXT} ${ARMOR_HELD_POINTER}`);
+  }
+  const { folded } = splitCandidates([row("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "UNSUPPORTED", "ARMOR_CP_RESIDUAL_HIGH", ` ${TEXT} `)]);
+  assert.equal(armorHeldNotice(folded), `${TEXT} ${ARMOR_HELD_POINTER}`);
+});
