@@ -80,16 +80,46 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
     await expect(royal, typed).toContainText("넣은 값으로는 계산하지 않아요");
     await expect(royal, typed).not.toContainText("골드");
   }
-  // The 로아샵 계산기 shows the same value as invalid and calculates no gain from it.
+  // Only a valid rate is saved (codex P2 on #1889): valid → invalid → reload brings the valid one back.
+  await field.fill("27300");
+  await expect(royal).toContainText("약 9.93골드");
   await field.fill("-27300");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await page.reload();
+  const cardAgain = page.getByRole("region", { name: "블루 크리스탈" });
+  await expect(cardAgain.getByRole("textbox", { name: /게임 안 교환소 시세/ })).toHaveValue("27300");
+  await expect(cardAgain.getByRole("textbox", { name: /게임 안 교환소 시세/ })).not.toHaveAttribute("aria-invalid");
+  await expect(cardAgain.getByRole("definition").nth(1)).toContainText("약 9.93골드");
+
+  // The 로아샵 계산기: the same saved rate; an invalid entry is marked, calculates no gain, and is not saved either.
   await gotoReady(page, "/tools/loa-shop");
   const shopField = page.getByRole("textbox", { name: SHOP_RATE });
-  await expect(shopField).toHaveValue("-27300");
+  const gain = page.getByText(/로열 크리스탈로 환산한 가치/).first();
+  await expect(shopField).toHaveValue("27300");
+  await expect(gain).toBeVisible();
+  // No error: the empty live region adds no gap to the settings column (codex P3 on #1889).
+  const spacing = await shopField.evaluate((input) => {
+    const label = input.closest("label");
+    // The hint (the field's description while it is valid) is the next box in the column.
+    const hint = document.getElementById(input.getAttribute("aria-describedby"));
+    const status = label.parentElement.querySelector('[role="status"]');
+    return {
+      gap: parseFloat(getComputedStyle(label.parentElement).rowGap),
+      between: hint.getBoundingClientRect().top - label.getBoundingClientRect().bottom,
+      inPage: !!status,
+    };
+  });
+  expect(spacing.inPage, "상태 줄은 늘 페이지에").toBe(true);
+  expect(Math.abs(spacing.between - spacing.gap), JSON.stringify(spacing)).toBeLessThan(0.5);
+  await shopField.fill("1.5");
+  await expect(shopField).toHaveValue("1.5");
   await expect(shopField).toHaveAttribute("aria-invalid", "true");
   await expect(shopField).toHaveAccessibleDescription(message);
-  await expect(page.getByText("로열 크리스탈로 환산한 가치")).toHaveCount(0);
-  // Fixed: the message goes, the field is valid again.
-  await shopField.fill("27,300");
-  await expect(shopField).not.toHaveAttribute("aria-invalid");
+  await expect(page.getByRole("status").filter({ hasText: message })).toHaveCount(1);
+  await expect(page.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: SHOP_RATE })).toHaveValue("27300");
+  await expect(page.getByRole("textbox", { name: SHOP_RATE })).not.toHaveAttribute("aria-invalid");
+  await expect(gain).toBeVisible();
   await expect(page.getByText(message)).toHaveCount(0);
 });
