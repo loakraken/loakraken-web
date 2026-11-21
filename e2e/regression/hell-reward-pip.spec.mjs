@@ -37,10 +37,14 @@ const withPip = (page, { refuse = false } = {}) =>
 /** Holds the JS chunk that carries the small window's view (its own style text marks it) for `ms`. */
 const delayPipChunk = (page, ms) =>
   page.route(/\/_next\/static\/chunks\/.+\.js$/, async (route) => {
-    const response = await route.fetch();
-    const body = await response.text();
-    if (body.includes("lk-pip-amount")) await new Promise((done) => setTimeout(done, ms));
-    await route.fulfill({ response, body });
+    try {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes("lk-pip-amount")) await new Promise((done) => setTimeout(done, ms));
+      await route.fulfill({ response, body });
+    } catch {
+      // The page left while a chunk was in flight (its response is gone): nothing to answer.
+    }
   });
 
 /** No Document PiP (Firefox, Safari today). */

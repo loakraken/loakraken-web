@@ -163,7 +163,8 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).toHaveValue("27300");
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).not.toHaveAttribute("aria-invalid");
   await expect(gain).toBeVisible();
-  await expect(page.getByText(message)).toHaveCount(0);
+  // The status line is empty (the slot's unseen sizing copy, aria-hidden, always holds the text).
+  await expect(page.getByRole("status").filter({ hasText: message })).toHaveCount(0);
 });
 
 // codex P3 on #1889: a rate saved in another tab reaches this tab's card at once (the storage event), with no reload;
