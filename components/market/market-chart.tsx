@@ -351,16 +351,18 @@ export function MarketChart({
           )}
         </svg>
         {/* The reading next to the point while scrubbing; the line below
-          (a polite live region) is what a screen reader hears. */}
+          (a polite live region) is what a screen reader hears. One card per day (key): a card reused across days
+          changed its text and its place in one frame, which Chrome counts as a layout shift (a price day to a
+          gap day, 320, #1788 re-run); a fresh card is not a shift. */}
         {gapDay != null ? (
-          <ChartTooltip x={slotX(active!)} y={gapY - 8} boxWidth={W}>
+          <ChartTooltip key={`gap:${gapDay}`} x={slotX(active!)} y={gapY - 8} boxWidth={W}>
             <span data-gap-tip="">
               {short(gapDay)} · {GAP_TEXT}
             </span>
           </ChartTooltip>
         ) : (
           reading != null && (
-            <ChartTooltip x={x(reading)} y={y(days[reading].value) - 8} boxWidth={W}>
+            <ChartTooltip key={`day:${reading}`} x={x(reading)} y={y(days[reading].value) - 8} boxWidth={W}>
               <strong>{fmt(days[reading].value)}G</strong> · {days[reading].axis}
             </ChartTooltip>
           )

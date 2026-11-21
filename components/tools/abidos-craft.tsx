@@ -12,7 +12,7 @@ import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-contr
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
-import { boolCodec, oneOfCodec, textCodec, useUrlState } from "@/lib/tools/url-state";
+import { boolCodec, oneOfCodec, textCodec, useUrlState, type UrlCodec } from "@/lib/tools/url-state";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
 import {
@@ -22,6 +22,8 @@ import {
   craftMarketNames,
   craftResult,
   expectedYield,
+  gatherOptions,
+  gatheredNames,
   greatSuccessChance,
   parsePercent,
   type CraftResult,
@@ -34,6 +36,48 @@ import styles from "./abidos-craft.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 
 const UNKNOWN = "미확인";
+const GATHER = gatherOptions();
+const GATHER_CODES = GATHER.flatMap((o) => o.materials.map((m) => m.code));
+/** The 직접 채집 materials in the address: their codes, comma separated, in recipe order; unknown codes dropped. */
+const gatherCodec: UrlCodec<string[]> = {
+  parse: (raw) => {
+    const asked = new Set(raw.split(","));
+    return GATHER_CODES.filter((code) => asked.has(code));
+  },
+  format: (codes) => GATHER_CODES.filter((code) => codes.includes(code)).join(","),
+};
+
+/**
+ * 직접 채집: materials the player gathers themselves cost 0 instead of their price. One switch for all, and one box
+ * per material grouped by life skill.
+ */
+function GatherField({ codes, onChange }: { codes: string[]; onChange: (codes: string[]) => void }) {
+  const all = codes.length === GATHER_CODES.length;
+  const toggle = (code: string, on: boolean) => onChange(on ? [...codes, code] : codes.filter((c) => c !== code));
+  return (
+    <div className={styles.gather}>
+      <SwitchRow
+        label="전체 직접 채집"
+        hint="고른 재료는 재료비를 0골드로 계산해요(팔면 받을 값은 빼지 않아요)."
+        checked={all}
+        onChange={(on) => onChange(on ? GATHER_CODES : [])}
+      />
+      {GATHER.map(({ skill, materials }) => (
+        <fieldset key={skill.id} className={styles.gatherSkill}>
+          <legend>{skill.name} 직접 채집</legend>
+          <div className={styles.gatherMaterials}>
+            {materials.map((m) => (
+              <label key={m.code}>
+                <input type="checkbox" checked={codes.includes(m.code)} onChange={(event) => toggle(m.code, event.target.checked)} />
+                {m.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </div>
+  );
+}
 /** 상급 first on this page (사용자 11-02); the data keeps its order for the other tools. */
 const OUTPUTS = [...CRAFT_DATA.outputs].sort((a, b) => Number(b.id === "superior") - Number(a.id === "superior"));
 const percentText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
@@ -118,7 +162,14 @@ function OutputTable({ results, priced, exchange }: { results: CraftResult[]; pr
               <tr key={r.skill.id}>
                 <th scope="row">
                   {r.skill.name}
-                  <small>{r.materials.map((m) => `${m.name} ${m.qty}`).join(" · ")}</small>
+                  {/* Held like the exchange line: the longest it can say (every material marked) sits unseen, so
+                      ticking 직접 채집 never makes the row wrap taller at 320 (PM-프론트 #1877 P3). */}
+                  <small className={styles.via}>
+                    <span aria-hidden="true" data-reserve="">
+                      {r.materials.map((m) => `${m.name} ${m.qty}(채집)`).join(" · ")}
+                    </span>
+                    <span>{r.materials.map((m) => `${m.name} ${m.qty}${m.gathered ? "(채집)" : ""}`).join(" · ")}</span>
+                  </small>
                   {/* Held from the first paint: what the exchange vendor supplies more cheaply. */}
                   <small className={styles.via}>
                     {/* The longest it can say (every material of the recipe), unseen:
@@ -161,6 +212,8 @@ export function AbidosCraftTool() {
   const energyCut = { overall: parsePercent(energyAllText) ?? 0, category: parsePercent(energyCategoryText) ?? 0 };
   // On by default, as on comparison basis C's screen.
   const [exchange, setExchange] = useUrlState("exchange", true, boolCodec);
+  const [gatherCodes, setGatherCodes] = useUrlState<string[]>("gather", [], gatherCodec);
+  const gathered = useMemo(() => gatheredNames(gatherCodes), [gatherCodes]);
 
   const requested = useMemo(() => craftMarketNames(), []);
   const prices = useQuery({
@@ -198,6 +251,7 @@ export function AbidosCraftTool() {
     `수수료 −${percentText(feeCut)}%`,
     `활동력 −${percentText(energyCut.overall + energyCut.category)}%`,
     `교환 상인 ${exchange ? "켬" : "끔"}`,
+    ...(gatherCodes.length ? [`직접 채집 ${gatherCodes.length}개`] : []),
   ].join(" · ");
 
   return (
@@ -273,6 +327,7 @@ export function AbidosCraftTool() {
                 checked={exchange}
                 onChange={setExchange}
               />
+              <GatherField codes={gatherCodes} onChange={setGatherCodes} />
               </div>
               {failure && (
                 <div className={quote.notice}>
@@ -314,7 +369,7 @@ export function AbidosCraftTool() {
                   <OutputTable
                     key={output.id}
                     priced={priced}
-                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut, exchange))}
+                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut, exchange, gathered))}
                     exchange={exchange}
                   />
                 ))}
@@ -325,7 +380,8 @@ export function AbidosCraftTool() {
                 대성공 확률은 기본 5%에 (1 + 증가)를 곱해요. 비용 = 재료 수량 ×
                 거래소 1개 가격 + 제작 골드(수수료 감소 반영, 1골드 미만은 올림). 판매 시 = 1개 가격에서 판매 수수료{" "}
                 {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 평균 개수, 직접 사용 시 = 평균 개수 × 1개 가격.
-                직접 캔 재료도 거래소 가격으로 매겨요. 교환 상인을 켜면 같은 생활 스킬 재료끼리 바꾸는 값(예: 목재 → 가루 →
+                직접 채집으로 고른 재료는 재료비를 0골드로 세요(팔면 받을 값은 빼지 않아요). 고르지 않은 재료는 직접 캤어도
+                거래소 가격으로 매겨요. 교환 상인을 켜면 같은 생활 스킬 재료끼리 바꾸는 값(예: 목재 → 가루 →
                 아비도스 목재)이 거래소보다 0.5% 넘게 싸면 그 값으로 재료비를 계산해요. 가루는 거래소에서 사지 않아요.
                 거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 100 활동력당 이익은
                 1회 활동력(기본 아비도스 288·상급 360에서 전체·특수 제작 감소를 더해 빼고 내림)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔

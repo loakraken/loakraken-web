@@ -17,6 +17,8 @@
 // With the exchange vendor on, each material costs the cheaper of its market
 // price and an exchange chain from other materials of the same life skill
 // (life-exchange.ts, shared with 생명의 기운 효율) — e.g. 목재 → 가루 → 아비도스 목재.
+// A material the player marks as gathered themselves (직접 채집) costs 0 instead of its price: what it would fetch on
+// the market is not subtracted.
 import raw from "./data/abidos-craft.json";
 import { marketFee } from "./auction";
 import { activityById, cheapestUnits, roleName, type Grade } from "./life-exchange";
@@ -72,6 +74,19 @@ export const craftMarketNames = () => [
 /** Recipe materials in order: 아비도스, uncommon, common (data/abidos-craft.json). */
 const RECIPE_GRADES: Grade[] = ["abidos", "uncommon", "common"];
 
+/** Each life skill's recipe materials with a short code (skill.grade) for the address, in recipe order. */
+export const gatherOptions = () =>
+  CRAFT_DATA.skills.map((skill) => ({
+    skill,
+    materials: skill.materials.abidos.map(([name], i) => ({ code: `${skill.id}.${RECIPE_GRADES[i]}`, name })),
+  }));
+
+/** Material names for gather codes (unknown codes are ignored). */
+export function gatheredNames(codes: readonly string[]): Set<string> {
+  const byCode = new Map(gatherOptions().flatMap((o) => o.materials.map((m) => [m.code, m.name] as const)));
+  return new Set(codes.map((code) => byCode.get(code)).filter((name): name is string => !!name));
+}
+
 /** Great-success chance (0~1) for an increase given in percent (0~100). */
 export const greatSuccessChance = (increasePercent: number) =>
   (CRAFT_DATA.yield.greatSuccessPercent / 100) * (1 + increasePercent / 100);
@@ -86,7 +101,8 @@ export type CraftResult = {
   output: CraftData["outputs"][number];
   skill: CraftData["skills"][number];
   /** via: the exchange chain (item names) when it is cheaper than buying. */
-  materials: { name: string; qty: number; unit: number | null; gold: number | null; via?: string[] }[];
+  /** gathered: marked 직접 채집 (unit and gold 0). */
+  materials: { name: string; qty: number; unit: number | null; gold: number | null; via?: string[]; gathered?: true }[];
   /** Craft gold after the fee cut. */
   craftGold: number;
   expected: number;
@@ -113,15 +129,27 @@ export function craftResult(
   feeCutPercent: number,
   energyCut: { overall: number; category: number } = { overall: 0, category: 0 },
   exchange = false,
+  gathered: ReadonlySet<string> = new Set(),
 ): CraftResult {
   const output = CRAFT_DATA.outputs.find((o) => o.id === outputId)!;
   const skill = CRAFT_DATA.skills.find((s) => s.id === skillId)!;
   const activity = activityById(skill.id);
+  // A gathered material is free as an exchange source too: whoever gathered 목재 also has the powder made from it
+  // for nothing, so the chains it feeds cost 0 as well (PM-프론트 #1877 P2, matches the copy).
   const cheapest =
     exchange && activity
-      ? cheapestUnits(activity, (role) => (role === "powder" ? Infinity : (unitPrice(roleName(activity, role)) ?? Infinity)), true)
+      ? cheapestUnits(
+          activity,
+          (role) => {
+            if (role === "powder") return Infinity;
+            const name = roleName(activity, role);
+            return gathered.has(name) ? 0 : (unitPrice(name) ?? Infinity);
+          },
+          true,
+        )
       : null;
   const materials = skill.materials[outputId].map(([name, qty], i) => {
+    if (gathered.has(name)) return { name, qty, unit: 0, gold: 0, gathered: true as const };
     const best = cheapest?.[RECIPE_GRADES[i]];
     const unit = best ? (Number.isFinite(best.unit) ? best.unit : null) : unitPrice(name);
     const via = best && best.path.length > 1 ? best.path.map((role) => roleName(activity!, role)) : undefined;
