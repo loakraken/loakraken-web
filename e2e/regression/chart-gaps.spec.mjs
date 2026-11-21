@@ -122,6 +122,55 @@ for (const width of [320, 1280])
     await expectNoHorizontalOverflow(page);
   });
 
+// codex 재검토 P3(#1788, PM 총괄 11-21 18:14): 320에서 차트 양 끝 빈 날의 안내 칸('이날은 기록이 없어요')이
+// 화면 밖으로 나갔다. 가장 최근 빈 날(오른쪽 끝, 위치 1)과 가장 오래된 빈 날(왼쪽 끝, 위치 28)에서 칸이 차트와 창 안에,
+// 가로 넘침 없이, 키보드로 하루씩 옮기는 동안 흔들림 0.
+test(`320: 차트 양 끝 빈 날에서도 '${GAP}' 칸은 차트와 화면 안 @regression`, async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await watchShifts(page);
+  await dropDays(page, /\/api\/markets\/auctions\/gems\/history/, [1, 28]);
+  await gotoReady(page, "/market/gems?kind=겁화&level=10");
+  const box = page.getByRole("region", { name: "10레벨 겁화 최저가 추이" });
+  await expect(box.locator("path[data-bridge]")).toHaveAttribute("data-bridge", "2");
+  const figure = box.locator("figure").first();
+  const svg = figure.locator("svg").first();
+  const readout = figure.locator("p[aria-live]").first();
+  const tip = page.locator("[data-gap-tip]");
+  await svg.focus();
+  const seen = [];
+  const moved = await shiftsDuring(
+    page,
+    async () => {
+      let before = await readout.textContent();
+      // From the newest completed day back over the whole 30 days: both gap days on the way.
+      for (let i = 0; i < 29; i++) {
+        await svg.press("ArrowLeft");
+        await expect(readout).not.toHaveText(before);
+        before = await readout.textContent();
+        if (!before.includes(GAP)) continue;
+        await expect(tip).toHaveCount(1);
+        const card = await tip.evaluate((el) => {
+          const r = (el.closest("[data-slot=chart-tooltip]") ?? el).getBoundingClientRect();
+          return { left: r.left, right: r.right, width: innerWidth };
+        });
+        const chart = await figure.boundingBox();
+        seen.push({ step: i + 1, ...card, chartLeft: chart.x, chartRight: chart.x + chart.width });
+      }
+    },
+    600,
+  );
+  // Two gap days, one at each end.
+  expect(seen.length, "빈 날 둘").toBe(2);
+  for (const s of seen) {
+    expect(s.left, `${s.step}번째 날: 칸 왼쪽이 차트 안`).toBeGreaterThanOrEqual(s.chartLeft - 0.5);
+    expect(s.right, `${s.step}번째 날: 칸 오른쪽이 차트 안`).toBeLessThanOrEqual(s.chartRight + 0.5);
+    expect(s.left, "창 안").toBeGreaterThanOrEqual(0);
+    expect(s.right, "창 안").toBeLessThanOrEqual(s.width);
+  }
+  expect(moved.all, `흔들림 (${moved.moved})`).toBe(0);
+  await expectNoHorizontalOverflow(page);
+});
+
 const ACCESSORY_HISTORY = /\/api\/markets\/auctions\/accessories\/history/;
 // 품질 90은 워밍업이 채우지 않는 칸(기본 필터는 고대 · 딜러 · 품질 70).
 const UNWARMED = "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH&minQuality=90";
