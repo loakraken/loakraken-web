@@ -185,6 +185,8 @@ export interface components {
             deltaKrakenScore?: number | null;
             krakenScorePer100kGold?: number | null;
             gemType?: string | null;
+            krakenScoreReasonCode?: string | null;
+            krakenScoreReason?: string | null;
         };
         ChangeResponse: {
             kind: string;

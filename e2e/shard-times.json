@@ -199,7 +199,7 @@
     "regression/stats-distribution-address.spec.mjs": [5300, 2],
     "regression/stats-distribution-bins.spec.mjs": [5100, 3],
     "regression/stats-filter-narrow.spec.mjs": [4400, 4],
-    "regression/stats-first-paint-sweep.spec.mjs": [888000, 8],
+    "regression/stats-first-paint-sweep.spec.mjs": [888000, 56],
     "regression/stats-gem-levels.spec.mjs": [9100, 6],
     "regression/stats-histogram-late-part.spec.mjs": [6700, 4],
     "regression/stats-level-combat-power.spec.mjs": [6000, 3],
