@@ -91,7 +91,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .shortcut { display: flex; align-items: center; gap: 3px; white-space: nowrap; color: var(--muted-foreground); font: 11px var(--font-geist-mono), monospace; }
 .shortcut[data-fp-label] { display: grid; }
 .searchSubmit { min-height: 50px; min-width: 132px; padding: 0 18px; font-size: 13px; }
-.searchSubmit canvas { filter: brightness(0) invert(1); }
+.searchSubmit :is(canvas, :global(.orb-still)) { filter: brightness(0) invert(1); }
 .searchMessage { min-height: 45px; text-align: center; padding-top: 12px; color: var(--muted-foreground); font-size: 11px; }
 .error { color: var(--destructive) !important; }
 .exploreLink { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 25px auto 0; width: fit-content; color: var(--link); font-size: 15px; text-decoration: none; }

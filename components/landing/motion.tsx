@@ -68,7 +68,14 @@ export function Reveal({ children, className, delay = 0 }: {
     afterHydration = true;
     const element = ref.current;
     if (!element) return;
+    // A Reveal mounted after hydration starts hidden; if its observer never reports (a browser that does not run it
+    // for this element), it is shown after a second rather than left at opacity 0 (codex P3 on #1864).
+    let reported = false;
+    const fallback = window.setTimeout(() => {
+      if (!reported) setEntered((now) => (now === "out" ? "in" : now));
+    }, 1000);
     const stopEnter = watch(element, ENTER, (record) => {
+      reported = true;
       if (record.isIntersecting) {
         setEntered("in");
         stopEnter();
@@ -76,6 +83,7 @@ export function Reveal({ children, className, delay = 0 }: {
     });
     const stopNear = watch(element, NEAR, (record) => setNear(record.isIntersecting));
     return () => {
+      window.clearTimeout(fallback);
       stopEnter();
       stopNear();
     };
