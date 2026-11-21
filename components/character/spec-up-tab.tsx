@@ -61,6 +61,9 @@ export function SpecUpTab({ data }: { data: Character }) {
   // supporter's once their first answer (or its error) is in, as the guide was (the guide's pathOpen).
   const pathEnabled = useContext(SpecUpPathEnabled);
   const pathOpen = pathEnabled && (!supporter || answer?.supportOrderAvailable === true);
+  // A supporter's sentence waits for their first answer on purpose (it depends on supportOrderAvailable), so it is
+  // not in the server HTML. An unknown role (positionOf null) is asked and shown the dealer list (supporter false),
+  // so the dealer sentence describes what is on screen (PM-프론트 11-21, #1862).
   const lead = !supporter || shown ? specUpLead({ supporter, pathOpen, pathEnabled }) : null;
   if (supporter && answer && !supporterScored)
     return (

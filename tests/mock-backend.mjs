@@ -3378,6 +3378,13 @@ createServer(async (req, res) => {
     d.analysis.position = supportRole ? "SUPPORT" : "DEALER";
     d.analysis.positionEvidence = supportRole ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
+    // #1862: a support class whose role is not settled — no position from the api and no 깨달음 node (positionOf null).
+    if (name === "역할모름바드") {
+      d.className = "바드";
+      d.analysis.position = null;
+      d.analysis.positionEvidence = null;
+      if (d.loadout.arkPassive) d.loadout.arkPassive.effects = [];
+    }
     // Ark grid detail (F-4): six cores with options, gems and willpower.
     const icon = (path) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/${path}`;
     const cores = [
