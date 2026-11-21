@@ -20,10 +20,12 @@ import {
   type Mode,
   type Raid,
 } from "@/lib/tools/raid-rewards";
+import { RAID_DIFFICULTIES_CODEC, RAID_FILTER_CODEC, RAID_FILTERS } from "@/lib/tools/raid-url";
+import { useUrlState } from "@/lib/tools/url-state";
 import quote from "./material-quote.module.css";
 import styles from "./raid-rewards.module.css";
 
-const FILTERS: (Category | "ALL")[] = ["ALL", "KAZEROS", "SHADOW", "EPIC", "ABYSS", "LEGION", "EXTREME"];
+const FILTERS = RAID_FILTERS;
 const NO_DATA = "데이터 없음";
 
 const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(value));
@@ -202,9 +204,10 @@ export function RaidRewardsTable() {
     const timer = setTimeout(() => setSettled(true), 800);
     return () => clearTimeout(timer);
   }, []);
-  const [filter, setFilter] = useState<Category | "ALL">("ALL");
+  // Kept in the address (M51, PM 총괄 11-21): reload and a shared link come back to the same filter and card picks.
+  const [filter, setFilter] = useUrlState<Category | "ALL">("filter", "ALL", RAID_FILTER_CODEC);
   // Held here so a card a filter draws again keeps its difficulty.
-  const [difficulties, setDifficulties] = useState<Partial<Record<string, Difficulty>>>({});
+  const [difficulties, setDifficulties] = useUrlState<Partial<Record<string, Difficulty>>>("difficulty", {}, RAID_DIFFICULTIES_CODEC);
   const raids = RAID_DATA.raids.filter((r) => filter === "ALL" || r.category === filter);
   const rules = RAID_DATA.rules;
   return (
