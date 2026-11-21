@@ -103,4 +103,51 @@ test.describe("구슬이 그려지지 못할 때", () => {
     expect(await boxOf(still)).toMatchObject({ w: 64, h: 64 });
     expect(await still.locator("path").count()).toBeGreaterThan(10);
   });
+
+  // codex P3 on #1873: after its first frame the library draws in its own requestAnimationFrame loop, outside
+  // React's error boundary. A frame clears the canvas first, so a throw while drawing left an empty box.
+  const breakDrawingOnDemand = (page) =>
+    page.addInitScript(() => {
+      const native = CanvasRenderingContext2D.prototype.arc;
+      CanvasRenderingContext2D.prototype.arc = function (...args) {
+        if (window.__orbBreak) throw new Error("orb draw failed (test)");
+        return native.apply(this, args);
+      };
+    });
+  const toPaintedCanvas = async (page) => {
+    const main = await toLoadingScreen(page);
+    await expect(main.locator("canvas")).toBeVisible();
+    // The still leaves only once the canvas has inked a frame.
+    await expect(main.locator("svg")).toHaveCount(0);
+    return main;
+  };
+
+  test("320: 그리던 중 오류가 나면 비워진 캔버스 자리에 정지 화면이 돌아온다 @regression", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await breakDrawingOnDemand(page);
+    const main = await toPaintedCanvas(page);
+    const box = await boxOf(main.locator("canvas"));
+    await page.evaluate(() => (window.__orbBreak = true));
+    const still = main.locator("svg");
+    await expect(still).toBeVisible();
+    await expect(main.locator("canvas")).toHaveCount(0);
+    expect(await boxOf(still)).toEqual(box);
+    expect(await still.locator("path").count()).toBeGreaterThan(10);
+    // The throw came from the library's frame loop (an uncaught page error), not from a React render.
+    expect(pageErrors).toContain("orb draw failed (test)");
+  });
+
+  test("320: 구슬과 상관없는 오류에는 그리던 캔버스가 그대로다 @regression", async ({ page }) => {
+    const main = await toPaintedCanvas(page);
+    const thrown = page.waitForEvent("pageerror", (error) => error.message === "unrelated (test)");
+    await page.evaluate(() => setTimeout(() => {
+      throw new Error("unrelated (test)");
+    }));
+    await thrown;
+    // Give a swap (if any) a few frames to render.
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done)))));
+    await expect(main.locator("canvas")).toBeVisible();
+    await expect(main.locator("svg")).toHaveCount(0);
+  });
 });
