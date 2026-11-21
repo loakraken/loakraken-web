@@ -105,6 +105,31 @@ for (const width of [320, 1280])
       await expect(menu.getByRole("option")).toHaveCount(9);
     });
 
+    // #1883 P3: the resize recheck is for a row the keys chose. A row the pointer chose stays put, even after the
+    // pointer has left the panel: shrinking the screen must not scroll the list to it.
+    test(`@검색 ${width}: 포인터로 고른 줄은 화면이 줄어도 목록이 저절로 스크롤되지 않는다 @regression`, async ({ page }) => {
+      const { box, list } = await openSearch(page);
+      await page.keyboard.type("기");
+      await expect(list.getByRole("group", { name: "메뉴" }).getByRole("option", { name: /^메뉴 \d+개 더 보기/ })).toBeVisible();
+      const last = list.getByRole("option").last();
+      await last.hover();
+      await expect(box).toHaveAttribute("aria-activedescendant", await last.getAttribute("id"));
+      // The pointer leaves onto the field (no row under it), and the list goes back to its top.
+      const field = await box.boundingBox();
+      await page.mouse.move(field.x + field.width / 2, field.y + field.height / 2);
+      await last.evaluate((el) => (el.closest(".rsp-scroll").scrollTop = 0));
+      await expect(box).toHaveAttribute("aria-activedescendant", await last.getAttribute("id"));
+
+      await page.setViewportSize({ width, height: 460 });
+      await page.waitForFunction(() => window.innerHeight === 460);
+      // The recheck runs a frame after the resize: give it a few.
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done)))));
+      expect(await last.evaluate((el) => el.closest(".rsp-scroll").scrollTop), "목록 스크롤 위치").toBe(0);
+      // It counts only because the pointer's row is out of the shorter box (a recheck would have scrolled to it).
+      const place = (await activeRow(page, box)).place;
+      expect(place?.inside, JSON.stringify(place)).toBe(false);
+    });
+
     test(`@검색 ${width}: 빈 칸의 도구 바로가기는 켜진 도구만 차례대로, ↑로 닿은 마지막 줄도 보이고 Enter로 간다 @regression`, async ({ page }) => {
       const { box, list } = await openSearch(page);
       const flags = await page.evaluate(() => fetch("/api/flags").then((r) => r.json()));
