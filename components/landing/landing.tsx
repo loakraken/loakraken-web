@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { m, useScroll, useTransform } from "motion/react";
+import { LazyMotion, domAnimation, m, useScroll, useTransform } from "motion/react";
 import { ArrowRight, ChevronDown, DocumentCode, ExportCircle, FingerScan, Gps, Layer, ScanBarcode, ShieldTick, TickCircle } from "@/components/ui/icons";
 import { CharacterCockpit } from "./cockpit";
 import { Hero } from "./hero";
@@ -101,5 +101,13 @@ function PrecisionLanding() {
 }
 
 export function Landing() {
-  return <LandingMotion><PrecisionLanding /></LandingMotion>;
+  // The home page's own m components (scroll lines, the cockpit) keep motion's animation features here: Reveal no
+  // longer uses motion (#1860), so LandingMotion no longer brings them.
+  return (
+    <LandingMotion>
+      <LazyMotion features={domAnimation}>
+        <PrecisionLanding />
+      </LazyMotion>
+    </LandingMotion>
+  );
 }
