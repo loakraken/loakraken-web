@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -171,6 +171,12 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       ? DEFAULT_SORT
       : chosen;
   const pathShown = view === "PATH";
+  // A press draws the new list in a transition (#1852): the list for a sort already asked for is
+  // there at once, and drawing its ~50 rows inside the click kept the first paint 112~248ms away
+  // at 320 · CPU 4×. The pressed chip and the bar (cooldown toggle, why 크라켄 is off, 추천 순서's
+  // 기준) follow the press in the same paint (chip/chipSort); the list follows when drawn.
+  const [switching, startSwitch] = useTransition();
+  const [chip, pressChip] = useOptimistic(view);
   // The candidate list behind 추천 순서 stays the first list (the tab asked for it).
   const sort: Sort = view === "PATH" ? (supporter ? "KRAKEN" : DEFAULT_SORT) : view;
   const [pickedPathSort, setPathSort] = useState<PathSort>(supporter ? "KRAKEN" : "EFFICIENCY");
@@ -182,9 +188,12 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const simulator = useContext(SimulatorEnabled);
   const armor = useContext(ArmorSimEnabled);
   // Refine opens for the weapon only (api #884): the button needs the slot of a refine step (#1567).
-  const gearType = gearTypeOf(data);
+  const gearType = useMemo(() => gearTypeOf(data), [data]);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
+  // Each press flips the latest value (updater forms): two presses before the first list is drawn leave it
+  // as it was, not on twice (codex P2 on #1857).
+  const [cooldownShown, flipCooldownShown] = useOptimistic(cooldown, (on: boolean) => !on);
   // The first list (the tab's first answer) tells whether the backend knows
   // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 정렬 is not
   // sent — an older backend refuses the value — and the list stays as it is.
@@ -272,9 +281,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     if (toldKey !== null) setTold(listChangeCopy(toldKey, guide.sort, guide.cooldownGemsIncluded));
   }
   // Known before the press: the efficiency list already says why (the reason
-  // does not depend on the sort), so the bar changes in the same frame.
+  // does not depend on the sort), so the bar changes in the same frame (the pressed chip's sort).
+  const chipSort: Sort = chip === "PATH" ? (supporter ? "KRAKEN" : DEFAULT_SORT) : chip;
   const offReason =
-    sort === "KRAKEN" ? (krakenKnown === false ? "DISABLED" : (guide?.krakenSortUnavailableReason ?? null)) : null;
+    chipSort === "KRAKEN" ? (krakenKnown === false ? "DISABLED" : (guide?.krakenSortUnavailableReason ?? null)) : null;
   const notice = krakenUnavailableCopy(offReason);
   const note = krakenUnavailableNote(offReason);
   const candidates = useMemo(
@@ -311,31 +321,136 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     eff: (c) => (krakenShown ? c.krakenScorePer100kGold : c.combatPowerPer10kGold),
   });
   // Tint only: the cells carry no arrow of their own room (no width change).
-  const pulseOf = (id: string, key: string) => {
-    const pulse = changed.pulse(id, key);
-    return pulse && { ...pulse, dir: 0 as const };
-  };
+  const changedPulse = changed.pulse;
+  const pulseOf = useCallback(
+    (id: string, key: string) => {
+      const pulse = changedPulse(id, key);
+      return pulse && { ...pulse, dir: 0 as const };
+    },
+    [changedPulse],
+  );
   // Each cost basis once, under the table (the same code is the same sentence).
   // In code order, so a new sort does not reorder these lines (A7).
   const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, basis]) => basis);
 
+  // The rows, drawn again only when what they show changes (#1852): a press redraws the guide at once
+  // (the pressed chip), and while a new sort's answer is coming the list on screen is the same answer, so
+  // its ~50 rows (each with its detail popover and query) are not drawn again before the first paint.
+  const cooldownIncluded = guide?.cooldownGemsIncluded ?? null;
+  const rows = useMemo(
+    () =>
+      groups.flatMap((group, i) => {
+        // One row per target (#26): its other stages open under it.
+        const open = openGroups.has(group.head.id);
+        // Closed stages stay in the table, collapsed: the columns keep
+        // the same widths whichever stage heads a group (a new sort
+        // moved the header by a few px otherwise, A7).
+        return [group.head, ...group.more].map((c, j) => {
+        const sub = j > 0;
+        const collapsed = sub && !open;
+        // The simulator is combat power: no link for a supporter, nor where it is off.
+        // Not for a 연마 row: it changes several lines and `change` is only one (the path opens the whole step).
+        const tryable =
+          simulator &&
+          !supporter &&
+          c.kind !== "POLISH" &&
+          editsFor(c.change, NO_EDITS, gearType, armor) != null &&
+          c.change;
+        return (
+          // Keyed by the order of the list on screen: a new sort
+          // or '새 순서로 보기' draws new rows instead of sliding
+          // the old ones (A7).
+          <tr
+            key={`${listKey}:${generation}:${c.id}`}
+            data-sub={sub || undefined}
+            data-collapsed={collapsed || undefined}
+          >
+            <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
+            <td data-cell="kind">{candidateKindLabel(c)}</td>
+            <th scope="row" data-cell="target">
+              {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
+              <SpecUpRowDetail
+                characterName={name}
+                fetchedAt={data.fetchedAt}
+                candidate={c}
+                cooldownGemsIncluded={cooldownIncluded}
+              />
+              {!sub && group.more.length > 0 && (
+                <button
+                  type="button"
+                  className={`${styles.specUpMore} hit-44`}
+                  aria-expanded={open}
+                  onClick={() =>
+                    setOpenGroups((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(group.head.id)) next.delete(group.head.id);
+                      else next.add(group.head.id);
+                      return next;
+                    })
+                  }
+                >
+                  {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
+                </button>
+              )}
+            </th>
+            <td data-cell="change">
+              {c.from ?? "—"} → {c.to ?? "—"}
+            </td>
+            {krakenShown ? (
+              <td
+                data-cell="gain"
+                data-label={supporter ? "서포터 점수" : "크라켄 점수"}
+                className={styles.specUpGain}
+                data-figure=""
+              >
+                {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
+              </td>
+            ) : (
+              <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
+                {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
+                {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
+              </td>
+            )}
+            <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
+            {krakenShown ? (
+              <td data-cell="eff" data-label="10만G당" data-figure="">
+                <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                  {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
+                </ChangeMark>
+              </td>
+            ) : (
+              <td data-cell="eff" data-label="1만G당" data-figure="">
+                <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                  {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
+                </ChangeMark>
+              </td>
+            )}
+            <td data-cell="try">
+              {tryable && (
+                <Link
+                  href={`?${new URLSearchParams({ tab: "simulator", try: tryParam(tryable) })}`}
+                  replace
+                  scroll={false}
+                  className="hit-44"
+                  aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
+                >
+                  적용해 보기
+                </Link>
+              )}
+            </td>
+          </tr>
+        );
+        });
+      }),
+    [groups, openGroups, simulator, supporter, gearType, armor, listKey, generation, name, data.fetchedAt, cooldownIncluded, krakenShown, pulseOf, now],
+  );
+
   return (
     <SpecUpExpired.Provider value={expiry}>
     <div className={styles.specUp} data-expired={expired || undefined}>
-      <p className={styles.simulatorLead}>
-        {supporter
-          ? pathOpen
-            ? // A supporter's first view is 추천 순서 by score once it runs (PM 총괄 11-15).
-              "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
-            : "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
-          : pathEnabled
-            ? // The dealer's first view is 추천 순서 (layout A, 11-02).
-              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
-            : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
-              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요."}
-      </p>
+      {/* The lead sentence is the tab's (SpecUpTab, specUpLead): in the server HTML (#1858). */}
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
       {/* PM 총괄 10-25: why a supporter's list has no combat-power column. */}
@@ -358,9 +473,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
               <Fragment key={item.id}>
                 <button
                   type="button"
-                  aria-pressed={view === item.id}
+                  aria-pressed={chip === item.id}
                   aria-describedby={describe ? `${sortsId}-${item.id}` : undefined}
-                  onClick={() => setView(item.id)}
+                  onClick={() =>
+                    startSwitch(() => {
+                      pressChip(item.id);
+                      setView(item.id);
+                    })
+                  }
                 >
                   {item.label}
                 </button>
@@ -382,7 +502,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
               role="group"
               aria-label="추천 순서 고르는 기준"
               className={styles.specUpPathSorts}
-              data-off={!pathShown || undefined}
+              data-off={chip !== "PATH" || undefined}
             >
               {pathSorts.map((item) => (
                 // The short name stays the button's; the rule is its description (as the chips above),
@@ -393,7 +513,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     className="hit-44"
                     aria-pressed={pathSort === item.id}
                     aria-describedby={item.describe ? `${sortsId}-path-${item.id}` : undefined}
-                    tabIndex={pathShown ? undefined : -1}
+                    tabIndex={chip === "PATH" ? undefined : -1}
                     onClick={() => setPathSort(item.id)}
                   >
                     {item.label}
@@ -410,9 +530,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           <button
             type="button"
             className={styles.specUpCooldown}
-            aria-pressed={cooldown}
-            data-off={sort !== "KRAKEN" || !!note || undefined}
-            onClick={() => setCooldown((on) => !on)}
+            aria-pressed={cooldownShown}
+            data-off={chipSort !== "KRAKEN" || !!note || undefined}
+            onClick={() =>
+              startSwitch(() => {
+                flipCooldownShown(null);
+                setCooldown((on) => !on);
+              })
+            }
           >
             작열 보석 포함
           </button>
@@ -461,7 +586,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
         // status line below tells what happened in one sentence.
         // Busy while a list is coming for the first time or for a new sort,
         // not on the quiet minute refresh.
-        aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
+        // Also while a press is being drawn: the chip already shows the new choice (codex P3 on #1857).
+        aria-busy={switching || (query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
         className={styles.specUpList}
         data-stale={query.isPlaceholderData || expired || undefined}
       >
@@ -539,109 +665,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     </tr>
                   </thead>
                   <tbody>
-                    {groups.flatMap((group, i) => {
-                      // One row per target (#26): its other stages open under it.
-                      const open = openGroups.has(group.head.id);
-                      // Closed stages stay in the table, collapsed: the columns keep
-                      // the same widths whichever stage heads a group (a new sort
-                      // moved the header by a few px otherwise, A7).
-                      return [group.head, ...group.more].map((c, j) => {
-                      const sub = j > 0;
-                      const collapsed = sub && !open;
-                      // The simulator is combat power: no link for a supporter, nor where it is off.
-                      // Not for a 연마 row: it changes several lines and `change` is only one (the path opens the whole step).
-                      const tryable =
-                        simulator &&
-                        !supporter &&
-                        c.kind !== "POLISH" &&
-                        editsFor(c.change, NO_EDITS, gearType, armor) != null &&
-                        c.change;
-                      return (
-                        // Keyed by the order of the list on screen: a new sort
-                        // or '새 순서로 보기' draws new rows instead of sliding
-                        // the old ones (A7).
-                        <tr
-                          key={`${listKey}:${generation}:${c.id}`}
-                          data-sub={sub || undefined}
-                          data-collapsed={collapsed || undefined}
-                        >
-                          <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
-                          <td data-cell="kind">{candidateKindLabel(c)}</td>
-                          <th scope="row" data-cell="target">
-                            {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
-                            <SpecUpRowDetail
-                              characterName={name}
-                              fetchedAt={data.fetchedAt}
-                              candidate={c}
-                              cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
-                            />
-                            {!sub && group.more.length > 0 && (
-                              <button
-                                type="button"
-                                className={`${styles.specUpMore} hit-44`}
-                                aria-expanded={open}
-                                onClick={() =>
-                                  setOpenGroups((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(group.head.id)) next.delete(group.head.id);
-                                    else next.add(group.head.id);
-                                    return next;
-                                  })
-                                }
-                              >
-                                {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
-                              </button>
-                            )}
-                          </th>
-                          <td data-cell="change">
-                            {c.from ?? "—"} → {c.to ?? "—"}
-                          </td>
-                          {krakenShown ? (
-                            <td
-                              data-cell="gain"
-                              data-label={supporter ? "서포터 점수" : "크라켄 점수"}
-                              className={styles.specUpGain}
-                              data-figure=""
-                            >
-                              {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
-                            </td>
-                          ) : (
-                            <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
-                              {noCombatPower(c) ? "—" : `+${two(c.deltaCombatPower ?? 0)}`}
-                              {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
-                            </td>
-                          )}
-                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
-                          {krakenShown ? (
-                            <td data-cell="eff" data-label="10만G당" data-figure="">
-                              <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
-                              </ChangeMark>
-                            </td>
-                          ) : (
-                            <td data-cell="eff" data-label="1만G당" data-figure="">
-                              <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
-                              </ChangeMark>
-                            </td>
-                          )}
-                          <td data-cell="try">
-                            {tryable && (
-                              <Link
-                                href={`?${new URLSearchParams({ tab: "simulator", try: tryParam(tryable) })}`}
-                                replace
-                                scroll={false}
-                                className="hit-44"
-                                aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
-                              >
-                                적용해 보기
-                              </Link>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                      });
-                    })}
+                    {rows}
                   </tbody>
                 </table>
               </div>
