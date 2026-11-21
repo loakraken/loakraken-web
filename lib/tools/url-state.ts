@@ -49,38 +49,47 @@ export function writeUrlParam(key: string, value: string | null) {
 }
 
 /**
- * useState whose value is kept in the address under `key`. An address change from outside (a link to the same page,
- * back · forward) is taken in (codex #1895 P2: Next keeps the state across a query change, so the controls stayed
- * on the old value). Only when the address the router reports is the browser's current one: the router can still be
- * delivering an earlier replaceState of ours, and taking that in would undo a newer pick (and write it back). Checked
- * in a layout effect, not in render: Next writes the history entry of a navigation in its commit (an insertion effect),
- * so during the render the browser still shows the old address; before paint, so the old value is never drawn.
+ * useState whose value is kept in the address under `key`. An address change this field did not make (a link to the
+ * same page, back · forward) is taken in (codex #1895 P2: Next keeps the state across a query change, so the controls
+ * stayed on the old value).
+ *
+ * How: the field remembers the address value it last wrote or took in, and after each render compares it with the
+ * browser's current address; a different one came from outside. The browser's address, not the router's answer:
+ * - the router can still be delivering an earlier replaceState of ours, and taking that in would undo a newer pick;
+ * - a pick followed by a click on this page's tab before the router reported the pick reads null → null on the router
+ *   (Next keys useSearchParams on the URL string), so nothing keyed on it ran (codex #1895 follow-up P3). The
+ *   navigation still draws this component again (the page's new payload), and the comparison runs then.
+ * In a layout effect, not in render: Next writes a navigation's history entry in its commit (an insertion effect), so
+ * during the render the browser still shows the old address; before paint, so the old value is never drawn.
+ *
+ * The address is brought to what is shown: a value this field does not accept (a hand-edited or stale link, e.g.
+ * ?filter=INVALID) shows the default and leaves the address, in that history entry too (codex #1895 follow-up P3: kept
+ * on purpose, so a link copied from here opens the same screen).
  */
 export function useUrlState<T>(key: string, fallback: T, codec: UrlCodec<T>) {
   const params = useSearchParams();
-  const raw = params.get(key);
-  const [value, setValue] = useState<T>(() => (raw == null ? fallback : (codec.parse(raw) ?? fallback)));
-  const formatted = codec.format(value);
-  // The latest value and codec for the effect below, without making it run on every pick.
-  const latest = useRef({ formatted, fallback, codec });
-  useLayoutEffect(() => {
-    latest.current = { formatted, fallback, codec };
+  const [value, setValue] = useState<T>(() => {
+    const raw = params.get(key);
+    return raw == null ? fallback : (codec.parse(raw) ?? fallback);
   });
-  // Keyed on the router's answer itself (a new object for each navigation or synced replaceState), not on this key's
-  // value (codex #1895 follow-up P3): a pick and a click on this page's tab before the router reported the pick read
-  // null → null, so a [key, raw] effect never ran and the old pick stayed on screen.
-  useLayoutEffect(() => {
-    if (new URL(window.location.href).searchParams.get(key) !== raw) return;
-    const { formatted: shown, fallback: base, codec: c } = latest.current;
-    const next = raw == null ? base : (c.parse(raw) ?? base);
-    if (c.format(next) !== shown) setValue(next);
-  }, [key, raw, params]);
-  // The address is brought to what is shown: a value this field does not accept (a hand-edited or stale link, e.g.
-  // ?filter=INVALID) shows the default and leaves the address, in that history entry too (codex #1895 follow-up P3:
-  // kept on purpose, so a link copied from here opens the same screen).
+  const formatted = codec.format(value);
   const isDefault = formatted === codec.format(fallback);
+  // The address value this field last wrote or took in (undefined before the first check).
+  const known = useRef<string | null | undefined>(undefined);
+  // Every render on purpose: a navigation to the same query has no changed input to key on (see above).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const current = new URL(window.location.href).searchParams.get(key);
+    if (known.current === undefined) known.current = current;
+    if (current === known.current) return;
+    known.current = current;
+    const next = current == null ? fallback : (codec.parse(current) ?? fallback);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs from the browser history (outside React), once per outside change
+    if (codec.format(next) !== formatted) setValue(next);
+  });
   useEffect(() => {
     writeUrlParam(key, isDefault ? null : formatted);
+    known.current = new URL(window.location.href).searchParams.get(key);
   }, [key, formatted, isDefault]);
   return [value, setValue] as const;
 }
