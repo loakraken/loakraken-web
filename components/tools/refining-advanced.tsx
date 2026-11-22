@@ -151,7 +151,7 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
         })}
       </ul>
       <p className={styles.caption}>
-        10단계 구간마다 기대값으로 계산해요. 숨결·책은 지금 최저가로 기대 비용이 가장 작은 쪽을 골라요.
+        10단계 구간마다 기대값으로 계산해요. 숨결·책은 지금 최저가로 기대 비용이 가장 작은 조합을 써요.
         {/* Always the same sentence when a 전율 part is in the plan: nothing moves when it comes (A7). */}
         {jeonyul.length > 0 && ` ${NO_ADVANCED_JEONYUL}`}
       </p>
@@ -190,7 +190,7 @@ export function AdvancedBands({ advanced, prices }: { advanced: Advanced; prices
               <th scope="col">기대 시도</th>
               <th scope="col">숨결·책</th>
               <th scope="col">재련 골드</th>
-              <th scope="col">재료 시세 포함</th>
+              <th scope="col">재료까지 시세로</th>
             </tr>
           </thead>
           <tbody>

@@ -19,6 +19,7 @@ import {
 import { priceNames } from "../lib/refining/breath";
 import { isAdvancedEnvelope } from "../lib/refining/validate";
 import { requestAdvancedPlan } from "../lib/refining/upstream";
+import { isRefiningAdvancedEnabled } from "../lib/tools/flags";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 // The api's CI sample (api develop efb32b94, artifact openapi-contract), as the mock serves it.
@@ -98,8 +99,8 @@ test("the sample's bands as the page reads them: policy in our words, nulls kept
   assert.deepEqual(
     view.bands.map((band) => [band.from, band.to, band.turns, band.policy, band.silver]),
     [
-      [0, 10, 43.25, "일반 없이 · 선조 숨결", 111752.1],
-      [10, 20, 43.25, "일반 없이 · 선조 숨결", null],
+      [0, 10, 43.25, "일반 안 씀 · 선조 숨결", 111752.1],
+      [10, 20, 43.25, "일반 안 씀 · 선조 숨결", null],
     ],
   );
   assert.deepEqual(view.temperingStages, [10]);
@@ -132,6 +133,13 @@ test("a band's value at the page's prices; unpriced materials left out and flagg
   assert.equal(value.value, Math.ceil(expected - 1e-9));
   assert.equal(value.unpriced, true);
   assert.equal(bandValue(band, null), null);
+});
+
+test("REFINING_ADVANCED: off on every deployment unless set on (paired with the api's switch)", () => {
+  assert.equal(isRefiningAdvancedEnabled({}), false);
+  assert.equal(isRefiningAdvancedEnabled({ SITE_URL: "http://127.0.0.1:3000" }), false);
+  assert.equal(isRefiningAdvancedEnabled({ REFINING_ADVANCED: "off" }), false);
+  assert.equal(isRefiningAdvancedEnabled({ REFINING_ADVANCED: " ON " }), true);
 });
 
 test("price names: the 상급 materials join the list once, the same from both callers (one price query)", () => {

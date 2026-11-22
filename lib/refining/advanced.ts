@@ -106,7 +106,7 @@ export function policyText(code: string | null | undefined): string | null {
     case undefined:
       return null;
     case "NONE":
-      return "없이";
+      return "안 씀";
     case "BREATH":
       return "숨결";
     case "BOOK":
@@ -222,7 +222,7 @@ export function bandValue(band: AdvancedBand, prices: readonly { name: string; s
 export function advancedFailureCopy(error: { code: string }) {
   switch (error.code) {
     case "REFINING_ADVANCED_UNCONFIRMED":
-      return { title: "상급 재련은 계산하지 않음", text: "운명의 전율 장비의 상급 재련은 계산하지 않아요." };
+      return { title: "상급 재련은 계산하지 않음", text: "전율 장비에는 상급 재련이 없어 계산하지 않아요." };
     case "REFINING_PRICE_PENDING":
       return { title: "재료 시세를 모으고 있어요", text: "상급 재련은 재료 시세로 숨결·책 사용을 골라요. 1분쯤 뒤 다시 계산해 주세요." };
     case "INVALID_REQUEST":
