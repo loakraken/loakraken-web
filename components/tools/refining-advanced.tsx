@@ -91,6 +91,17 @@ export function useAdvanced(parts: Parts, enabled: boolean) {
     complete,
     failed,
     failure,
+    /** A retry asked and not answered yet (any errored part refetching). */
+    retrying: queries.some((q) => q.isError && q.isFetching),
+    /**
+     * Every errored part asked again, not only the first (web #1961, PM-프론트 #1958 P3): one retry covers them all.
+     * Once they answer, `failed` clears and the notice goes.
+     */
+    retry() {
+      // cancelRefetch false: two presses in one frame both see the same state; the second joins the request in
+      // flight instead of aborting and resending it (PM-프론트 #1963 P3).
+      for (const q of queries) if (q.isError && !q.isFetching) void q.refetch({ cancelRefetch: false });
+    },
     /**
      * After a character load: each part's current from its tooltip, the target kept only when it is still above. A
      * tooltip without the stage stays null ('읽지 못했어요'), never 0 (프론트 P2 on #1952).
@@ -192,7 +203,6 @@ export function AdvancedModeLine({ advanced, mode }: { advanced: Advanced; mode:
 export function AdvancedFailureNotice({ advanced }: { advanced: Advanced }) {
   if (!advanced.failure || !advanced.failed) return null;
   const copy = advancedFailureCopy(advanced.failure);
-  const failed = advanced.failed;
   return (
     <div className={styles.failure}>
       <div role="alert">
@@ -202,8 +212,9 @@ export function AdvancedFailureNotice({ advanced }: { advanced: Advanced }) {
       <button
         type="button"
         className={`${styles.retry} hit-44`}
-        aria-disabled={failed.isFetching || undefined}
-        onClick={() => !failed.isFetching && failed.refetch()}
+        aria-disabled={advanced.retrying || undefined}
+        aria-busy={advanced.retrying || undefined}
+        onClick={() => !advanced.retrying && advanced.retry()}
       >
         상급 재련 다시 계산
       </button>
