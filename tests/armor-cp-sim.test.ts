@@ -11,6 +11,7 @@ import {
   REFINE_MIN,
   isAdvancedRefineOpen,
   isRefineOpen,
+  notComputedHere,
   parseSimulateRequest,
   refineEdit,
   toChanges,
@@ -148,4 +149,11 @@ test("spec-up hand-offs: armour 재련 · 상급 재련 open in the simulator on
   const steps = [armour, advanced, weaponAdvanced].map((change) => ({ change }) as unknown as GoalStep);
   assert.deepEqual(simulatorPath(steps, gearType), { changes: [], skipped: 3 });
   assert.deepEqual(simulatorPath(steps, gearType, false, true), { changes: [armour, advanced], skipped: 1 });
+});
+
+test("notComputedHere: only the armour CP gate's code is '계산하지 않음' (row and note share it, v0.3.15 RC P1-1)", () => {
+  assert.equal(notComputedHere({ reasonCode: "ARMOR_CP_RESIDUAL_HIGH" }), true);
+  assert.equal(notComputedHere({ reasonCode: "SUPPORTER_MODEL_PENDING" }), false);
+  assert.equal(notComputedHere({ reasonCode: null }), false);
+  assert.equal(notComputedHere({}), false);
 });
