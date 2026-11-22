@@ -1,6 +1,7 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { parseSimulateRequest, type OptionsEnvelope, type SimulateEnvelope } from "./model";
-import { isOptionsEnvelope, isSimulateEnvelope } from "./validate";
+import { isGemRankingEnvelope, isOptionsEnvelope, isSimulateEnvelope } from "./validate";
+import { parseGemRankingRequest, type GemRankingEnvelope } from "./gem-processing";
 
 // Backend #240 docs/combat-power-simulator.md, error table.
 const errorCodes: Record<number, readonly string[]> = {
@@ -30,6 +31,30 @@ export async function requestSimulation(
     body: request,
     isValid: isSimulateEnvelope,
     errorCodes,
+  });
+}
+
+// gem-ranking (contract §2): 400 bad values, 404 not cached, 429 seats full (Retry-After, like REFINING_SOLVE_BUSY).
+const gemRankingErrors: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["CHARACTER_NOT_CACHED", "CHARACTER_NOT_FOUND"],
+  429: ["GEM_RANKING_BUSY", "CLIENT_RATE_LIMITED"],
+  503: ["CHARACTER_STORAGE_UNAVAILABLE"],
+};
+
+export async function requestGemRanking(
+  body: unknown,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<GemRankingEnvelope>> {
+  const request = parseGemRankingRequest(body);
+  if (!request) return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
+  return requestBackend(backendUrl(origin, "/api/v1/characters/combat-power/gem-ranking"), {
+    ...options,
+    method: "POST",
+    body: request,
+    isValid: isGemRankingEnvelope,
+    errorCodes: gemRankingErrors,
   });
 }
 

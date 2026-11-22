@@ -3,6 +3,7 @@ import contract from "../../contracts/combat-power.openapi.json";
 import { lazyValidator } from "../api/lazy-validator";
 import { tolerantSchemas } from "../tools/contract";
 import type { OptionsEnvelope, SimulateEnvelope } from "./model";
+import type { GemRankingEnvelope } from "./gem-processing";
 
 // The backend's OpenAPI (backend #240) is the runtime shape contract, made
 // tolerant of additive changes: response enums are relaxed so a new status or
@@ -30,4 +31,11 @@ export function isSimulateEnvelope(value: unknown): value is SimulateEnvelope {
 
 export function isOptionsEnvelope(value: unknown): value is OptionsEnvelope {
   return options(value) && value.code === "CHARACTER_COMBAT_POWER_OPTIONS_SUCCESS";
+}
+
+// 젬 가공 순위 (api gem-ranking #1095, web #1969).
+const gemRanking = compile<GemRankingEnvelope>("ApiResponseGemRankingResponse");
+
+export function isGemRankingEnvelope(value: unknown): value is GemRankingEnvelope {
+  return gemRanking(value) && value.code === "GEM_RANKING_SUCCESS" && Array.isArray(value.data?.rows);
 }

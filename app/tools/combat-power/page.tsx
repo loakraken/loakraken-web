@@ -13,6 +13,7 @@ import {
   isArmorCpSimEnabled,
   isCharacterEfficiencyEnabled,
   isCombatPowerEnabled,
+  isGemRankingEnabled,
   isKarmaSimEnabled,
 } from "@/lib/tools/flags";
 
@@ -43,6 +44,7 @@ export default async function CombatPowerPage({
       armor={isArmorCpSimEnabled()}
       gem={isArkGemSimEnabled()}
       efficiency={isCharacterEfficiencyEnabled()}
+      gemRanking={isGemRankingEnabled()}
     />
   );
   // The simulator's first screen (its editors and notes) waited on the character and options requests, which the
