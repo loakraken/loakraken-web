@@ -411,11 +411,10 @@ function GemRow({
               지금 젬으로 되돌리기
             </button>
           )}
-          {error && (
-            <p className={styles.none} role="status">
-              {error}
-            </p>
-          )}
+          {/* Always there, its text changing: a status region mounted with its text may go unread (#1928 P3). */}
+          <p className={styles.gemError} role="status">
+            {error ?? ""}
+          </p>
         </div>
       </details>
     </li>

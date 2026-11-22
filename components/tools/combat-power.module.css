@@ -339,6 +339,13 @@
 .gemRankRow .why {
   grid-column: 2 / -1;
 }
+/* Kept rendered when empty (no height then): hiding it would take the status region out of the tree. */
+.gemError {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
 .gemReset {
   min-height: 32px;
   padding: 0 12px;
