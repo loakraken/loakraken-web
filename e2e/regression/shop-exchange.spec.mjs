@@ -65,19 +65,26 @@ for (const width of [320, 1280])
 // decimals, as on the market page.
 test("1280: 시세 기준을 바꾸면 그 기준의 시세가 온 뒤 순서가 그 값을 따른다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  // 최근 거래가: late, and 수호석 결정 at 50.1234 G (×40 = 2,004.94 G for 240 혈석 → 8.35 per 혈석, the top).
+  // 최근 거래가: late, and 수호석 결정 at 50.1234 G (×40 = 2,004.94 G for 240 혈석 → 8.35 per 혈석, the top). The web's
+  // own /api answers { ok, envelope }; the count proves the late answer is the changed one.
+  let changed = 0;
   await page.route("**/api/markets/material-prices", async (route) => {
     const body = route.request().postDataJSON();
     if (body?.priceBasis !== "RECENT_PRICE") return route.continue();
     const response = await route.fetch();
     const json = await response.json();
-    for (const item of json.data.items) if (item.name === "운명의 수호석 결정") item.unitPriceGold = 50.1234;
+    for (const item of json.envelope?.data?.items ?? [])
+      if (item.name === "운명의 수호석 결정") {
+        item.unitPriceGold = 50.1234;
+        changed += 1;
+      }
     await new Promise((resolve) => setTimeout(resolve, 800));
     await route.fulfill({ response, json });
   });
   await gotoReady(page, "/tools/shop-exchange?shop=guild");
   await expect(firstRow(page)).toContainText("운명의 파괴석 결정");
   await page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+  await expect.poll(() => changed, "최근 거래가 응답을 바꿈").toBeGreaterThan(0);
   await expect(firstRow(page)).toContainText("운명의 수호석 결정");
   await expect(firstRow(page)).toContainText("2,004.94G");
   await expect(firstRow(page).getByLabel("1위")).toBeVisible();
