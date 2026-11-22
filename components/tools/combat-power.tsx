@@ -1037,7 +1037,7 @@ function ResultBand({
             <TooltipTrigger className={styles.bandTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
               보스 피해 환산
             </TooltipTrigger>
-            <TooltipContent className="max-w-[min(20rem,calc(100vw-1rem))]">{BOSS_LEVEL_NOTE}</TooltipContent>
+            <TooltipContent>{BOSS_LEVEL_NOTE}</TooltipContent>
           </Tooltip>{" "}
           <b>Lv {ark.bossLevel}</b>
         </p>

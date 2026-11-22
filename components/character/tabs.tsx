@@ -817,8 +817,7 @@ function ArkRealHead({ view }: { view: ArkGridRealView }) {
                 <TooltipTrigger className={styles.braceletEffTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
                   보스 피해 환산
                 </TooltipTrigger>
-                {/* A long note: never wider than the screen less its margins (max-w-xs is the whole 320 width). */}
-                <TooltipContent className="max-w-[min(20rem,calc(100vw-1rem))]">{BOSS_LEVEL_NOTE}</TooltipContent>
+                <TooltipContent>{BOSS_LEVEL_NOTE}</TooltipContent>
               </Tooltip>
               <b>Lv {view.bossLevel}</b>
             </span>
