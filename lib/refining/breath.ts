@@ -96,13 +96,15 @@ function side(plan: Plan, mode: Mode, prices: readonly MaterialPrice[], unpriced
 }
 
 /**
- * The row's left-out line: at most two names, then how many more, so it stays within its two reserved lines at 320
- * (#1932 follow-up P3; the result above lists every material it left out).
+ * The row's left-out line. On screen at most two names, then how many more, so it stays within its two reserved lines
+ * at 320 (#1932 follow-up P3). Read out, every name (PM-프론트 #1943: a breath only 숨결 최대 uses is nowhere else on
+ * the page, so '외 N개' alone would take it away).
  */
-export function leftOutText(names: readonly string[]) {
-  if (names.length === 0) return "";
-  const shown = names.slice(0, 2).join(", ");
-  return `시세가 없어 뺀 재료: ${shown}${names.length > 2 ? ` 외 ${names.length - 2}개` : ""}`;
+export function leftOutLabel(names: readonly string[]) {
+  if (names.length === 0) return { visible: "", full: "" };
+  const lead = "시세가 없어 뺀 재료: ";
+  const visible = `${lead}${names.slice(0, 2).join(", ")}${names.length > 2 ? ` 외 ${names.length - 2}개` : ""}`;
+  return { visible, full: `${lead}${names.join(", ")}` };
 }
 
 /** Unpriced non-breath materials whose amounts differ between the sides (a rounding hair is the same amount). */
