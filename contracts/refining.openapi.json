@@ -926,8 +926,15 @@
             "description": "구간 재련 골드의 합(재료 값 제외, 소수 둘째 자리 반올림)"
           },
           "expectedSilver": {
-            "type": "number",
-            "description": "구간 기대 실링의 합(수량 표시용, 골드에 넣지 않음). 어느 구간이라도 실링 값이 없으면 null"
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "구간 기대 실링의 합(수량 표시용, 골드에 넣지 않음). 어느 구간이라도 실링 값이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expectedCostGold": {
             "type": "integer",
@@ -959,7 +966,26 @@
               "type": "string"
             }
           }
-        }
+        },
+        "required": [
+          "assumptions",
+          "bands",
+          "equipmentType",
+          "expectedCostGold",
+          "expectedMaterials",
+          "expectedRefineGold",
+          "expectedSilver",
+          "fromStage",
+          "grade",
+          "policyLimited",
+          "priceBasis",
+          "pricesObservedAt",
+          "ruleVersion",
+          "singleSource",
+          "source",
+          "temperingStages",
+          "toStage"
+        ]
       },
       "AdvancedRefiningSourceResponse": {
         "type": "object",
@@ -979,7 +1005,13 @@
           "verifiedOn": {
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "name",
+          "officialGuide",
+          "officialNotice",
+          "verifiedOn"
+        ]
       },
       "AdvancedRefiningBandResponse": {
         "type": "object",
@@ -1021,8 +1053,15 @@
             "description": "기대 재련 골드(재료 값 제외)"
           },
           "expectedSilver": {
-            "type": "number",
-            "description": "기대 실링(수량 표시용). 이 구간 실링 값이 없으면 null"
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "기대 실링(수량 표시용). 이 구간 실링 값이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "expectedCostGold": {
             "type": "integer",
@@ -1033,7 +1072,20 @@
             "type": "boolean",
             "description": "이 구간에 출처가 한 곳뿐인 값이 있는지"
           }
-        }
+        },
+        "required": [
+          "bandStart",
+          "expectedCostGold",
+          "expectedMaterials",
+          "expectedRefineGold",
+          "expectedSilver",
+          "expectedTurns",
+          "fromStage",
+          "growthSupport",
+          "policy",
+          "singleSource",
+          "toStage"
+        ]
       },
       "AdvancedRefiningTurnsResponse": {
         "type": "object",
@@ -1052,14 +1104,28 @@
             "description": "선조 턴"
           },
           "enhanced": {
-            "type": "number",
-            "description": "강화 선조 턴. 20단계 아래 구간은 null"
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "강화 선조 턴. 20단계 아래 구간은 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "total": {
             "type": "number",
             "description": "합"
           }
-        }
+        },
+        "required": [
+          "ancestor",
+          "enhanced",
+          "free",
+          "paid",
+          "total"
+        ]
       },
       "AdvancedRefiningPolicyResponse": {
         "type": "object",
@@ -1072,9 +1138,21 @@
             "type": "string"
           },
           "enhanced": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        }
+        },
+        "required": [
+          "ancestor",
+          "enhanced",
+          "normal"
+        ]
       }
     }
   }

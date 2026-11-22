@@ -328,109 +328,106 @@ export interface components {
         /** @description 상급 재련 기대 비용. 10단계 구간마다 기대 턴·숨결·책 선택·재료·골드이고, 기대값은 확률 분포의 평균이다(중앙값·90% 없음). */
         AdvancedRefiningPlanResponse: {
             /** @description 상급 재련 규칙 버전 */
-            ruleVersion?: string;
-            source?: components["schemas"]["AdvancedRefiningSourceResponse"];
+            ruleVersion: string;
+            source: components["schemas"]["AdvancedRefiningSourceResponse"];
             /** @enum {string} */
-            grade?: "UPHWA" | "JEONYUL";
+            grade: "UPHWA" | "JEONYUL";
             /** @enum {string} */
-            equipmentType?: "WEAPON" | "ARMOR" | "ARM_GUARD";
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
             /** Format: int32 */
-            fromStage?: number;
+            fromStage: number;
             /** Format: int32 */
-            toStage?: number;
+            toStage: number;
             /** @description 지나는 10단계 구간마다 한 줄(차례대로) */
-            bands?: components["schemas"]["AdvancedRefiningBandResponse"][];
+            bands: components["schemas"]["AdvancedRefiningBandResponse"][];
             /** @description 지나는 담금질 단계(10·20·30에서 다음으로 갈 때). 담금질 재료는 귀속이라 금액에 넣지 않는다. 없으면 빈 목록 */
-            temperingStages?: number[];
+            temperingStages: number[];
             /** @description 구간 기대 재료의 합(소수 둘째 자리 반올림) */
-            expectedMaterials?: components["schemas"]["QuantityResponse"][];
+            expectedMaterials: components["schemas"]["QuantityResponse"][];
             /** @description 구간 재련 골드의 합(재료 값 제외, 소수 둘째 자리 반올림) */
-            expectedRefineGold?: number;
-            /** @description 구간 기대 실링의 합(수량 표시용, 골드에 넣지 않음). 어느 구간이라도 실링 값이 없으면 null */
-            expectedSilver?: number;
+            expectedRefineGold: number;
+            expectedSilver: number | null;
             /**
              * Format: int64
              * @description 계획 전체 기대 비용(골드) = 올리기 전 구간 값(재료 × priceBasis 값 + 재련 골드)의 합을 한 번 올림. 스펙업 상급 재련 단계 비용(ADVANCED_REFINE_EXPECTED)과 같은 계산
              */
-            expectedCostGold?: number;
+            expectedCostGold: number;
             /**
              * Format: date-time
              * @description 계산에 쓴 재료 시세 관측 시각
              */
-            pricesObservedAt?: string;
+            pricesObservedAt: string;
             /**
              * @description 재료 값 기준. CURRENT_MIN_PRICE = 1개 즉시 구매 최저가
              * @example CURRENT_MIN_PRICE
              */
-            priceBasis?: string;
+            priceBasis: string;
             /** @description 숨결·책 가운데 시세가 없는 재료가 있어 그 재료를 쓰는 선택을 빼고 골랐는지(시세가 다 있으면 비용이 더 작을 수 있음) */
-            policyLimited?: boolean;
+            policyLimited: boolean;
             /** @description 출처가 한 곳뿐인 값을 썼는지(규칙 파일 표시, 21단계부터 강화 선조 확률 포함) */
-            singleSource?: boolean;
+            singleSource: boolean;
             /** @description 계산 가정과 제외 항목 */
-            assumptions?: string[];
+            assumptions: string[];
         };
         AdvancedRefiningSourceResponse: {
             /** @description 출처 이름 */
-            name?: string;
+            name: string;
             /** @description 공식 가이드(주소·확인일) */
-            officialGuide?: string;
+            officialGuide: string;
             /** @description 공식 공지(주소·확인일) */
-            officialNotice?: string;
-            verifiedOn?: string;
+            officialNotice: string;
+            verifiedOn: string;
         };
         AdvancedRefiningBandResponse: {
             /**
              * Format: int32
              * @description 구간 시작 단계(0·10·20·30)
              */
-            bandStart?: number;
+            bandStart: number;
             /**
              * Format: int32
              * @description 이 구간에서 시작하는 단계
              */
-            fromStage?: number;
+            fromStage: number;
             /**
              * Format: int32
              * @description 이 구간에서 끝나는 단계
              */
-            toStage?: number;
-            expectedTurns?: components["schemas"]["AdvancedRefiningTurnsResponse"];
-            policy?: components["schemas"]["AdvancedRefiningPolicyResponse"];
+            toStage: number;
+            expectedTurns: components["schemas"]["AdvancedRefiningTurnsResponse"];
+            policy: components["schemas"]["AdvancedRefiningPolicyResponse"];
             /** @description 성장 지원(1~20단계 할인)을 적용했는지 */
-            growthSupport?: boolean;
+            growthSupport: boolean;
             /** @description 기대 재료 개수(기본 재료는 유료·선조·강화 선조 턴, 숨결·책은 고른 선택대로, 소수 둘째 자리 반올림) */
-            expectedMaterials?: components["schemas"]["QuantityResponse"][];
+            expectedMaterials: components["schemas"]["QuantityResponse"][];
             /** @description 기대 재련 골드(재료 값 제외) */
-            expectedRefineGold?: number;
-            /** @description 기대 실링(수량 표시용). 이 구간 실링 값이 없으면 null */
-            expectedSilver?: number;
+            expectedRefineGold: number;
+            expectedSilver: number | null;
             /**
              * Format: int64
              * @description 이 구간 기대 비용(골드, 올림) = 재료 × priceBasis 값 + 재련 골드
              */
-            expectedCostGold?: number;
+            expectedCostGold: number;
             /** @description 이 구간에 출처가 한 곳뿐인 값이 있는지 */
-            singleSource?: boolean;
+            singleSource: boolean;
         };
         /** @description 턴 종류별 기대 턴 수(소수 둘째 자리 반올림) */
         AdvancedRefiningTurnsResponse: {
             /** @description 유료 일반 턴 */
-            paid?: number;
+            paid: number;
             /** @description 무료 일반 턴(테메르) */
-            free?: number;
+            free: number;
             /** @description 선조 턴 */
-            ancestor?: number;
-            /** @description 강화 선조 턴. 20단계 아래 구간은 null */
-            enhanced?: number;
+            ancestor: number;
+            enhanced: number | null;
             /** @description 합 */
-            total?: number;
+            total: number;
         };
         /** @description 턴 종류마다 고른 선택: NONE(없음)·BREATH(숨결)·BOOK(책)·BOTH(둘 다). 모르는 값은 코드 그대로 보인다 */
         AdvancedRefiningPolicyResponse: {
-            normal?: string;
-            ancestor?: string;
-            enhanced?: string;
+            normal: string;
+            ancestor: string;
+            enhanced: string | null;
         };
     };
     responses: never;
