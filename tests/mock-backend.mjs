@@ -163,6 +163,14 @@ function withGemSwap(data) {
     core(1, "혼돈의 별 코어 : 무기", [gem(0, "혼돈", "침식", [["추가 피해", 5], ["낙인력", 4]])]),
     core(2, "혼돈의 달 코어 : 불타는 일격", [gem(0, "혼돈", "침식", [["추가 피해", 3], ["공격력", 2]]), gem(1, "혼돈", "왜곡", [["보스 피해", 2], ["아군 공격 강화", 1]])]),
   ];
+  // X2 (web #1939): its 아크 그리드 실 효율, PM 총괄's example value (5.02% → 보스 피해 환산 Lv 60.24).
+  data.arkGridEfficiency = {
+    percent: null, coresPercent: null, status: "OK", reasonCode: null, reason: "합성 값(목 서버)", lines: [], ruleVersion: "combat-power-v3",
+    real: {
+      status: "OK", reasonCode: null, reason: null, percent: 5.02, optionsPercent: 3.6, pointsPercent: 1.42, ruleVersion: "ark-grid-real-v1",
+      options: [], series: [],
+    },
+  };
   return data;
 }
 /** A gem swap's synthetic number: options' levels and the point (higher is more), never the game's formula. */

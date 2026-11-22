@@ -23,9 +23,26 @@ export type ArkGridRealView =
       total: string;
       /** "젬 옵션 +3.21% · 코어 포인트 +1.41%", whichever is known. */
       parts: string | null;
+      /** 보스 피해 환산 Lv (X2): the total × 12, "60.24". */
+      bossLevel: string;
       series: { label: string; percent: string }[];
       lines: { name: string; level: number | null; percent: string | null }[];
     };
+
+/**
+ * 보스 피해 환산 Lv (X2, PM 총괄 11-22 13:47; 계산 검증 13:46): our own reading of the ark grid efficiency, the total
+ * gem real efficiency (options + core points, api #520) as 보스 피해 levels, one level counted as 1/12 %. Our number
+ * from our verified model, not claimed equal to any other site's.
+ */
+export const BOSS_LEVELS_PER_PERCENT = 12;
+export const bossLevel = (percent: number) =>
+  (Math.round(percent * BOSS_LEVELS_PER_PERCENT * 100) / 100).toLocaleString("ko-KR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+/** What the level is, in our words (the tooltip and its accessible name). */
+export const BOSS_LEVEL_NOTE =
+  "아크 그리드 효율을 젬 옵션 ‘보스 피해’ 레벨로 바꿔 나타낸 값이에요. 보스 피해 1레벨을 1/12%로 보고 효율에 12를 곱해 셈해요.";
 
 export function arkGridRealView(real: ArkGridReal | null | undefined, hasGrid: boolean): ArkGridRealView {
   if (!real) return { state: "hidden" };
@@ -38,6 +55,7 @@ export function arkGridRealView(real: ArkGridReal | null | undefined, hasGrid: b
     state: "ready",
     total: realPercent(real.percent),
     parts: parts.length ? parts.join(" · ") : null,
+    bossLevel: bossLevel(real.percent),
     series: real.series.filter((s) => finite(s.percent)).map((s) => ({ label: s.series, percent: realPercent(s.percent!) })),
     lines: real.options.map((o) => ({ name: o.name, level: o.level, percent: finite(o.percent) ? realPercent(o.percent) : null })),
   };

@@ -8,7 +8,13 @@ import { characterNameError, normalizeCharacterName } from "@/lib/character/mode
 import { isSearchBot } from "@/lib/character/public-summary";
 import { getCharacter } from "@/lib/character/server";
 import { getCombatPowerOptions } from "@/lib/combat-power/server";
-import { isArkGemSimEnabled, isArmorCpSimEnabled, isCombatPowerEnabled, isKarmaSimEnabled } from "@/lib/tools/flags";
+import {
+  isArkGemSimEnabled,
+  isArmorCpSimEnabled,
+  isCharacterEfficiencyEnabled,
+  isCombatPowerEnabled,
+  isKarmaSimEnabled,
+} from "@/lib/tools/flags";
 
 const metadata: Metadata = {
   title: "전투력 시뮬레이터",
@@ -30,7 +36,15 @@ export default async function CombatPowerPage({
   const { character } = await searchParams;
   if (!isCombatPowerEnabled()) notFound();
   const name = typeof character === "string" ? character.slice(0, 64) : "";
-  const tool = <CombatPowerTool initialName={name} karma={isKarmaSimEnabled()} armor={isArmorCpSimEnabled()} gem={isArkGemSimEnabled()} />;
+  const tool = (
+    <CombatPowerTool
+      initialName={name}
+      karma={isKarmaSimEnabled()}
+      armor={isArmorCpSimEnabled()}
+      gem={isArkGemSimEnabled()}
+      efficiency={isCharacterEfficiencyEnabled()}
+    />
+  );
   // The simulator's first screen (its editors and notes) waited on the character and options requests, which the
   // client could only send after every script had loaded and hydrated: LCP 3.1–3.2s at 320 · CPU 4× · Slow 4G
   // (#1949). With a name in the address both come from here, under the same query keys, as the character page
