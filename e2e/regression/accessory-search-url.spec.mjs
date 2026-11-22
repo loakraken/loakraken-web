@@ -13,16 +13,29 @@ test("주소로 열고 새로고침·뒤로·앞으로·화면 안 링크를 거
   });
   await gotoReady(page, `${PATH}?slot=RING&grade=RELIC&polish=CRIT_DAMAGE:MID&range=70`);
   const ring = page.getByRole("radiogroup", { name: "부위" }).getByRole("radio", { name: "반지" });
-  await expect(ring).toBeChecked();
+  const toolsHeading = page.getByRole("heading", { level: 1, name: "도구 모음" });
+  // Each history step ends on its own page before the next one starts (PM-프론트, e2e run 44999138753: a goBack
+  // right after goForward aborted the forward navigation still in flight, net::ERR_ABORTED).
+  const onSearch = async () => {
+    await expect(page).toHaveURL(/\/market\/accessories\/search\?.*slot=RING/);
+    await expect(ring).toBeChecked();
+  };
+  const onTools = async () => {
+    await expect(page).toHaveURL(/\/tools$/);
+    await expect(toolsHeading).toBeVisible();
+  };
+  await onSearch();
   await expect(page.getByRole("combobox", { name: "치명타 피해" })).toHaveText("중 이상");
   await page.reload();
-  await expect(ring).toBeChecked();
+  await onSearch();
   await page.goto("/tools");
+  await onTools();
   await page.goBack();
-  await expect(ring).toBeChecked();
+  await onSearch();
   await page.goForward();
+  await onTools();
   await page.goBack();
-  await expect(ring).toBeChecked();
+  await onSearch();
   // An outside change: this view's own link (the default address).
   await page.getByRole("link", { name: "매물 검색" }).click();
   await expect.poll(() => param(page, "slot")).toBeNull();

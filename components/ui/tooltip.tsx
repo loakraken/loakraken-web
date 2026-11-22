@@ -48,11 +48,13 @@ function TooltipContent({
       >
         {/* A dark translucent glass panel in both themes,
             12px radius, 12/14 padding, 12px text, no arrow. A second line
-            can use text-(--tooltip-muted). */}
+            can use text-(--tooltip-muted). At most 20rem, and never wider
+            than the screen less its margins (#1941: at 320 a 20rem panel was
+            the whole width, and a long one stuck out 5px). */}
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
           className={cn(
-            "z-50 grid w-fit max-w-xs origin-(--transform-origin) gap-0.5 rounded-(--radius-md) px-3.5 py-3",
+            "z-50 grid w-fit max-w-[min(20rem,calc(100vw-1rem))] origin-(--transform-origin) gap-0.5 rounded-(--radius-md) px-3.5 py-3",
             "bg-(--tooltip) text-(length:--text-caption) leading-[1.35] font-medium text-(--tooltip-foreground)",
             "backdrop-blur-[24px] backdrop-saturate-[1.8] shadow-(--tooltip-shadow)",
             "data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95",
