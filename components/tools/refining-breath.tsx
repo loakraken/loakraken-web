@@ -45,10 +45,13 @@ export function RefiningBreathCompare({
   requests,
   mode,
   basis,
+  extraNames = [],
 }: {
   requests: readonly BreathRequest[];
   mode: Mode;
   basis: PriceBasis;
+  /** The 상급 재련 materials the result prices too (X3 part 2): the same list keeps one price query. */
+  extraNames?: readonly string[];
 }) {
   // Both ways for every part; the one the page already asked for comes from the same cache entry.
   const variants = requests.flatMap(({ request }) => [
@@ -71,7 +74,7 @@ export function RefiningBreathCompare({
   const own: PartPlan[] = loaded
     ? requests.map(({ part, request }, i) => ({ part, plan: plans[i * 2 + (request.useBreath ? 1 : 0)].data!.data }))
     : [];
-  const names = loaded ? priceNames(own, mode) : [];
+  const names = loaded ? priceNames(own, mode, extraNames) : [];
   // The result's own price query (useRefiningCost): same list (priceNames), same key and body, so one request a minute
   // serves both (PM-프론트 #1932, performance first). This side only reads it: no timer of its own (two timers could
   // fetch twice a minute); the result's minute refresh brings the new prices here too. A new basis or mode keeps the

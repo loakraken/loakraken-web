@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RefiningPlanTool } from "@/components/tools/refining-plan";
+import { isRefiningAdvancedEnabled } from "@/lib/tools/flags";
 
 export const metadata: Metadata = {
   title: "재련 기대 비용",
@@ -15,5 +16,6 @@ export default async function RefiningPage({
 }) {
   const { character } = await searchParams;
   const name = typeof character === "string" ? character.slice(0, 64) : "";
-  return <RefiningPlanTool initialName={name} />;
+  // 상급 재련 +10 (X3 part 2, web #1951): REFINING_ADVANCED, off unless set on.
+  return <RefiningPlanTool initialName={name} advanced={isRefiningAdvancedEnabled()} />;
 }

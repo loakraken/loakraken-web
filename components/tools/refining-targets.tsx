@@ -38,11 +38,14 @@ export function RefiningTargets({
   parts,
   setParts,
   itemLevel,
+  advanced,
 }: {
   parts: Parts;
   setParts: Dispatch<SetStateAction<Parts>>;
   /** The loaded character's item level, or null (then the slider says how much it adds). */
   itemLevel: number | null;
+  /** (X3 part 2, REFINING_ADVANCED) '고른 부위 상급 +10' on the same picks; absent while the switch is off. */
+  advanced?: { can: (picked: readonly PartId[]) => boolean; raise: (picked: readonly PartId[]) => void };
 }) {
   const sliderId = useId();
   const max = sliderMax(parts);
@@ -122,6 +125,7 @@ export function RefiningTargets({
   const toggle = (id: PartId) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : PART_IDS.filter((p) => p === id || prev.includes(p))));
   const canRaise = raisable(parts, picked).length > 0;
+  const canAdvance = advanced?.can(picked) ?? false;
 
   return (
     <div className={styles.targets}>
@@ -163,14 +167,26 @@ export function RefiningTargets({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className={`${styles.raise} hit-44`}
-          aria-disabled={!canRaise || undefined}
-          onClick={() => canRaise && setParts((prev) => bumpPicked(prev, picked))}
-        >
-          고른 부위 +1
-        </button>
+        <div className={styles.raises}>
+          <button
+            type="button"
+            className={`${styles.raise} hit-44`}
+            aria-disabled={!canRaise || undefined}
+            onClick={() => canRaise && setParts((prev) => bumpPicked(prev, picked))}
+          >
+            고른 부위 +1
+          </button>
+          {advanced && (
+            <button
+              type="button"
+              className={`${styles.raise} hit-44`}
+              aria-disabled={!canAdvance || undefined}
+              onClick={() => canAdvance && advanced.raise(picked)}
+            >
+              고른 부위 상급 +10
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

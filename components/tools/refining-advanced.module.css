@@ -1,0 +1,132 @@
+/* (ours, X3 part 2, web #1951) 상급 재련 rows in the 목표 단계 card and its band rows in the result. Fixed row heights
+   and tabular numbers: a stage or a mode changing never changes a box's size (A7). */
+.advanced {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+.title {
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 22px;
+}
+.rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: grid;
+  grid-template-columns: 3.2em 3em minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+.row[data-off] .mini {
+  opacity: 0.4;
+}
+.part {
+  align-self: center;
+  font-size: var(--text-body);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.up {
+  align-self: center;
+  color: var(--slate);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Its own row under the selects (the row grows at the load, a reply to the user's action). */
+.unread {
+  grid-column: 1 / -1;
+  color: var(--launch);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+.mini {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.mini span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.mini [data-slot="select"] {
+  width: 100%;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.mini [data-slot="select"]:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .mini [data-slot="select"] {
+    height: 44px;
+  }
+}
+.caption {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+/* One line high whenever a 상급 target is set, its words only in the percentile modes (A7). */
+.modeLine {
+  min-height: 18px;
+  margin-top: 6px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+.bands {
+  margin-top: 28px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 18px;
+}
+.bands summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+.tableWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+  white-space: nowrap;
+}
+.table th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+.table td small {
+  display: block;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.bands .caption {
+  margin-top: 10px;
+}

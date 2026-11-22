@@ -29,8 +29,9 @@ export const breathNamesOf = (type: EquipmentType): string[] =>
  * the query is shared. Past MAX_PRICE_NAMES with the breaths, the page's own list only (its prices never go off for
  * the compare, which then has no breath price and says so).
  */
-export function priceNames(plans: readonly PartPlan[], mode: Mode): string[] {
-  const own = summarize([...plans], mode).materials.map((item) => item.name);
+export function priceNames(plans: readonly PartPlan[], mode: Mode, extra: readonly string[] = []): string[] {
+  // `extra`: the 상급 재련 bands' materials (X3 part 2, web #1951), the same list from both callers.
+  const own = [...new Set([...summarize([...plans], mode).materials.map((item) => item.name), ...extra])];
   const all = [...new Set([...own, ...plans.flatMap(({ part }) => breathNamesOf(part.type))])];
   return all.length <= MAX_PRICE_NAMES ? all : own;
 }
