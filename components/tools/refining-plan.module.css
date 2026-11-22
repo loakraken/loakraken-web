@@ -1,15 +1,18 @@
 /* Refining estimate — extends the material-quote gallery tokens (same page
    class supplies --ink/--slate/--mist/--action). Flat surfaces, hairlines,
    blue reserved for the active choice. */
+/* The loaded character's line, held from the first frame (A7): two lines on a phone, where a long name wraps it,
+   one line above. */
 .loaded {
-  display: grid;
-  gap: 4px;
+  min-height: 40px;
   margin-top: 20px;
   font-size: var(--text-body);
+  line-height: 20px;
 }
-.loaded small {
-  color: var(--slate);
-  font-size: var(--text-meta);
+@media (min-width: 700px) {
+  .loaded {
+    min-height: 20px;
+  }
 }
 .chips {
   display: flex;
