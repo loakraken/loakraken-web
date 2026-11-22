@@ -31,7 +31,9 @@ for (const width of [320, 1280])
     const first = await shiftsSince(page);
     expect(first.all, `첫 로드 흔들림: ${first.moved}`).toBe(0);
 
-    // Drag: no plan request while the thumb moves, one round when it is let go.
+    // Drag: no plan request while the thumb moves, one round when it is let go. (At 320 the slider is below the fold:
+    // the mouse works in the viewport, so bring it into view first.)
+    await slider.scrollIntoViewIfNeeded();
     const box = await slider.boundingBox();
     const y = box.y + box.height / 2;
     await page.mouse.move(box.x + 4, y);
