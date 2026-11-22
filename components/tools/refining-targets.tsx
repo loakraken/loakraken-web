@@ -10,6 +10,7 @@ import {
   bumpPicked,
   levelGain,
   raisable,
+  sameParts,
   slideTargets,
   sliderMax,
   sliderValue,
@@ -57,17 +58,22 @@ export function RefiningTargets({
   // Set the targets on release only: the native change event (mouse or touch let go, a key step, a fill).
   const range = useRef<HTMLInputElement>(null);
   // Where this run of slider steps started (#1929): each step spreads from it, so a step back undoes a step forward.
+  // The parts as last drawn, for the step (computed outside the state updater, which must stay pure: StrictMode runs
+  // it twice, codex P3 on #1930). Any change to the parts that is not the run's own last step ends the run, at once,
+  // so an outside change that lands back on the same parts (a chip +20 then +19) still starts afresh (codex P3).
   const anchor = useRef<SlideAnchor | null>(null);
+  const latest = useRef(parts);
+  useEffect(() => {
+    latest.current = parts;
+    if (anchor.current && !sameParts(parts, anchor.current.made)) anchor.current = null;
+  }, [parts]);
   useEffect(() => {
     const input = range.current;
     if (!input) return;
     const commit = () => {
-      const stages = Number(input.value);
-      setParts((prev) => {
-        const step = slideTargets(anchor.current, prev, stages);
-        anchor.current = step;
-        return step.made;
-      });
+      const step = slideTargets(anchor.current, latest.current, Number(input.value));
+      anchor.current = step;
+      setParts(step.made);
       setDraft(null);
     };
     // Let go without a change event (dragged back to the start), or left: drop the draft, set nothing. A task later,
@@ -89,15 +95,22 @@ export function RefiningTargets({
     const keyUp = (event: KeyboardEvent) => {
       if (!held && RANGE_KEYS.has(event.key)) settle();
     };
+    // A key step while the pointer holds the thumb would move it and commit mid-drag (codex P3 on #1930): the drag
+    // owns the slider until it is let go.
+    const keyDown = (event: KeyboardEvent) => {
+      if (held && RANGE_KEYS.has(event.key)) event.preventDefault();
+    };
     const releases = ["pointerup", "pointercancel", "blur"] as const;
     input.addEventListener("change", commit);
     input.addEventListener("pointerdown", press);
+    input.addEventListener("keydown", keyDown);
     input.addEventListener("keyup", keyUp);
     for (const type of releases) input.addEventListener(type, release);
     return () => {
       window.clearTimeout(timer);
       input.removeEventListener("change", commit);
       input.removeEventListener("pointerdown", press);
+      input.removeEventListener("keydown", keyDown);
       input.removeEventListener("keyup", keyUp);
       for (const type of releases) input.removeEventListener(type, release);
     };

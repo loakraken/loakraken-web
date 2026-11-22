@@ -96,3 +96,23 @@ test("slideTargets starts a new run when the targets changed elsewhere ('고른 
   assert.equal(next.base, bumped);
   assert.deepEqual(targets(next.made), [19, 19, 19, 19, 18, 19, 18]);
 });
+
+test("slideTargets keeps a row's edit between steps: only the targets come from the run (codex P2 on #1930)", () => {
+  const up = slideTargets(null, make(), 1);
+  assert.equal(up.made.weapon.target, 19);
+  // A row edit after the step: the weapon's 장인의 기운, then the helmet's grade.
+  const edited = {
+    ...up.made,
+    weapon: { ...up.made.weapon, artisanEnergy: 50 },
+    helmet: { ...up.made.helmet, grade: up.made.helmet.grade === "UPHWA" ? "JEONYUL" : "UPHWA" },
+  } as typeof up.made;
+  const next = slideTargets(up, edited, 2);
+  assert.equal(next.made.weapon.artisanEnergy, 50);
+  assert.equal(next.made.helmet.grade, edited.helmet.grade);
+  assert.equal(sliderValue(next.made), 2);
+  // A run that goes on (the parts exactly as the last step made them) takes its targets from the base only.
+  const again = slideTargets(next, next.made, 1);
+  assert.equal(again.made.weapon.artisanEnergy, 50);
+  assert.equal(again.made.helmet.grade, edited.helmet.grade);
+  assert.equal(sliderValue(again.made), 1);
+});

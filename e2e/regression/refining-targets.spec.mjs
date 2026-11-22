@@ -182,3 +182,44 @@ test("1280: 목표가 같은 부위가 있어도 한 칸 올렸다 내리면 처
   for (const label of LEVEL_PARTS) back.push(await upOf(page, label));
   expect(back, "처음 목표 그대로").toEqual(start);
 });
+
+// codex P2 on #1930: slider step, a row edit (장인의 기운), another slider step — the row edit stays.
+test("1280: 슬라이더 → 부위 줄에서 장인의 기운을 바꿈 → 슬라이더, 바꾼 값이 그대로다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/refining");
+  const slider = page.getByRole("slider", { name: /목표 아이템 레벨/ });
+  await slider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => upOf(page, "무기")).toBe(1);
+  await page.getByText("첫 단계 진행 상황 입력").click();
+  const energy = page
+    .locator("li")
+    .filter({ has: page.locator("strong", { hasText: /^무기 \+\d+$/ }) })
+    .getByRole("spinbutton", { name: "장인의 기운(%)" });
+  await energy.fill("50");
+  await expect(energy).toHaveValue("50");
+  await slider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => upOf(page, "머리")).toBe(1);
+  await expect(energy).toHaveValue("50");
+});
+
+// codex P3 on #1930: a key step while the pointer holds the thumb neither moves the plan nor commits mid-drag.
+test("1280: 끄는 도중 방향키를 눌러도 놓기 전에는 목표가 바뀌지 않는다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/refining");
+  const slider = page.getByRole("slider", { name: /목표 아이템 레벨/ });
+  await slider.scrollIntoViewIfNeeded();
+  const box = await slider.boundingBox();
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + 4, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 4, y, { steps: 4 });
+  await page.keyboard.press("ArrowRight");
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(done, 50))));
+  const held = [];
+  for (const label of LEVEL_PARTS) held.push(await upOf(page, label));
+  expect(held, "놓기 전에는 그대로").toEqual([0, 0, 0, 0, 0, 0]);
+  await page.mouse.up();
+  await expect.poll(() => upOf(page, "무기")).toBeGreaterThan(0);
+});

@@ -62,23 +62,38 @@ export function spreadStages(parts: Parts, stages: number): Parts {
 /** Where a run of slider steps started, and what its last step made (the slider keeps it between steps). */
 export type SlideAnchor = { base: Parts; made: Parts };
 
-const sameTargets = (a: Parts, b: Parts) =>
-  PARTS.every(
-    (part) =>
-      a[part.id].enabled === b[part.id].enabled &&
-      a[part.id].current === b[part.id].current &&
-      a[part.id].target === b[part.id].target,
-  );
+/**
+ * Every field of every part equal (the page keeps the parts in the address, so they come back as a new object with
+ * the same fields: equality, not identity). Codex P2 on #1930: comparing the targets alone took a grade or 장인의 기운
+ * edited in a row for "still the last step" and the next step put the old one back.
+ */
+export const sameParts = (a: Parts, b: Parts) =>
+  PARTS.every((part) => {
+    const x = a[part.id];
+    const y = b[part.id];
+    return (
+      x.enabled === y.enabled &&
+      x.grade === y.grade &&
+      x.current === y.current &&
+      x.target === y.target &&
+      x.artisanEnergy === y.artisanEnergy &&
+      x.successRate === y.successRate
+    );
+  });
 
 /**
  * One slider step from the targets the run started at (#1929, codex P3 on #1922): raising fills the lowest and
  * lowering drains the highest, so steps taken one at a time from each other's result do not undo each other when
- * targets tie (18/19/19… +1 −1 came back as 19/…/18). While the parts are still what the last step made, every step
- * spreads from the run's base instead, so going back to a value gives back that value's targets. A change from
- * anywhere else (a row, '고른 부위 +1', a new character) starts a new run from the parts as they are.
+ * targets tie (18/19/19… +1 −1 came back as 19/…/18). While the parts are still exactly what the last step made, every
+ * step spreads from the run's base targets instead, so going back to a value gives back that value's targets. Only
+ * the targets come from the base; everything else is the live parts'. Any other change (a row, '고른 부위 +1', a
+ * chip, a new character) starts a new run from the parts as they are; the slider also drops its run as soon as it
+ * sees one (refining-targets.tsx), so a change that lands back on the same parts still starts afresh.
  */
 export function slideTargets(anchor: SlideAnchor | null, parts: Parts, stages: number): SlideAnchor {
-  const base = anchor && sameTargets(parts, anchor.made) ? anchor.base : parts;
+  if (!anchor || !sameParts(parts, anchor.made)) return { base: parts, made: spreadStages(parts, stages) };
+  const base = { ...parts };
+  for (const part of PARTS) base[part.id] = { ...parts[part.id], target: anchor.base[part.id].target };
   return { base, made: spreadStages(base, stages) };
 }
 
