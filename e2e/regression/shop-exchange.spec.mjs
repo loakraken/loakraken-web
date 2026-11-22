@@ -170,7 +170,10 @@ test("1280: 내 값 안내 줄은 처음부터 상태 영역이고 글만 바뀐
 test("1280: 이 탭이 다른 화면에 있는 동안 다른 탭이 넣은 값도 돌아오면 보인다 @regression", async ({ page, context }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, "/tools/shop-exchange?shop=guild");
-  await expect(yozField(page)).toHaveValue("");
+  // This tab saves first: its in-memory copy now holds 1,000 (the copy a missed storage event would leave stale).
+  await yozField(page).fill("1000");
+  await yozField(page).press("Enter");
+  await expect(yozField(page)).toHaveValue("1000");
   // Away inside the app (the tool unmounts, its listeners go; the module and its memory stay): a marker on window
   // proves no full reload happens on the way out or back.
   await page.evaluate(() => {
