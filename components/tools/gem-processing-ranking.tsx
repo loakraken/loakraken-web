@@ -112,7 +112,7 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         젬 가공 순위
       </h2>
       <p className={styles.lead}>
-        지금 낀 젬마다, 새 젬을 가공해 바꾸면 전투력이 오를 확률과 기대 비용이 적은 방법부터 보여 줘요.
+        지금 낀 젬마다 새 젬을 가공해 바꾸는 방법을, 전투력 1%당 비용이 적은 순으로 보여 줘요(비용을 모르면 기대 증가가 큰 순).
       </p>
       <div className={styles.inputs}>
         <SegmentedControl
