@@ -1,4 +1,5 @@
 import {
+  isArkGemSimEnabled,
   isArmorCpSimEnabled,
   isArmoryPageEnabled,
   isCharacterEfficiencyEnabled,
@@ -113,6 +114,7 @@ export default async function CharacterPage({
         simulator={isCombatPowerEnabled()}
         karmaSim={isKarmaSimEnabled()}
         armorSim={isArmorCpSimEnabled()}
+        gemSim={isArkGemSimEnabled()}
         specUp={isSpecUpEnabled()}
         specUpPath={isSpecUpPathEnabled()}
         titleStats={isTitleStatsEnabled()}

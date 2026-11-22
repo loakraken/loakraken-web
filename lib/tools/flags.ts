@@ -141,6 +141,21 @@ export function isArmorCpSimEnabled(env: Env = process.env) {
 }
 
 /**
+ * 아크 그리드 젬 바꾸기 in the simulator (api #1079, ARK_GRID_GEM, web #1935): the gem editors, the swaps they send,
+ * the 바꿔 본 젬 순위 and the proxy forwarding them. A production api without #1079 refuses the kind (400 for the
+ * whole simulation), so it opens with that api release (the deploy sheet's paired block). Same rule as KARMA_SIM:
+ * `ARK_GEM_SIM=on|off` overrides, otherwise hidden only on the production host (and with the simulator itself).
+ * Off, every screen, request body and the proxy guard are as before.
+ */
+export function isArkGemSimEnabled(env: Env = process.env) {
+  if (!isCombatPowerEnabled(env)) return false;
+  const flag = env.ARK_GEM_SIM?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Official armory page details (tripod levels, skill code; backend flag off
  * by default). The web asks for them only where ARMORY_PAGE allows it:
  * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so

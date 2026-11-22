@@ -2,6 +2,7 @@
 // Pure: the screen keeps the state in a reducer and the browser storage
 // behind try/catch. Nothing here is sent to the server.
 import { KARMA_MAX, KARMA_TREE, NO_EDITS, arkPassiveMax, type Edits } from "./model";
+import { gemKey, gemText, type GemEdit } from "./ark-gems";
 
 /** How many steps 이전 can go back. */
 export const HISTORY_LIMIT = 50;
@@ -81,6 +82,8 @@ export type Identity = {
   stones: { name: string }[];
   arkPassive: { tree: string }[];
   cores: { slotIndex: number; name: string }[];
+  /** The gems worn (ARK_GEM_SIM on): a saved swap is aimed at its core and the gem it replaces. */
+  arkGems?: { slotIndex: number; index: number; core: string; edit: GemEdit }[];
 };
 
 /** Every key an edit can use, mapped to what it names on this character. */
@@ -104,6 +107,8 @@ export function targetsOf(identity: Identity): Required<Targets> {
     // 깨달음 카르마 레벨 (api #1004) is aimed at the 깨달음 tree.
     karma: Object.fromEntries(identity.arkPassive.filter((a) => a.tree === KARMA_TREE).map((a) => [a.tree, a.tree])),
     core: Object.fromEntries(identity.cores.map((c) => [String(c.slotIndex), c.name])),
+    // A gem swap (api #1079) is aimed at its core and the gem worn there: a re-rolled gem is another target.
+    arkGem: Object.fromEntries((identity.arkGems ?? []).map((g) => [gemKey(g), `${g.core}|${gemText(g.edit)}`])),
   };
 }
 
@@ -121,6 +126,7 @@ const GROUPS = [
   "arkPassive",
   "karma",
   "core",
+  "arkGem",
   "armGuard",
 ] as const;
 
@@ -150,6 +156,14 @@ export function applySaved(saved: Saved, identity: Identity): { edits: Edits; sk
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+const isGemEdit = (value: unknown): value is GemEdit =>
+  isRecord(value) &&
+  typeof value.gemType === "string" &&
+  Number.isInteger(value.willEfficiency) &&
+  Number.isInteger(value.point) &&
+  Array.isArray(value.effects) &&
+  value.effects.length === 2 &&
+  value.effects.every((e) => isRecord(e) && typeof e.name === "string" && Number.isInteger(e.level));
 
 /**
  * Reads what `saveEdits` wrote, keeping only well-formed entries: a value
@@ -213,6 +227,10 @@ export function parseSaved(text: string | null): Saved | null {
       Object.entries(numbers("karma")).filter(([tree, level]) => tree === KARMA_TREE && Number.isInteger(level) && level >= 0 && level <= KARMA_MAX),
     ),
     core: cores as Edits["core"],
+    // An older save has none; only well-formed swaps (the request's checks run again on the way out).
+    arkGem: isRecord(source.arkGem)
+      ? (Object.fromEntries(Object.entries(source.arkGem).filter(([, v]) => isGemEdit(v))) as Edits["arkGem"])
+      : {},
     braceletName: isRecord(source.braceletName)
       ? Object.fromEntries(
           Object.entries(source.braceletName).filter((entry): entry is [string, string] => typeof entry[1] === "string"),

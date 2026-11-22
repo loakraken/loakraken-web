@@ -140,6 +140,35 @@ function withArkSimulator(data) {
   return data;
 }
 /**
+ * 아크 그리드 젬 바꾸기 (api #1079, web #1935): '전투력젬바꿈' has an order and a chaos core with real-shaped gems (the
+ * type after ': ' as the official name has it, two options of the type's pool), and the weapon core the api does not
+ * compute. The simulate answer gives a gem swap a synthetic number from its options and point (not the game's
+ * formula), and 의지력 효율 1 runs the core short (ARK_GRID_WILL_SHORT, the api's sentence).
+ */
+const GEM_SWAP = "전투력젬바꿈";
+const WILL_SHORT_BASIS = "젬을 바꾸면 그 코어의 의지력이 모자라 어느 젬이 꺼질지 알 수 없어 계산하지 않았어요.";
+function withGemSwap(data) {
+  withArkSimulator(data);
+  const gem = (index, kind, type, options, point = 5, willpowerEfficiency = 4) => ({
+    index, icon: "grid-gem.png", active: true, grade: "유물", name: `${kind}의 젬 : ${type}`, gemType: kind,
+    gemPoint: point, corePoint: point, requiredWillpower: 4, baseWillpower: 8, willpowerEfficiency,
+    options: options.map(([name, level]) => ({ name, level, effect: `${name} +0.10%`, percent: 0.1 })),
+  });
+  const core = (index, name, gems) => ({
+    index, icon: "core.png", name, point: 17, grade: "유물", gems, coreType: name.split(" 코어")[0],
+    supplyWillpower: 18, usedWillpower: 16, options: [], activeOptionCount: 3, optionCount: 6, conditions: [],
+  });
+  data.loadout.arkGrid.slots = [
+    core(0, "질서의 해 코어 : 살상연희", [gem(0, "질서", "안정", [["공격력", 2], ["추가 피해", 3]]), gem(1, "질서", "견고", [["보스 피해", 4], ["공격력", 1]], 4)]),
+    core(1, "혼돈의 별 코어 : 무기", [gem(0, "혼돈", "침식", [["추가 피해", 5], ["낙인력", 4]])]),
+    core(2, "혼돈의 달 코어 : 불타는 일격", [gem(0, "혼돈", "침식", [["추가 피해", 3], ["공격력", 2]]), gem(1, "혼돈", "왜곡", [["보스 피해", 2], ["아군 공격 강화", 1]])]),
+  ];
+  return data;
+}
+/** A gem swap's synthetic number: options' levels and the point (higher is more), never the game's formula. */
+const gemSwapDelta = (change) =>
+  Math.round(((change.effects ?? []).reduce((sum, e) => sum + e.level * 40, 0) + change.point * 25 - 300) * 100) / 100;
+/**
  * 깨달음 카르마 레벨 (api #1004, web #1781): the ark rows with a 깨달음 point whose description carries the karma
  * level ("6랭크 29레벨", as the official armory writes it), and since api #1023 the same level as karmaLevel.
  * '전투력카르마' opens the simulator with it; '스펙순서카르마' is the spec-up path with a KARMA_LEVEL step on the
@@ -992,6 +1021,13 @@ createServer(async (req, res) => {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         return [s.name, `${s.grade} ${s.point}P`];
       }
+      // As the api names it (api #1079 gemText, counted from 1 since its P3 follow-up, 백엔드 11-22): '<core> 젬 <n>',
+      // the gem worn as its type, point and options.
+      case "ARK_GRID_GEM": {
+        const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
+        const g = s?.gems.find((x) => x.index === change.index);
+        return [`${s?.name ?? "코어"} 젬 ${change.index + 1}`, g ? `${g.name.replace(/^.*: /, "")} ${g.corePoint}P ${g.options.map((o) => `${o.name} ${o.level}`).join(" · ")}` : null];
+      }
       case "ARM_GUARD": {
         const g = loadout.equipment.find((x) => x.type === "완갑");
         return [g?.name ?? "팔 보호구", g ? `+${g.detail.refineLevel} ${g.grade}` : null];
@@ -1004,6 +1040,7 @@ createServer(async (req, res) => {
     change.kind === "POLISH" ? (change.option === "NONE" ? "점수 옵션 없는 줄" : `${change.option} ${change.grade}`)
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : change.kind === "ARK_GRID_GEM" ? `${change.gemType} ${change.point}P ${change.effects.map((e) => `${e.name} ${e.level}`).join(" · ")}`
     : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
     : String(change.level ?? change.refine ?? change.quality ?? change.points ?? change.karmaLevel ?? "");
   const powerRead = (name) =>
@@ -1571,12 +1608,13 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", GEM_SWAP, ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
+    else if (request.characterName === GEM_SWAP) withGemSwap(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
@@ -1607,6 +1645,13 @@ createServer(async (req, res) => {
         if (armourRefine(search, change))
           Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: "방어구 재련 전투력은 계산식을 확인하고 있습니다.", reasonCode: "MODEL_UNCONFIRMED" });
       });
+    // 아크 그리드 젬 (api #1079): a synthetic number per swap; 의지력 효율 1 leaves the core short (not computed, its sentence).
+    request.changes.forEach((change, i) => {
+      if (change.kind !== "ARK_GRID_GEM" || !computed) return;
+      if (change.willEfficiency === 1)
+        Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: WILL_SHORT_BASIS, reasonCode: "ARK_GRID_WILL_SHORT" });
+      else Object.assign(d.contributions[i], { delta: gemSwapDelta(change), basis: "합성 값(목 서버)" });
+    });
     // Outside the armour CP gate: the armour rows are held with the gate's reason, the rest computed.
     if (request.characterName === ARMOR_CLOSED)
       request.changes.forEach((change, i) => {
@@ -3073,6 +3118,7 @@ createServer(async (req, res) => {
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
   if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
+  if (name === GEM_SWAP) withGemSwap(envelope.data);
   if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
