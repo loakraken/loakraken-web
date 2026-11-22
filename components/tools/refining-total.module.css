@@ -1,0 +1,9 @@
+/* The refining totals' number (PM-프론트 #1943 P2): its own slot, so the '골드' after it keeps its place when the first
+   prices make the number longer (재련 골드 alone → + 사야 할 골드) or a minute refresh changes its digit count
+   (tabular-nums evens the digits' width, not their count). 10ch holds 999,999,999 (commas are narrower than a digit);
+   the number starts at the same place and only grows to the right, inside the slot. On a narrow line the slot
+   gives way before the unit would wrap (1.5em: the unit and its gap, both totals). */
+.amount {
+  display: inline-block;
+  min-width: min(10ch, 100% - 1.5em);
+}

@@ -62,6 +62,7 @@ import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
+import amount from "./refining-total.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
 import { RefiningBreathCompare } from "./refining-breath";
@@ -529,11 +530,13 @@ function TopSummary({
   const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
   return (
     <>
-      {/* Keyed by whether the prices are in (PM-프론트 #1943 P2): before, the 재련 골드 alone; once they land, the longer
-          total. Rewritten in place, the wider number moved '골드' (a shift past the input window); a new line is drawn
-          instead, the same height. Later minute refreshes keep the line (tabular-nums: same digits, same width). */}
-      <p className={styles.topTotal} key={priceList ? "priced" : "pending"}>
-        {formatCount(total)}
+      {/* The number in its own slot (PM-프론트 #1943 P2): the first prices (재련 골드 alone → the longer total) and a
+          minute refresh with more digits only grow it inside the slot, so '골드' stays put. A <data>, not a span:
+          the line's span rule styles the unit. */}
+      <p className={styles.topTotal}>
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       {/* One line per part: in a single run, a basis or count that changed
@@ -595,9 +598,11 @@ function Result({
   ];
   return (
     <>
-      {/* Keyed like the total above (PM-프론트 #1943 P2): the first prices make the number longer, a new line instead. */}
-      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined} key={priceList ? "priced" : "pending"}>
-        {formatCount(total)}
+      {/* The number in its own slot, as the total above (PM-프론트 #1943 P2). */}
+      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
