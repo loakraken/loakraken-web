@@ -3,23 +3,38 @@
 // pushed the 목표 단계 card 40px down. The answer is held here until the page is measured; the card keeps its height and
 // nothing below it moves. Mock '재련': 어깨 is not 업화·전율, so the case with a part left out is the one measured.
 // The longest line (PM-프론트 #1957 P3): a 12-letter name on the longest server name, at 320, still fits the lines held.
-import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
+import { drawnFace } from "../support/fonts.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 /** A made-up 12-letter name (PM-프론트 #1957 P3) and the longest server name. */
 const LONG_NAME = "가나다라마바사아자차카타";
 const LONG_SERVER = "아브렐슈드";
 
+/**
+ * The longest line is measured once per face (PM-프론트 #1964 P3): the site font is display: optional, so a cold load
+ * can stay on the fallback. "site": warmed first, then proven drawn by width (loaded is not drawn). "matched": the
+ * font file blocked, so the metric-matched fallback draws (fonts.mjs drawnFace).
+ */
+const useFace = async (page, face) => {
+  if (face === "site") {
+    await gotoReady(page, "/");
+    await page.evaluate(() => Promise.all([document.fonts.load("12px kraken"), document.fonts.load("700 12px kraken")]));
+  } else if (face === "matched") await page.route(/\.woff2(\?|$)/, (route) => route.abort());
+};
+
 const cases = [
   { width: 320, title: "주소로 캐릭터를 불러와도", long: false },
   { width: 1280, title: "주소로 캐릭터를 불러와도", long: false },
-  { width: 320, title: "가장 긴 이름 · 서버를 불러와도", long: true },
+  { width: 320, title: "가장 긴 이름 · 서버를 불러와도(사이트 글꼴)", long: true, face: "site" },
+  { width: 320, title: "가장 긴 이름 · 서버를 불러와도(맞춘 대체 글꼴)", long: true, face: "matched" },
 ];
 
-for (const { width, title, long } of cases)
+for (const { width, title, long, face } of cases)
   test(`${width}: ${title} 캐릭터 장비 카드 높이와 아래 카드 자리가 그대로다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
+    if (face) await useFace(page, face);
     let release;
     const held = new Promise((resolve) => (release = resolve));
     await page.route("**/api/characters?*", async (route) => {
@@ -51,6 +66,8 @@ for (const { width, title, long } of cases)
     await expect(page.getByRole("status").filter({ hasText: line })).toBeVisible();
     await expect(page.getByRole("group", { name: "무기" }).getByRole("combobox", { name: "현재" })).toHaveText("+21");
     await page.waitForTimeout(400);
+    // The face this leg names is the one drawn, measured by width (a fallback slipping in would prove the wrong fit).
+    if (face) expect(await drawnFace(page), "그리는 글꼴").toBe(face);
     const after = await box();
     expect(after.loaderHeight, `캐릭터 장비 카드 높이 ${before.loaderHeight} → ${after.loaderHeight}`).toBe(before.loaderHeight);
     expect(after.targetY, `목표 단계 카드 자리 ${before.targetY} → ${after.targetY}`).toBe(before.targetY);
