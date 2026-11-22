@@ -115,7 +115,6 @@ type Loaded = {
   name: string;
   server: string;
   itemLevel: number | null;
-  unsupported: string[];
   /** (X3 part 2) Each part's 상급 재련 from its tooltip; null when not read. */
   advanced: Record<AdvancedPartId, number | null>;
 };
@@ -166,15 +165,12 @@ function CharacterLoader({
       fetchCharacter(target, AbortSignal.timeout(20_000)),
     retry: false,
     onSuccess: (envelope) => {
-      const { parts, unsupported, itemLevel } = partsFromCharacter(
-        envelope.data,
-      );
+      const { parts, itemLevel } = partsFromCharacter(envelope.data);
       onLoaded(
         {
           name: envelope.data.characterName,
           server: envelope.data.serverName,
           itemLevel,
-          unsupported,
           advanced: advancedFromCharacter(envelope.data),
         },
         parts,
@@ -246,7 +242,7 @@ function CharacterLoader({
       )}
       <p className={quote.hint}>
         장비 툴팁의 재련 단계와 이름(운명의 업화·전율)으로 현재 단계를 채워요.
-        불러오지 않고 아래에서 직접 골라도 돼요.
+        업화·전율 장비가 아니거나 단계를 읽지 못한 부위는 &apos;제외&apos;로 둬요. 불러오지 않고 아래에서 직접 골라도 돼요.
       </p>
     </>
   );
@@ -1056,22 +1052,18 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
                   }}
                 />
               </div>
-              {loaded && (
-                <p className={styles.loaded} role="status">
+              {/* There from the first frame, its line held (A7, PM-프론트 11-22): a character opened from the address
+                  loads with no input, and the line and the left-out note arriving pushed the 목표 단계 card 40px
+                  down. The parts it could not read show '제외' in their own rows; the hint above says why. */}
+              <p className={styles.loaded} role="status">
+                {loaded && (
                   <span>
                     <strong>{loaded.name}</strong> · {loaded.server}
                     {loaded.itemLevel != null &&
                       ` · 아이템 레벨 ${formatLevel(loaded.itemLevel)}`}
                   </span>
-                  {loaded.unsupported.length > 0 && (
-                    <small>
-                      {loaded.unsupported.join(", ")} 부위는 업화·전율 장비가
-                      아니거나 단계를 읽지 못해 계산에서 뺐어요. 직접 포함해
-                      고를 수 있어요.
-                    </small>
-                  )}
-                </p>
-              )}
+                )}
+              </p>
             </section>
 
             <section className={quote.card} aria-labelledby="target-heading">
