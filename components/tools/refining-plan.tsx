@@ -562,8 +562,10 @@ function TopSummary({
           {priceList ? "재련 골드 + 사야 할 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
         </span>
         <span className={styles.topLine}>
-          총 {formatCount(summary.stageCount)}단계, 시도{" "}
-          {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+          {/* 상급 targets only (X3 part 2): its bands, not '총 0단계, 시도 0회'. */}
+          {summary.stageCount > 0
+            ? `총 ${formatCount(summary.stageCount)}단계, 시도 ${formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회`
+            : `상급 재련 ${formatCount(advanced.total?.bandCount ?? 0)}구간`}
         </span>
         <a className={styles.topLine} href="#estimate-heading">
           재료와 부위별 내역
@@ -626,9 +628,10 @@ function Result({
       <p className={quote.totalNote}>
         {priceList
           ? `재련 골드 ${formatCount(summary.gold)} + 사야 할 골드 ${formatCount(buyGold)} (가진 재료까지 시세로 치면 ${formatCount(Math.round(summary.rawGold + valueRaw))})`
-          : `재련 골드 ${formatCount(summary.gold)}`}{" "}
-        · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
-        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+          : `재련 골드 ${formatCount(summary.gold)}`}
+        {/* 상급 targets only (X3 part 2): no 일반 stage to count. */}
+        {summary.stageCount > 0 &&
+          ` · 총 ${formatCount(summary.stageCount)}단계, 시도 ${formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회`}
       </p>
       {/* (X3 part 2) Held while a 상급 target is set; words only in 50% · 90% · 장인의 기운 (프론트 condition c). */}
       <AdvancedModeLine advanced={advanced} mode={mode} />
