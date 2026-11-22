@@ -25,14 +25,15 @@ export type BreathRequest = { part: PartPlan["part"]; request: PlanRequest };
 const DASH = "—";
 /** The result's price refresh (refining-plan.tsx PRICE_REFRESH_MS). */
 const PRICE_REFRESH_MS = 60_000;
-const gold = (value: number | null | undefined) => (value == null ? DASH : `${formatCount(value)} G`);
+const NBSP = "\u00a0";
+const gold = (value: number | null | undefined) => (value == null ? DASH : `${formatCount(value)}${NBSP}G`);
 
 function verdictText(c: BreathCompare | null) {
-  if (!c) return "숨결 1개 가치를 계산하고 있어요.";
+  if (!c) return "숨결 1개 가치를 계산하고 있어요…";
   if (c.breathValue == null) return "숨결을 쓰지 않는 단계예요.";
-  const value = `숨결 1개 가치 ${formatCount(c.breathValue)} G`;
-  if (c.verdict === "BUY") return `${value} · 시세 ${formatCount(c.breathPrice ?? 0)} G → 사서 써도 이득이에요.`;
-  if (c.verdict === "SKIP") return `${value} · 시세 ${formatCount(c.breathPrice ?? 0)} G → 숨결 없이가 유리해요.`;
+  const value = `숨결 1개 가치 ${gold(c.breathValue)}`;
+  if (c.verdict === "BUY") return `${value} · 시세 ${gold(c.breathPrice)} → 사서 써도 이득이에요.`;
+  if (c.verdict === "SKIP") return `${value} · 시세 ${gold(c.breathPrice)} → 숨결 없이가 유리해요.`;
   return `${value} · 숨결 시세가 없어 판단하지 않았어요.`;
 }
 
@@ -113,14 +114,20 @@ export function RefiningBreathCompare({
               </p>
               <dl className={styles.sides}>
                 <div data-cheaper={c?.cheaper === "without" || undefined}>
-                  <dt>숨결 없이</dt>
+                  <dt>
+                    숨결 없이
+                    {c?.cheaper === "without" && <span className={styles.sr}> · 더 적게 들어요</span>}
+                  </dt>
                   <dd>
                     {gold(c?.without.total)}
                     <small>누골 {gold(c?.without.nugol)}</small>
                   </dd>
                 </div>
                 <div data-cheaper={c?.cheaper === "with" || undefined}>
-                  <dt>숨결 최대</dt>
+                  <dt>
+                    숨결 최대
+                    {c?.cheaper === "with" && <span className={styles.sr}> · 더 적게 들어요</span>}
+                  </dt>
                   <dd>
                     {gold(c?.with.total)}
                     <small>

@@ -73,3 +73,12 @@
   font-size: 11px;
   line-height: 1.5;
 }
+/* Read only (the cheaper side, said in words as well as by its outline). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

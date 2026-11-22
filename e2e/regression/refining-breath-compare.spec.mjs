@@ -27,12 +27,12 @@ for (const width of [320, 1280]) {
     await expect(chest).toHaveCount(1);
     for (const row of [weapon, chest]) {
       await expect(row.getByRole("definition")).toHaveCount(2);
-      await expect(row.getByRole("definition").first()).toContainText(/^[\d,]+ G누골 [\d,]+ G$/);
+      await expect(row.getByRole("definition").first()).toContainText(/^[\d,]+\sG누골 [\d,]+\sG$/);
       await expect(row.getByRole("definition").nth(1)).toContainText(/숨결 [\d,]+개/);
       await expect(row).toContainText(/시세가 없어 뺀 재료: .*업화/);
     }
-    await expect(weapon).toContainText(/숨결 1개 가치 [\d,]+ G · 숨결 시세가 없어 판단하지 않았어요\./);
-    await expect(chest).toContainText(/숨결 1개 가치 -?[\d,]+ G · 시세 430 G → (사서 써도 이득이에요|숨결 없이가 유리해요)\./);
+    await expect(weapon).toContainText(/숨결 1개 가치 [\d,]+\sG · 숨결 시세가 없어 판단하지 않았어요\./);
+    await expect(chest).toContainText(/숨결 1개 가치 -?[\d,]+\sG · 시세 430\sG → (사서 써도 이득이에요|숨결 없이가 유리해요)\./);
 
     await page.waitForTimeout(400);
     const { all, moved } = await shiftsSince(page, mark);
