@@ -8,7 +8,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { postMaterialPrices } from "@/lib/market/client";
 import { MAX_PRICE_NAMES, type PriceBasis } from "@/lib/market/model";
 import { postRefiningPlan } from "@/lib/refining/client";
-import { breathCompare, priceNames, type BreathCompare } from "@/lib/refining/breath";
+import { breathCompare, leftOutText, priceNames, type BreathCompare } from "@/lib/refining/breath";
 import {
   formatCount,
   requestKey,
@@ -148,7 +148,7 @@ export function RefiningBreathCompare({
               </dl>
               <p className={styles.verdict}>{verdictText(c)}</p>
               {/* Same line every time (empty when all are priced), so a refresh never moves the next row. */}
-              <p className={styles.unpriced}>{c && c.unpriced.length > 0 ? `시세가 없어 뺀 재료: ${c.unpriced.join(", ")}` : ""}</p>
+              <p className={styles.unpriced}>{c ? leftOutText(c.unpriced) : ""}</p>
             </li>
           );
         })}
