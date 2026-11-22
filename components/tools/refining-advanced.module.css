@@ -89,6 +89,36 @@
   font-size: var(--text-caption);
   line-height: 18px;
 }
+/* A 상급 failure under the total (the 일반 result stands). */
+.failure {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+.failure strong {
+  font-size: var(--text-body);
+}
+.failure p {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+.retry {
+  justify-self: start;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-body);
+}
+.retry[aria-disabled="true"] {
+  opacity: 0.45;
+}
 .bands {
   margin-top: 28px;
   border-top: 1px solid var(--hairline);
