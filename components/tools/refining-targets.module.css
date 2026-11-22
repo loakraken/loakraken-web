@@ -1,0 +1,94 @@
+/* (ours, X3) The target item-level slider and '고른 부위 +1' in the 목표 단계 card. Fixed line heights and a fixed
+   slider row: the level text changing as the thumb moves never changes a box's size (A7). */
+.targets {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.slider {
+  display: grid;
+  gap: 6px;
+}
+.sliderHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--text-body);
+  line-height: 22px;
+}
+.level {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.slider input[type="range"] {
+  width: 100%;
+  /* 44px: the whole track is the touch target (A36). */
+  height: 44px;
+  margin: 0;
+  accent-color: var(--action);
+}
+.slider input[type="range"]:disabled {
+  opacity: 0.45;
+}
+.caption {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+.pick {
+  display: grid;
+  gap: 10px;
+}
+.picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .picks {
+    row-gap: 8px;
+  }
+}
+.picks button,
+.raise {
+  flex: none;
+  white-space: nowrap;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--mist);
+  color: var(--ink);
+  font-size: var(--text-body);
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+.picks button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--background);
+}
+.picks button:disabled {
+  opacity: 0.45;
+}
+.raise {
+  justify-self: start;
+  border: 1px solid var(--steel);
+  background: var(--background);
+}
+.raise[aria-disabled="true"] {
+  opacity: 0.45;
+}
+.picks button:active,
+.raise:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .picks button:not([aria-pressed="true"]):hover,
+  .raise:hover {
+    background: var(--hover-surface);
+  }
+}
