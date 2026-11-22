@@ -131,6 +131,15 @@
   color: var(--foreground);
   font-weight: 600;
 }
+/* A term with its note (X2): reads as the line's text, the help cursor and the focus ring say it opens. */
+.bandTerm {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: help;
+}
 /* 이전·다음·초기화·저장 (PM-프론트 16:37 ②) */
 .toolbar {
   display: flex;
@@ -345,6 +354,10 @@
   margin: 0;
   color: var(--muted-foreground);
   font-size: var(--text-caption);
+}
+/* Empty: out of the flow (no extra wrapped line or gap in the editor), still in the accessibility tree (#1937). */
+.gemError:empty {
+  position: absolute;
 }
 .gemReset {
   min-height: 32px;

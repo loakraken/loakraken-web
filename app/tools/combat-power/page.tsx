@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { NOT_FOUND_METADATA } from "@/lib/not-found-metadata";
 import { notFound } from "next/navigation";
 import { CombatPowerTool } from "@/components/tools/combat-power";
-import { isArkGemSimEnabled, isArmorCpSimEnabled, isCombatPowerEnabled, isKarmaSimEnabled } from "@/lib/tools/flags";
+import {
+  isArkGemSimEnabled,
+  isArmorCpSimEnabled,
+  isCharacterEfficiencyEnabled,
+  isCombatPowerEnabled,
+  isKarmaSimEnabled,
+} from "@/lib/tools/flags";
 
 const metadata: Metadata = {
   title: "전투력 시뮬레이터",
@@ -24,5 +30,13 @@ export default async function CombatPowerPage({
   const { character } = await searchParams;
   if (!isCombatPowerEnabled()) notFound();
   const name = typeof character === "string" ? character.slice(0, 64) : "";
-  return <CombatPowerTool initialName={name} karma={isKarmaSimEnabled()} armor={isArmorCpSimEnabled()} gem={isArkGemSimEnabled()} />;
+  return (
+    <CombatPowerTool
+      initialName={name}
+      karma={isKarmaSimEnabled()}
+      armor={isArmorCpSimEnabled()}
+      gem={isArkGemSimEnabled()}
+      efficiency={isCharacterEfficiencyEnabled()}
+    />
+  );
 }

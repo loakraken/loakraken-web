@@ -10,7 +10,7 @@ import { useContext } from "react";
 import { readTryPath } from "@/lib/spec-up/model";
 import type { Character } from "@/lib/character/model";
 import { Panel } from "./panel";
-import { ArmorSimEnabled, GemSimEnabled, KarmaSimEnabled } from "./tabs";
+import { ArmorSimEnabled, CharacterEfficiencyEnabled, GemSimEnabled, KarmaSimEnabled } from "./tabs";
 import styles from "./detail.module.css";
 
 const Simulator = dynamic(
@@ -30,6 +30,7 @@ export function SimulatorTab({ data }: { data: Character }) {
   const karma = useContext(KarmaSimEnabled);
   const armor = useContext(ArmorSimEnabled);
   const gem = useContext(GemSimEnabled);
+  const efficiency = useContext(CharacterEfficiencyEnabled);
   return (
     <Panel
       title="전투력 시뮬레이터"
@@ -48,6 +49,7 @@ export function SimulatorTab({ data }: { data: Character }) {
           karma={karma}
           armor={armor}
           gem={gem}
+          efficiency={efficiency}
           start={readTryPath(tryText)}
           head={<p className={styles.simulatorLead}>값을 바꾸면 전투력이 얼마나 바뀌는지 항목별로 바로 계산해요.</p>}
         />

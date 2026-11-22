@@ -76,10 +76,31 @@ const readValues = () => {
     return "{}";
   }
 };
+/**
+ * Another tab saving its values (the storage event fires only in the other tabs, #1937): this tab takes them at once,
+ * as if typed here. A cleared storage (key null) reads as no values.
+ */
+const onStorage = (event: StorageEvent) => {
+  if (event.key !== VALUES_KEY && event.key !== null) return;
+  memoryValues = event.key === null ? "{}" : (event.newValue ?? "{}");
+  valueListeners.forEach((listener) => listener());
+};
 const subscribeValues = (listener: () => void) => {
+  if (valueListeners.size === 0) {
+    // Nothing listened while away (the tool was not on screen): another tab may have saved meanwhile, with no one
+    // here to hear its storage event. Read it again (as #1911's rate store; PM-프론트 P3 on #1938); blocked storage
+    // keeps what is in memory.
+    try {
+      memoryValues = window.localStorage.getItem(VALUES_KEY) ?? "{}";
+    } catch {
+      // the values in memory stay
+    }
+    window.addEventListener("storage", onStorage);
+  }
   valueListeners.add(listener);
   return () => {
     valueListeners.delete(listener);
+    if (valueListeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 };
 function writeValues(next: UserValues) {
@@ -164,11 +185,10 @@ function ValueField({ label, value, onCommit }: { label: string; value: number |
         onBlur={commit}
         onKeyDown={(event) => event.key === "Enter" && commit()}
       />
-      {invalid && (
-        <span id={errorId} className={styles.error} role="status">
-          {VALUE_INVALID}
-        </span>
-      )}
+      {/* Always there, only its text changing (#1937): a status region mounted with its text may go unread. */}
+      <span id={errorId} className={styles.error} role="status">
+        {invalid ? VALUE_INVALID : ""}
+      </span>
     </>
   );
 }
