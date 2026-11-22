@@ -51,10 +51,12 @@ for (const width of [320, 1280])
     expect(Number(top.replace(/\D/g, "")), "상급만으로도 합계").toBeGreaterThanOrEqual(37_251);
 
     // 50%: the 일반 part follows the mode, 상급 stays expected — said in the line held since the first frame.
-    const line = page.getByText("상급 재련은 구간별 기대값이에요");
+    const line = page.getByText("상급 재련은 기대값으로 더했어요.");
     await expect(line).toHaveCount(0);
     await page.getByRole("radiogroup", { name: "확률 기준" }).getByRole("radio", { name: "50%" }).click();
     await expect(line).toBeVisible();
+    // One line: the reserve holds it (a second line moved everything under it).
+    expect(await line.evaluate((el) => el.getBoundingClientRect().height), "기대값 줄 높이").toBeLessThanOrEqual(19);
     await page.waitForTimeout(400);
     expect(priceCalls, "재료 시세 요청 수").toBe(1);
     const { all, moved } = await shiftsSince(page, mark);

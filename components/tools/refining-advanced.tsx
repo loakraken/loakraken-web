@@ -167,7 +167,8 @@ export function AdvancedModeLine({ advanced, mode }: { advanced: Advanced; mode:
   if (advanced.requests.length === 0) return null;
   return (
     <p className={styles.modeLine}>
-      {mode === "expected" ? "" : "상급 재련은 구간별 기대값이에요(50% · 90% · 장인의 기운 값이 없어요)."}
+      {/* One line at 320 (two took a second line the reserve did not hold, +18px). */}
+      {mode === "expected" ? "" : "상급 재련은 기대값으로 더했어요."}
     </p>
   );
 }
