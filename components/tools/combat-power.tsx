@@ -349,7 +349,8 @@ function GemRow({
     onChange({ ...swap, effects });
   };
   // The editor (seven selects) only while the row is open (#1947): a closed <details> still renders its children, so
-  // every gem's editor re-rendered on each edit and mounted on load (gem type change INP 464ms at CPU 4×).
+  // every gem's editor re-rendered on each edit and mounted on load (24 gems at CPU 4×: type change max INP
+  // 176 → 136ms, load long tasks 315 → 273ms).
   const [open, setOpen] = useState(false);
   return (
     <li className={styles.gemRow}>
