@@ -69,10 +69,19 @@ for (const width of [320, 1280]) {
     await expect(row).toContainText("계산하지 않음");
     await expect(row).toContainText(TEXT);
     await expect(row).not.toContainText("계산 준비 중");
+    // The 예상 전투력 note says the same as the row (v0.3.15 RC P1-1): not computed for this character, never
+    // 'coming soon' ('계산 준비 중' / '계산식을 확인하고 있어').
+    const band = page.getByRole("region", { name: "예상 전투력" });
+    await expect(band).toContainText("계산하지 않음 1개");
+    await expect(band).not.toContainText("계산 준비 중");
+    await expect(band).not.toContainText("계산식을 확인하고 있어");
     // A non-armour change on the same character is still computed.
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
     await expect(changes.getByRole("listitem").filter({ hasText: "무기" })).toContainText(/[+−-]\d+\.\d\d/);
     await expect(changes.getByText(TEXT)).toHaveCount(1);
+    // Partly computed: the note keeps the held change as 계산하지 않음, not 준비 중.
+    await expect(band).toContainText("바꾼 2개 중 계산된 항목만 반영했어요 · 계산하지 않음 1개.");
+    await expect(band).not.toContainText("계산 준비 중");
     await expectNoHorizontalOverflow(page);
   });
 

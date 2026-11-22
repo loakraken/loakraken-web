@@ -32,7 +32,7 @@ import {
 import {
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
-  ARMOR_CP_RESIDUAL,
+  notComputedHere,
   ROLE_REASONS,
   GEAR_TYPES,
   NO_ADVANCED_REFINE,
@@ -829,6 +829,12 @@ function ResultBand({
 }) {
   const computed = data && hasComputed(data);
   const before = data?.before ?? base;
+  // Changes without a number, split as the 바꾼 것 rows say them (v0.3.15 RC P1-1): not computed for this character
+  // (the armour CP gate) is counted as 계산하지 않음, never as 'coming soon'.
+  const open = data?.contributions.filter((item) => !(item.status === "OK" && item.delta != null)) ?? [];
+  const held = open.filter(notComputedHere).length;
+  const counts = (pending: number) =>
+    `${pending > 0 ? ` · 계산 준비 중 ${pending}개` : ""}${held > 0 ? ` · 계산하지 않음 ${held}개` : ""}`;
   return (
     <section className={styles.band} aria-labelledby="cp-result" data-stale={stale || undefined}>
       <p id="cp-result" className={styles.bandLabel}>
@@ -855,8 +861,10 @@ function ResultBand({
           : computed && data.delta === 0 && !data.partial
             ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
             : computed
-            ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
-            : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
+            ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial || held > 0 ? counts(Math.max(0, data.unsupportedCount - held)) : ""}.`
+            : held === 0
+              ? `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`
+              : `바꾼 ${changed}개 항목은 반영하지 않았어요${counts(open.length - held)}. 이유는 아래 ‘바꾼 것’에 있어요.`}
       </p>
       {/* Item level moves with refining; the simulation does not return one, so
           this is today's value, no made-up change (PM-프론트 16:37 ②), and says
@@ -908,7 +916,7 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
             ) : (
               // Outside the armour CP gate the api does not compute armour for this character (not 'coming soon'):
               // its sentence follows right under (PM 총괄 11-21).
-              <span className={styles.pending}>{item.reasonCode === ARMOR_CP_RESIDUAL ? "계산하지 않음" : "계산 준비 중"}</span>
+              <span className={styles.pending}>{notComputedHere(item) ? "계산하지 않음" : "계산 준비 중"}</span>
             )}
             {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
                 not computed, says why right under it — the backend's
