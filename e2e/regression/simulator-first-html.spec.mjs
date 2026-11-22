@@ -38,17 +38,33 @@ test("이름이 있으면 시뮬레이터가 첫 HTML에 있고 화면은 캐릭
 // would add a second through a server round trip).
 test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, 주소도 그 이름 @regression", async ({ page, request }) => {
   const other = ownName("시뮬찾기");
+  // The first character's own row: its 혼돈의 별 weapon core (the mock adds it to '전투력코어도약' only).
+  const core = page.getByRole("listitem").filter({ hasText: "혼돈의 별 코어 : 무기" });
   await page.goto(path(NAME));
   await expect(page.getByText(NOTE)).toBeVisible();
+  await expect(core).toHaveCount(1);
   const answered = page.waitForResponse((r) => r.url().includes("/api/characters?") && r.url().includes(encodeURIComponent(other)));
   await page.getByRole("textbox", { name: "캐릭터 이름" }).fill(other);
   await page.getByRole("button", { name: "불러오기" }).click();
   expect((await answered).ok(), "새 이름의 답").toBe(true);
-  // The new character is on screen (its own simulator, keyed by name, with the note).
+  // The new character is on screen: the first one's weapon core row gone (the mock's default character has none),
+  // and its own simulator with the note (#1959: the note alone was there from the first character, codex P3 on #1954).
+  await expect(core).toHaveCount(0);
   await expect(page.getByText(NOTE)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`character=${encodeURIComponent(other)}`));
   await page.waitForTimeout(1500);
   expect(await searches(request, other), "새 이름의 백엔드 조회").toBe(1);
+});
+
+// #1959 (review P3 on #1950): a slow backend (mock '느린답…', 1.8 s) holds the first HTML 1.2 s at most; the client
+// then asks and draws it as before. The HTML itself is the proof (no clock bound, PM-프론트 #1960 P3): with the old
+// 2.5 s wait the 1.8 s answer was in it, with 1.2 s it is not.
+test("백엔드가 느리면 첫 HTML은 1.2초에서 기다리기를 그만두고 화면이 받아 그린다 @regression", async ({ page, request }) => {
+  const name = ownName("느린답");
+  const html = await (await request.get(path(name))).text();
+  expect(html, "첫 HTML에 시뮬레이터 없음(기다리기를 그만둠)").not.toContain(NOTE);
+  await page.goto(path(name));
+  await expect(page.getByText(NOTE)).toBeVisible({ timeout: 10_000 });
 });
 
 test("서버가 못 받은 캐릭터는 화면이 지금처럼 받아 알린다 @regression", async ({ page }) => {

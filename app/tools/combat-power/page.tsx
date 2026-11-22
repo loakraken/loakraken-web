@@ -53,7 +53,9 @@ export default async function CombatPowerPage({
   const target = name && !characterNameError(name) ? normalizeCharacterName(name) : "";
   if (!target || isSearchBot((await headers()).get("user-agent"))) return tool;
   const [result, options] = await Promise.all([
-    getCharacter(target, AbortSignal.timeout(2_500)),
+    // 1.2 s (#1959, review P3 on #1950): a slow backend holds the first HTML no longer than that; past it the client
+    // asks as before. A cached character answers well inside it.
+    getCharacter(target, AbortSignal.timeout(1_200)),
     getCombatPowerOptions(AbortSignal.timeout(1_000)),
   ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
