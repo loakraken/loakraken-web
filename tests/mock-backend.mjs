@@ -1732,6 +1732,47 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/combat-power/options")
     return send(powerRead("combat-power-options.json"));
+  // 젬 가공 순위 (api gem-ranking #1095, web #1969): the api's CI sample (combat-power-fixtures/gem-ranking.json) for any
+  // dealer. Prices the user types fill the cost the way the contract sums it (§1; gem price synthetic, 30,000 G); with no
+  // 페온 the cost waits (missingPrices GEM · PHEON as the sample). A 초기화권 price adds reset rows (synthetic: P × 1.1).
+  // '젬순위바쁨' answers 429 (seats full, Retry-After 2), a supporter UNSUPPORTED.
+  if (url.pathname === "/api/v1/characters/combat-power/gem-ranking" && req.method === "POST") {
+    counts.gemRanking = (counts.gemRanking || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.characterName === "젬순위바쁨")
+      return send({ code: "GEM_RANKING_BUSY", message: "젬 교체 순위 계산이 몰리고 있습니다." }, 429, { "Retry-After": "2" });
+    const sample = JSON.parse(readFileSync(new URL("./combat-power-fixtures/gem-ranking.json", import.meta.url), "utf8"));
+    const data = { ...sample.data, characterName: request.characterName, fetchedAt: new Date().toISOString() };
+    if (request.characterName === "상세서포터")
+      return send({ ...sample, data: { ...data, status: "UNSUPPORTED", reasonCode: "SUPPORTER_MODEL_PENDING", basis: "서포터의 젬 가공 순위는 아직 계산하지 않습니다.", totalRows: 0, rows: [] } });
+    const pheon = request.prices?.pheonGold;
+    const ticket = request.prices?.resetTicketGold;
+    let rows = sample.data.rows;
+    if (ticket != null)
+      rows = [
+        ...rows,
+        ...rows.slice(0, 4).map((row) => ({ ...row, reset: true, successProbability: row.successProbability * 1.1, expectedGems: Math.round((row.expectedGems / 1.1) * 100) / 100 })),
+      ];
+    rows = rows.map((row) => {
+      if (pheon == null) return { ...row, expectedCost: null, goldPerPercent: null, missingPrices: ["PHEON"] };
+      const gem = Math.round(30_000 * row.expectedGems);
+      const pheonGold = Math.round(12 * pheon * row.expectedGems);
+      const processingGold = Math.round(900 * 9 * row.expectedGems);
+      const resetTicket = row.reset ? Math.round((ticket ?? 0) * row.expectedGems * 0.5) : 0;
+      const total = gem + pheonGold + processingGold + resetTicket;
+      return { ...row, expectedCost: { gem, pheon: pheonGold, processingGold, resetTicket, total }, goldPerPercent: Math.round(total / row.expectedGainPct), missingPrices: [] };
+    });
+    // The contract's order: priced rows by gold per 1% (ties: higher P), then the rest by gain × P.
+    rows.sort((a, b) =>
+      a.goldPerPercent != null && b.goldPerPercent != null
+        ? a.goldPerPercent - b.goldPerPercent || b.successProbability - a.successProbability
+        : a.goldPerPercent != null ? -1 : b.goldPerPercent != null ? 1 : b.expectedGainPct * b.successProbability - a.expectedGainPct * a.successProbability,
+    );
+    rows = rows.map((row, i) => ({ ...row, rank: i + 1 }));
+    return send({ ...sample, data: { ...data, totalRows: rows.length, rows } });
+  }
   if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {
     counts.combatPower = (counts.combatPower || 0) + 1;
     let body = "";
