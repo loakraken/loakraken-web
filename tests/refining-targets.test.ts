@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { defaultPart, PARTS, targetItemLevel, type PartId, type PartState } from "../lib/refining/model";
-import { bumpPicked, levelGain, raisable, sliderMax, sliderValue, spreadStages } from "../lib/refining/targets";
+import {
+  bumpPicked,
+  levelGain,
+  raisable,
+  slideTargets,
+  sliderMax,
+  sliderValue,
+  spreadStages,
+} from "../lib/refining/targets";
 
 const make = (over: Partial<Record<PartId, Partial<PartState>>> = {}) =>
   Object.fromEntries(PARTS.map((part) => [part.id, { ...defaultPart(), ...over[part.id] }])) as Record<PartId, PartState>;
@@ -55,4 +63,56 @@ test("고른 부위 +1: one stage over the target (never under the current stage
   assert.deepEqual(targets(next), [25, 25, 18, 19, 18, 18, 4]);
   assert.deepEqual(raisable(start, ["weapon", "helmet", "chest", "pants"]), ["weapon", "pants"]);
   assert.deepEqual(raisable(next, ["weapon", "helmet"]), []);
+});
+
+test("slideTargets: a step back gives back the targets of that value, ties or not (#1929, codex P3 on #1922)", () => {
+  // Weapon at 18, the other five at 19 (slider at 5). Step by step from each result, +1 then −1 ended at
+  // 19/19/19/19/19/18 (the last part on the tie gave the stage back); from the run's base it comes back as it was.
+  const start = make({
+    helmet: { target: 19 },
+    chest: { target: 19 },
+    pants: { target: 19 },
+    gloves: { target: 19 },
+    shoulder: { target: 19 },
+  });
+  assert.deepEqual(targets(spreadStages(spreadStages(start, 6), 5)).slice(0, 6), [19, 19, 19, 19, 19, 18]);
+  const up = slideTargets(null, start, 6);
+  assert.deepEqual(targets(up.made).slice(0, 6), [19, 19, 19, 19, 19, 19]);
+  const back = slideTargets(up, up.made, 5);
+  assert.deepEqual(targets(back.made), targets(start));
+  // Any path to a value ends at the same targets while the run lasts.
+  let run = slideTargets(null, start, 9);
+  run = slideTargets(run, run.made, 2);
+  run = slideTargets(run, run.made, 7);
+  assert.deepEqual(targets(run.made), targets(slideTargets(null, start, 7).made));
+});
+
+test("slideTargets starts a new run when the targets changed elsewhere ('고른 부위 +1', a row)", () => {
+  const up = slideTargets(null, make(), 3);
+  assert.deepEqual(targets(up.made), [19, 19, 19, 18, 18, 18, 18]);
+  const bumped = bumpPicked(up.made, ["shoulder"]);
+  const next = slideTargets(up, bumped, 5);
+  // From the bumped parts, not the old base: the bumped shoulder keeps its stage, the extra one goes to the lowest.
+  assert.equal(next.base, bumped);
+  assert.deepEqual(targets(next.made), [19, 19, 19, 19, 18, 19, 18]);
+});
+
+test("slideTargets keeps a row's edit between steps: only the targets come from the run (codex P2 on #1930)", () => {
+  const up = slideTargets(null, make(), 1);
+  assert.equal(up.made.weapon.target, 19);
+  // A row edit after the step: the weapon's 장인의 기운, then the helmet's grade.
+  const edited = {
+    ...up.made,
+    weapon: { ...up.made.weapon, artisanEnergy: 50 },
+    helmet: { ...up.made.helmet, grade: up.made.helmet.grade === "UPHWA" ? "JEONYUL" : "UPHWA" },
+  } as typeof up.made;
+  const next = slideTargets(up, edited, 2);
+  assert.equal(next.made.weapon.artisanEnergy, 50);
+  assert.equal(next.made.helmet.grade, edited.helmet.grade);
+  assert.equal(sliderValue(next.made), 2);
+  // A run that goes on (the parts exactly as the last step made them) takes its targets from the base only.
+  const again = slideTargets(next, next.made, 1);
+  assert.equal(again.made.weapon.artisanEnergy, 50);
+  assert.equal(again.made.helmet.grade, edited.helmet.grade);
+  assert.equal(sliderValue(again.made), 1);
 });
