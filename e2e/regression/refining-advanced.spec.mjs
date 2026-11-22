@@ -121,9 +121,12 @@ for (const width of [320, 1280])
         await route.fallback();
       },
     );
-    await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
+    // Not gotoReady: its network-idle wait never ends while the answer is held (the page's own 20 s load timeout
+    // then fires first). Drawn and hydrated is enough here.
+    await page.goto(`/tools/refining?character=${encodeURIComponent("재련상급")}`);
     const size = () => card(page).evaluate((el) => Math.round(el.getBoundingClientRect().height));
     await expect(card(page)).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
     const before = await size();
     release();
     const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
