@@ -36,6 +36,19 @@ test("spreadStages fills evenly from the lowest target, first part on a tie, and
   assert.equal(sliderValue(spreadStages(start, 12)), 12);
 });
 
+test("spreadStages moves only the difference: a target set higher by hand is never lowered by raising (codex P2 on #1922)", () => {
+  // Weapon set to 25 by hand, the other five at 18: the slider reads 7.
+  const set = make({ weapon: { target: 25 } });
+  assert.equal(sliderValue(set), 7);
+  // 7 → 8: one more stage, to the first lowest part; the weapon stays at 25 (it went back to 20 before).
+  assert.deepEqual(targets(spreadStages(set, 8)), [25, 19, 18, 18, 18, 18, 18]);
+  // Same value: nothing moves.
+  assert.deepEqual(targets(spreadStages(set, 7)), targets(set));
+  // Lowering below what is set takes from the highest target first (never under the current stage).
+  assert.deepEqual(targets(spreadStages(spreadStages(set, 8), 3)), [20, 19, 18, 18, 18, 18, 18]);
+  assert.deepEqual(targets(spreadStages(set, 0)), [18, 18, 18, 18, 18, 18, 18]);
+});
+
 test("고른 부위 +1: one stage over the target (never under the current stage), up to 25, excluded parts skipped", () => {
   const start = make({ weapon: { target: 24 }, helmet: { current: 25, target: 25 }, chest: { enabled: false }, armGuard: { current: 3, target: 3 } });
   const next = bumpPicked(start, ["weapon", "helmet", "chest", "pants", "armGuard"]);

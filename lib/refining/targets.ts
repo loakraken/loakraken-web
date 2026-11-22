@@ -25,20 +25,34 @@ export function sliderValue(parts: Parts): number {
 export const levelGain = (stages: number) => (stages * ITEM_LEVEL_PER_STAGE) / LEVEL_PARTS.length;
 
 /**
- * Targets for `stages` added stages, filled evenly: each stage goes to the slid part whose target is lowest (the
- * first in the page's order on a tie), never past 25. Parts not slid (excluded, 완갑) keep their targets.
+ * Targets for `stages` added stages over the slid parts' current stages, from the targets already set (each part's
+ * floor is max(current, target), codex P2 on #1922 / PM-프론트): only the difference moves. Raising: each stage goes
+ * to the part whose target is lowest (the first in the page's order on a tie), never past 25 — a part set higher by
+ * hand stays as it is ('이미 더 높은 부위는 그대로'). Lowering below what is set: each stage comes off the part
+ * whose target is highest (the last in the page's order on a tie), never under its current stage. Parts not slid
+ * (excluded, 완갑) keep their targets.
  */
 export function spreadStages(parts: Parts, stages: number): Parts {
   const ids = slid(parts).map((part) => part.id);
-  const target: Record<string, number> = Object.fromEntries(ids.map((id) => [id, parts[id].current]));
-  let left = Math.max(0, Math.min(stages, sliderMax(parts)));
-  while (left > 0) {
+  const target: Record<string, number> = Object.fromEntries(
+    ids.map((id) => [id, Math.max(parts[id].current, parts[id].target)]),
+  );
+  let delta = Math.max(0, Math.min(stages, sliderMax(parts))) - sliderValue(parts);
+  while (delta > 0) {
     let lowest: PartId | null = null;
     for (const id of ids)
       if (target[id] < MAX_STAGE && (lowest === null || target[id] < target[lowest])) lowest = id;
     if (lowest === null) break;
     target[lowest] += 1;
-    left -= 1;
+    delta -= 1;
+  }
+  while (delta < 0) {
+    let highest: PartId | null = null;
+    for (const id of ids)
+      if (target[id] > parts[id].current && (highest === null || target[id] >= target[highest])) highest = id;
+    if (highest === null) break;
+    target[highest] -= 1;
+    delta += 1;
   }
   const next = { ...parts };
   for (const id of ids) next[id] = { ...parts[id], target: target[id] };

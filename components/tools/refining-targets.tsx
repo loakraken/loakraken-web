@@ -36,9 +36,11 @@ export function RefiningTargets({
   const sliderId = useId();
   const max = sliderMax(parts);
   const value = sliderValue(parts);
-  // The position while the thumb moves; null when it rests on the page's targets.
-  const [draft, setDraft] = useState<number | null>(null);
-  const shown = draft ?? value;
+  // The position while the thumb moves, with the value it moved from; null when it rests on the page's targets.
+  // A draft from another value is stale: the targets changed elsewhere ('고른 부위 +1', a row) and win (codex P2 on
+  // #1922: a drag back to where it started fires no change event, and its draft hid the next change's level).
+  const [draft, setDraft] = useState<{ stages: number; from: number } | null>(null);
+  const shown = draft && draft.from === value ? draft.stages : value;
   const level =
     itemLevel != null ? formatLevel(itemLevel + levelGain(shown)) : `+${formatLevel(levelGain(shown))}`;
 
@@ -52,8 +54,21 @@ export function RefiningTargets({
       setParts((prev) => spreadStages(prev, stages));
       setDraft(null);
     };
+    // Let go without a change event (dragged back to the start), or left: drop the draft, set nothing. A task later,
+    // so a release's own change event commits first.
+    let timer = 0;
+    const settle = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setDraft(null), 0);
+    };
+    const ends = ["pointerup", "pointercancel", "keyup", "blur"] as const;
     input.addEventListener("change", commit);
-    return () => input.removeEventListener("change", commit);
+    for (const type of ends) input.addEventListener(type, settle);
+    return () => {
+      window.clearTimeout(timer);
+      input.removeEventListener("change", commit);
+      for (const type of ends) input.removeEventListener(type, settle);
+    };
   }, [setParts]);
 
   const [picked, setPicked] = useUrlState<PartId[]>("pick", NONE, pickCodec);
@@ -80,10 +95,10 @@ export function RefiningTargets({
           value={Math.min(shown, Math.max(max, 1))}
           disabled={max === 0}
           aria-valuetext={`아이템 레벨 ${level}, ${shown}단계 올림`}
-          onChange={(event) => setDraft(Number(event.target.value))}
+          onChange={(event) => setDraft({ stages: Number(event.target.value), from: value })}
         />
         <p className={styles.caption}>
-          계산에 넣은 여섯 부위(완갑 제외)의 목표를 낮은 부위부터 고르게 올려요. 손을 떼면 계산해요.
+          계산에 넣은 여섯 부위(완갑 제외)의 목표를 낮은 부위부터 고르게 올려요. 올릴 때 이미 정한 목표는 낮추지 않아요. 손을 떼면 계산해요.
         </p>
       </div>
       <div className={styles.pick} role="group" aria-label="고른 부위 한 번에 올리기">

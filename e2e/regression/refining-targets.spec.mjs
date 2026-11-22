@@ -1,8 +1,15 @@
 // 회귀(X3, PM 총괄 11-22): 재련 계산기 목표 단계의 목표 아이템 레벨 슬라이더와 '고른 부위 +1'. 슬라이더는 계산에 넣은
 // 여섯 부위(완갑 제외)의 목표를 낮은 부위부터 고르게 올리고, 끄는 동안에는 계산 요청을 보내지 않으며 놓을 때 한 번만
 // 보낸다. 한 단계는 평균 아이템 레벨 +5/6. 고른 부위는 주소에 남고 +1은 고른 부위만 한 단계씩 올린다. 흔들림 0.
-import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
+
+/** Settled: the page woke (root effect), the network is quiet, fonts are in and two frames are drawn. */
+async function settled(page) {
+  await page.waitForFunction(() => window.__lkHydrated);
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready.then(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))));
+}
 
 const PLANS = "/api/refining/plans";
 const LEVEL_PARTS = ["무기", "머리", "상의", "하의", "장갑", "어깨"];
@@ -22,12 +29,13 @@ for (const width of [320, 1280])
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     const plans = [];
-    page.on("request", (request) => request.url().includes(PLANS) && plans.push(request.url()));
-    await page.goto("/tools/refining");
+    page.on("request", (request) => request.url().includes(PLANS) && plans.push(request.postData() ?? ""));
+    await gotoReady(page, "/tools/refining");
     const slider = page.getByRole("slider", { name: /목표 아이템 레벨/ });
     await expect(slider).toBeVisible();
     await expect(slider).toHaveAttribute("aria-valuetext", /, 0단계 올림$/);
-    await page.waitForTimeout(600);
+    // Ready: woken, network quiet, fonts in, two frames drawn (no fixed wait, codex P3 on #1922).
+    await settled(page);
     const first = await shiftsSince(page);
     expect(first.all, `첫 로드 흔들림: ${first.moved}`).toBe(0);
 
@@ -40,10 +48,9 @@ for (const width of [320, 1280])
     await page.mouse.down();
     const before = plans.length;
     for (let i = 1; i <= 8; i++) await page.mouse.move(box.x + (box.width * i) / 16, y);
-    await page.waitForTimeout(400);
+    await settled(page);
     expect(plans.length, "끄는 동안 계산 요청 없음").toBe(before);
     await page.mouse.up();
-    await expect.poll(() => plans.length).toBeGreaterThan(before);
 
     const valueText = await slider.getAttribute("aria-valuetext");
     const stages = Number(valueText.match(/, (\d+)단계 올림$/)[1]);
@@ -52,6 +59,13 @@ for (const width of [320, 1280])
     for (const label of LEVEL_PARTS) ups.push(await upOf(page, label));
     expect(ups.reduce((a, b) => a + b, 0), `부위별 올림 ${ups}`).toBe(stages);
     expect(Math.max(...ups) - Math.min(...ups), `고르게: ${ups}`).toBeLessThanOrEqual(1);
+    // Exactly one plan request per part the release changed, none twice (codex P3 on #1922).
+    const changed = ups.filter((up) => up > 0).length;
+    await expect.poll(() => plans.length - before).toBe(changed);
+    await settled(page);
+    const sent = plans.slice(before);
+    expect(sent.length, "놓은 뒤 계산 요청 수").toBe(changed);
+    expect(new Set(sent).size, "같은 요청을 두 번 보내지 않음").toBe(sent.length);
     // The shown gain: stages × 5 ÷ 6.
     await expect(page.locator("output").first()).toHaveText(`+${((stages * 5) / 6).toFixed(2)}`);
 
@@ -93,4 +107,30 @@ test("320: 고른 부위 +1 — 고른 부위만 한 단계씩, 고른 것은 �
     "true",
   );
   await expectNoHorizontalOverflow(page);
+});
+
+// codex P2 on #1922: dragged back to where it started and let go, the slider fires no change event. Its leftover
+// position must not hide the next change made elsewhere: after '고른 부위 +1' the shown level follows the plan.
+test("1280: 끌었다 제자리에 놓은 뒤 +1 — 보이는 목표 아이템 레벨이 계획을 따른다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/refining");
+  const slider = page.getByRole("slider", { name: /목표 아이템 레벨/ });
+  await slider.scrollIntoViewIfNeeded();
+  const box = await slider.boundingBox();
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + 4, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 4, y, { steps: 4 });
+  await expect(slider).not.toHaveAttribute("aria-valuetext", /, 0단계 올림$/);
+  await page.mouse.move(box.x + 4, y, { steps: 4 });
+  await page.mouse.up();
+  await expect(slider).toHaveAttribute("aria-valuetext", /, 0단계 올림$/);
+  expect(await upOf(page, "무기"), "아무것도 정하지 않음").toBe(0);
+  const group = page.getByRole("group", { name: "고른 부위 한 번에 올리기" });
+  await group.getByRole("button", { name: "무기", exact: true }).click();
+  await group.getByRole("button", { name: "고른 부위 +1" }).click();
+  await expect.poll(() => upOf(page, "무기")).toBe(1);
+  // One stage: +5 ÷ 6 on the average.
+  await expect(page.locator("output").first()).toHaveText("+0.83");
+  await expect(slider).toHaveAttribute("aria-valuetext", /, 1단계 올림$/);
 });
