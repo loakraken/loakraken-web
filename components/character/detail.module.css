@@ -2783,6 +2783,13 @@
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
 }
+/* 보스 피해 환산 Lv (X2): its term and value kept together (wraps as one piece at 320). */
+.arkBossLevel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
 /* 질서·혼돈 apart (backend #570), one line under the total. */
 .arkRealSeries {
   display: flex;
