@@ -3164,8 +3164,9 @@ createServer(async (req, res) => {
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;
-  // '느린답…' (web #1959): a slow backend, 1.5 s per answer — past the simulator page's 1.2 s server wait.
-  if (name?.startsWith("느린답")) await new Promise((done) => setTimeout(done, 1500));
+  // '느린답…' (web #1959): a slow backend, 1.8 s per answer — past the simulator page's 1.2 s server wait and well inside
+  // the 2.5 s it had before, so the first HTML alone tells the two apart (no wall-clock bound in the test).
+  if (name?.startsWith("느린답")) await new Promise((done) => setTimeout(done, 1800));
   const errors = {
     미존재: [404, "CHARACTER_NOT_FOUND"],
     제한: [429, "LOST_ARK_RATE_LIMITED"],

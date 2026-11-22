@@ -56,15 +56,13 @@ test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, �
   expect(await searches(request, other), "새 이름의 백엔드 조회").toBe(1);
 });
 
-// #1959 (review P3 on #1950): a slow backend (mock '느린답…', 1.5 s) holds the first HTML 1.2 s at most; the client
-// then asks and draws it as before.
+// #1959 (review P3 on #1950): a slow backend (mock '느린답…', 1.8 s) holds the first HTML 1.2 s at most; the client
+// then asks and draws it as before. The HTML itself is the proof (no clock bound, PM-프론트 #1960 P3): with the old
+// 2.5 s wait the 1.8 s answer was in it, with 1.2 s it is not.
 test("백엔드가 느리면 첫 HTML은 1.2초에서 기다리기를 그만두고 화면이 받아 그린다 @regression", async ({ page, request }) => {
   const name = ownName("느린답");
-  const started = Date.now();
   const html = await (await request.get(path(name))).text();
-  const waited = Date.now() - started;
   expect(html, "첫 HTML에 시뮬레이터 없음(기다리기를 그만둠)").not.toContain(NOTE);
-  expect(waited, `첫 HTML까지 ${waited}ms`).toBeLessThan(1450);
   await page.goto(path(name));
   await expect(page.getByText(NOTE)).toBeVisible({ timeout: 10_000 });
 });
