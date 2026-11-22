@@ -37,7 +37,6 @@ for (const width of [320, 1280])
     // The bands' refine gold is the 재련 골드 (mock: band 0 = 18,625.35 G each → ceil(37,250.70) = 37,251), and their
     // materials are the table's rows.
     await expect(page.getByText(/재련 골드 37,251\b/).first()).toBeVisible();
-    await expect(page.getByText(/상급 재련 2구간/)).toBeVisible();
     for (const name of ["아비도스 융화 재료", "운명의 돌파석", "운명의 파괴석", "운명의 수호석"])
       await expect(page.getByRole("rowheader", { name: new RegExp(`^${name}`) })).toHaveCount(1);
     const bands = page.locator("details", { hasText: "상급 재련 구간별" });
@@ -82,5 +81,6 @@ test("캐릭터의 상급 단계는 툴팁에서, 전율 부위는 상급 없음
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
   const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
   await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
-  await expect(page.getByRole("alert")).toContainText("재료 시세를 모으고 있어요");
+  // Our alert (Next's route announcer is an alert too).
+  await expect(page.getByRole("alert").filter({ hasText: "재료 시세를 모으고 있어요" })).toContainText("1분쯤 뒤 다시 계산해 주세요");
 });

@@ -629,7 +629,6 @@ function Result({
           : `재련 골드 ${formatCount(summary.gold)}`}{" "}
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
-        {advanced.total && advanced.total.bandCount > 0 && ` · 상급 재련 ${formatCount(advanced.total.bandCount)}구간`}
       </p>
       {/* (X3 part 2) Held while a 상급 target is set; words only in 50% · 90% · 장인의 기운 (프론트 condition c). */}
       <AdvancedModeLine advanced={advanced} mode={mode} />
