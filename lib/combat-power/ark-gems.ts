@@ -49,13 +49,17 @@ export type CurrentGem = {
 
 export const gemKey = (gem: { slotIndex: number; index: number }) => `${gem.slotIndex}:${gem.index}`;
 
-/** A core's series: from its gems' type, else from its name (질서의 … / 혼돈의 …). */
+/**
+ * A core's series: from its name (질서의 … / 혼돈의 …), as the api decides which types a core takes; from its gems'
+ * types only when the name says neither.
+ */
 export function seriesOf(gemTypes: readonly (string | null | undefined)[], coreName: string): GemSeries | null {
+  const name = coreName.trim();
+  if (name.startsWith("질서")) return "질서";
+  if (name.startsWith("혼돈")) return "혼돈";
   for (const type of gemTypes)
     for (const series of Object.keys(GEM_SERIES) as GemSeries[])
       if (type && (GEM_SERIES[series] as readonly string[]).includes(type)) return series;
-  if (coreName.startsWith("질서")) return "질서";
-  if (coreName.startsWith("혼돈")) return "혼돈";
   return null;
 }
 
@@ -140,7 +144,9 @@ export function currentGems(slots: SlotLike, isCoreOpen: (name: string) => boole
       const gemType = types[i];
       const point = gem.gemPoint ?? gem.corePoint;
       const [a, b] = gem.options;
-      if (gem.index == null || !gemType || !GEM_OPTIONS[gemType] || point == null || !a || !b) return;
+      // A gem of the other series cannot be in this core: left out rather than offered as a swap the api refuses.
+      if (gem.index == null || !gemType || !(GEM_SERIES[series] as readonly string[]).includes(gemType)) return;
+      if (point == null || !a || !b) return;
       if (a.level == null || b.level == null) return;
       const willEfficiency =
         gem.willpowerEfficiency ?? (gem.requiredWillpower != null ? GEM_BASE_WILL[gemType] - gem.requiredWillpower : null);

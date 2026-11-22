@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   GEM_OPTIONS,
+  WILL_SHORT_TEXT,
   currentGems,
   gemEditError,
   gemKey,
@@ -12,7 +13,8 @@ import {
   type CurrentGem,
   type GemEdit,
 } from "../lib/combat-power/ark-gems";
-import { NO_EDITS, isCoreOpen, parseSimulateRequest, toChanges, type Current } from "../lib/combat-power/model";
+import { NO_EDITS, isCoreOpen, parseSimulateRequest, toChanges, type Current, type Simulation } from "../lib/combat-power/model";
+import { percentText, rankRows, rowOf, type GemSwap } from "../lib/combat-power/gem-ranking";
 import { applySaved, parseSaved, serializeSaved, type Identity } from "../lib/combat-power/history";
 
 // The shape real data has (원본 2026-10-17 g01): '질서의 젬 : 안정', options 공격력 · 아군 피해 강화 …
@@ -105,4 +107,33 @@ test("saved swaps come back only onto the same gem worn", () => {
   const rerolled = { ...identity, arkGems: gems.map((g) => (gemKey(g) === "4:0" ? { ...g, edit: { ...g.edit, point: 4 } } : g)) };
   const moved = applySaved(saved, rerolled);
   assert.ok(!("legacy" in moved) && moved.skipped === 1 && !moved.edits.arkGem["4:0"]);
+});
+
+test("seriesOf: the core's name decides (as the api), a gem of the other series is left out", () => {
+  const mixed = [{ index: 2, name: "혼돈의 달 코어 : 불타는 일격", gems: [gem(0, "안정", [["공격력", 1], ["낙인력", 1]]), gem(1, "침식", [["추가 피해", 2], ["낙인력", 3]])] }];
+  assert.deepEqual(currentGems(mixed, isCoreOpen).map((g) => [gemKey(g), g.series, g.edit.gemType]), [["2:1", "혼돈", "침식"]]);
+});
+
+const sim = (deltaPercent: number | null, line: Record<string, unknown>) =>
+  ({ deltaPercent, delta: deltaPercent, contributions: [line] }) as unknown as Simulation;
+
+test("rowOf / rankRows: by the increase, higher first; WILL_SHORT and failures below with their reason", () => {
+  const gems = currentGems(slots, isCoreOpen);
+  const item = (i: number): GemSwap => ({ key: gemKey(gems[i]), gem: gems[i], swap: { ...gems[i].edit, point: 4 } });
+  const rows = [
+    rowOf(item(0), sim(0.12, { status: "OK" }), false),
+    rowOf(item(1), sim(null, { status: "UNSUPPORTED", reasonCode: "ARK_GRID_WILL_SHORT", basis: "" }), false),
+    rowOf(item(2), sim(0.41, { status: "OK" }), false),
+  ];
+  const ranked = rankRows(rows);
+  assert.deepEqual(ranked.map((row) => [row.label, row.state]), [
+    ["불타는 일격 젬 1", "OK"],
+    ["살상연희 젬 1", "OK"],
+    ["살상연희 젬 2", "NOT_COMPUTED"],
+  ]);
+  assert.equal(ranked[2].state === "NOT_COMPUTED" && ranked[2].why, WILL_SHORT_TEXT);
+  assert.equal(rowOf(item(0), undefined, false).state, "WAITING");
+  assert.equal(rowOf(item(0), undefined, true).state, "NOT_COMPUTED");
+  assert.equal(percentText(0.41), "+0.41%");
+  assert.equal(percentText(-0.1), "−0.10%");
 });
