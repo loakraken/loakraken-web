@@ -165,6 +165,36 @@ function withGemSwap(data) {
   ];
   return data;
 }
+/**
+ * '전투력젬많음' (#1947): a full-size grid, six cores (none the 무기 core) × four gems = 24 editable gems, as a real
+ * character has — for measuring the gem card at its real size. Same shapes as '전투력젬바꿈'.
+ */
+const MANY_GEMS = "전투력젬많음";
+function withManyGems(data) {
+  withGemSwap(data);
+  const [order, , chaos] = data.loadout.arkGrid.slots;
+  const types = { 질서: ["안정", "견고", "불변", "안정"], 혼돈: ["침식", "왜곡", "붕괴", "침식"] };
+  const pools = {
+    안정: ["공격력", "추가 피해"], 견고: ["공격력", "보스 피해"], 불변: ["추가 피해", "보스 피해"],
+    침식: ["공격력", "추가 피해"], 왜곡: ["공격력", "보스 피해"], 붕괴: ["추가 피해", "보스 피해"],
+  };
+  const names = [
+    "질서의 해 코어 : 살상연희", "질서의 달 코어 : 쌍검난무", "질서의 별 코어 : 쾌도난마",
+    "혼돈의 해 코어 : 현란한 공격", "혼돈의 달 코어 : 불타는 일격", "혼돈의 별 코어 : 공격",
+  ];
+  data.loadout.arkGrid.slots = names.map((name, index) => {
+    const kind = name.slice(0, 2);
+    const base = kind === "질서" ? order : chaos;
+    return {
+      ...base, index, name,
+      gems: [0, 1, 2, 3].map((g) => ({
+        ...base.gems[0], index: g, name: `${kind}의 젬 : ${types[kind][g]}`, gemType: kind,
+        options: pools[types[kind][g]].map((n, i) => ({ name: n, level: 2 + ((g + i + index) % 4), effect: `${n} +0.10%`, percent: 0.1 })),
+      })),
+    };
+  });
+  return data;
+}
 /** A gem swap's synthetic number: options' levels and the point (higher is more), never the game's formula. */
 const gemSwapDelta = (change) =>
   Math.round(((change.effects ?? []).reduce((sum, e) => sum + e.level * 40, 0) + change.point * 25 - 300) * 100) / 100;
@@ -1608,13 +1638,14 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", GEM_SWAP, ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", GEM_SWAP, MANY_GEMS, ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (request.characterName === GEM_SWAP) withGemSwap(search);
+    else if (request.characterName === MANY_GEMS) withManyGems(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
@@ -3119,6 +3150,7 @@ createServer(async (req, res) => {
   if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
   if (name === GEM_SWAP) withGemSwap(envelope.data);
+  if (name === MANY_GEMS) withManyGems(envelope.data);
   if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
