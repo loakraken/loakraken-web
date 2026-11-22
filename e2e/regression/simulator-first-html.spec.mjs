@@ -38,16 +38,16 @@ test("이름이 있으면 시뮬레이터가 첫 HTML에 있고 화면은 캐릭
 // would add a second through a server round trip).
 test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, 주소도 그 이름 @regression", async ({ page, request }) => {
   const other = ownName("시뮬찾기");
-  const core = page.getByRole("combobox", { name: "테스트 코어 포인트", exact: true });
+  // The first character's own row: its 혼돈의 별 weapon core (the mock adds it to '전투력코어도약' only).
+  const core = page.getByRole("listitem").filter({ hasText: "혼돈의 별 코어 : 무기" });
   await page.goto(path(NAME));
   await expect(page.getByText(NOTE)).toBeVisible();
-  // The first character's own field (its ark grid core): gone once the new one is drawn.
   await expect(core).toHaveCount(1);
   const answered = page.waitForResponse((r) => r.url().includes("/api/characters?") && r.url().includes(encodeURIComponent(other)));
   await page.getByRole("textbox", { name: "캐릭터 이름" }).fill(other);
   await page.getByRole("button", { name: "불러오기" }).click();
   expect((await answered).ok(), "새 이름의 답").toBe(true);
-  // The new character is on screen: the first one's core field gone (the mock's default character has no such core),
+  // The new character is on screen: the first one's weapon core row gone (the mock's default character has none),
   // and its own simulator with the note (#1959: the note alone was there from the first character, codex P3 on #1954).
   await expect(core).toHaveCount(0);
   await expect(page.getByText(NOTE)).toBeVisible();
