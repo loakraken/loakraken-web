@@ -48,7 +48,8 @@ test("no held armour row (gate off or inside it): no notice", () => {
 
 // codex #1902 P3: an empty or blank api sentence fell through as is, so the notice read only the pointer.
 test("a blank or spaced api sentence: trimmed, and the known sentence for the code when nothing is left", () => {
-  for (const blank of ["", "   "]) {
+  // ASCII spaces, a no-break space (U+00A0), an ideographic space (U+3000) and tab/newline (codex #1907 P3).
+  for (const blank of ["", "   ", "\u00a0", "\u3000", "\t\n", " \u00a0\u3000\t\n "]) {
     const { folded } = splitCandidates([
       row("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "UNSUPPORTED", "ARMOR_CP_RESIDUAL_HIGH", blank),
       row("ARM_GUARD:0:1", "ARM_GUARD", "UNSUPPORTED", "MODEL_UNCONFIRMED", blank),
