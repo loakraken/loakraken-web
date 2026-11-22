@@ -64,6 +64,8 @@ import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-contr
 import styles from "./refining-plan.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
+import { RefiningBreathCompare } from "./refining-breath";
+import { priceNames } from "@/lib/refining/breath";
 import { RefiningTargets } from "./refining-targets";
 
 const range = (from: number, to: number) =>
@@ -480,7 +482,9 @@ type Owned = Record<string, string>;
  */
 function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned: Owned) {
   const summary = summarize(plans, mode);
-  const names = summary.materials.map((item) => item.name);
+  // The plans' materials and each part's breaths: the breath compare (M41) reads the same list, so one request a
+  // minute serves both (PM-프론트 #1932, performance first). The extra breath prices are not in the table below.
+  const names = priceNames(plans, mode);
   const prices = useQuery({
     queryKey: ["material-prices", basis, [...names].sort().join("|")],
     queryFn: ({ signal }) =>
@@ -1165,14 +1169,18 @@ function RefiningContent({ initialName }: { initialName: string }) {
               계산하고 있어요.
             </p>
           ) : (
-            <Result
-              plans={plans}
-              mode={mode}
-              basis={basis}
-              setBasis={setBasis}
-              owned={owned}
-              setOwned={setOwned}
-            />
+            <>
+              <Result
+                plans={plans}
+                mode={mode}
+                basis={basis}
+                setBasis={setBasis}
+                owned={owned}
+                setOwned={setOwned}
+              />
+              {/* M41: 숨결 없이 vs 숨결 최대 per part (refining-breath.tsx). */}
+              <RefiningBreathCompare requests={requests} mode={mode} basis={basis} />
+            </>
           )}
         </section>
       </main>
