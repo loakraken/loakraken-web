@@ -155,6 +155,34 @@ const TOOLS = [
       expect(new URL(page.url()).searchParams.get("price")).toBe("RECENT_PRICE");
     },
   },
+  // M51 follow-up (PM 총괄 11-22 13:31): the search conditions, not the search (it calls the auction; a shared link
+  // does not fire one).
+  {
+    name: "장신구 매물 검색",
+    path: "/market/accessories/search",
+    fill: async (page) => {
+      await page.getByRole("radiogroup", { name: "부위" }).getByRole("radio", { name: "반지" }).click();
+      await page.getByRole("radiogroup", { name: "등급" }).getByRole("radio", { name: "유물" }).click();
+      await chooseOption(page, page.getByRole("combobox", { name: "치명타 피해" }), "중 이상");
+      await chooseOption(page, page.getByRole("combobox", { name: "힘민지 범위 최소" }), "70% 이상");
+    },
+    check: async (page) => {
+      await expect(page.getByRole("radiogroup", { name: "부위" }).getByRole("radio", { name: "반지" })).toBeChecked();
+      await expect(page.getByRole("radiogroup", { name: "등급" }).getByRole("radio", { name: "유물" })).toBeChecked();
+      await expect(page.getByRole("combobox", { name: "치명타 피해" })).toHaveText("중 이상");
+      await expect(page.getByRole("combobox", { name: "힘민지 범위 최소" })).toHaveText("70% 이상");
+      const params = new URL(page.url()).searchParams;
+      expect([params.get("slot"), params.get("grade"), params.get("polish"), params.get("range"), params.get("role")]).toEqual([
+        "RING",
+        "RELIC",
+        "CRIT_DAMAGE:MID",
+        "70",
+        null,
+      ]);
+      // Conditions only: no search ran.
+      await expect(page.getByRole("region", { name: "매물", exact: true }).getByRole("listitem")).toHaveCount(0);
+    },
+  },
   {
     name: "재료 구매 견적",
     path: "/market/quote",

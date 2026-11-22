@@ -93,7 +93,8 @@ function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pul
     );
   if (isFreeCost(cost))
     return (
-      <td data-cell="cost" data-label="기대 비용" className={styles.specUpMuted}>
+      // No phone label: the text already says 비용 ('기대 비용 추가 비용 없음', QA v0.3.15 RC P3-2).
+      <td data-cell="cost" className={styles.specUpMuted}>
         추가 비용 없음
       </td>
     );
@@ -118,7 +119,13 @@ function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pul
       </td>
     );
   return (
-    <td data-cell="cost" data-label="기대 비용" className={styles.specUpMuted} title={cost.basis}>
+    // The phone label only where the text does not already say 비용 ('기대 비용 비용 미확인', QA v0.3.15 RC P3-2).
+    <td
+      data-cell="cost"
+      data-label={cost.status === "PENDING" ? "기대 비용" : undefined}
+      className={styles.specUpMuted}
+      title={cost.basis}
+    >
       {cost.status === "PENDING" ? "시세 대기" : "비용 미확인"}
     </td>
   );

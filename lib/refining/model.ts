@@ -30,7 +30,16 @@ export const MIN_STAGE = 10;
 export const MAX_STAGE = 25;
 /** 완갑 (api 완갑 PR, 11-02): its own table, stages 0~25. */
 export const ARM_GUARD_MIN_STAGE = 0;
-/** Each refining stage adds 5 item level to one of the six parts; 완갑 adds none. */
+/**
+ * Each refining stage adds 5 item level to one of the six parts; 완갑 adds none.
+ * Sources (official, read 2026-11-22, codex P3 on #1922):
+ * - +5 per stage: notice 13339 (2026-01-07), its '재련 단계 · 아이템 레벨 · 기본 재련 성공 확률' table — 운명의 전율
+ *   +11→25 = 1730, 1735 … 1800 and 업화 (상급 40) +20→25 = 1730 … 1755, +5 every stage.
+ *   https://lostark.game.onstove.com/News/Notice/Views/13339 (the table covers 업화 20–25 and 전율 11–25).
+ * - The character item level is the average of six parts ('무기 1부위, 방어구 5부위'): game guide '장비'
+ *   (최근수정일 2026-08-05), https://lostark.game.onstove.com/GameGuide/Pages/장비 — 완갑 is not among them, so it
+ *   adds none (no page says so outright; it follows from the six-part rule).
+ */
 export const ITEM_LEVEL_PER_STAGE = 5;
 
 /** Lowest current stage a part can be at. */
