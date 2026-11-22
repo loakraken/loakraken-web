@@ -3,8 +3,8 @@
 // total with breath at 0G) ÷ expected breaths, against the breath's market price.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { breathCompare } from "../lib/refining/breath";
-import type { Plan } from "../lib/refining/model";
+import { breathCompare, priceNames } from "../lib/refining/breath";
+import type { PartPlan, Plan } from "../lib/refining/model";
 import type { MaterialPrice } from "../lib/market/model";
 
 const stage = (gold: number, materials: [string, number][]) =>
@@ -99,4 +99,19 @@ test("an unpriced material used in the same amount on both sides cancels out: th
   assert.equal(c.cheaper, "without"); // 15,000 vs 13,500 + 8,000
   assert.equal(c.breathValue, 75);
   assert.equal(c.verdict, "SKIP");
+});
+
+// PM-프론트 #1932 (performance first): one price request a minute for the result and the compare together.
+test("priceNames: the page's own materials in plan order, then each part's breaths; the breaths left off past the limit", () => {
+  const weapon = { part: { id: "weapon", type: "WEAPON" }, plan: plan(1, [["운명의 파괴석", 10], ["운명의 파편", 10]]) };
+  const helmet = { part: { id: "helmet", type: "ARMOR" }, plan: plan(1, [["운명의 수호석", 10], ["운명의 파편", 10]]) };
+  const guard = { part: { id: "armGuard", type: "ARM_GUARD" }, plan: plan(1, [["운명의 파편", 10]]) };
+  const names = priceNames([weapon, helmet, guard] as unknown as PartPlan[], "expected");
+  assert.deepEqual(names, ["운명의 파괴석", "운명의 파편", "운명의 수호석", "용암의 숨결", "빙하의 숨결"]);
+  // A plan that already uses a breath (숨결 on): no duplicate.
+  const withBreath = { part: { id: "weapon", type: "WEAPON" }, plan: plan(1, [["운명의 파괴석", 10], ["용암의 숨결", 20]]) };
+  assert.deepEqual(priceNames([withBreath] as unknown as PartPlan[], "expected"), ["운명의 파괴석", "용암의 숨결"]);
+  // Past MAX_PRICE_NAMES with the breaths: the page's own list only (its prices never go off for the compare).
+  const many = { part: { id: "weapon", type: "WEAPON" }, plan: plan(1, Array.from({ length: 20 }, (_, i) => [`재료 ${i}`, 1] as [string, number])) };
+  assert.equal(priceNames([many] as unknown as PartPlan[], "expected").length, 20);
 });

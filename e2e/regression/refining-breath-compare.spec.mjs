@@ -13,6 +13,9 @@ for (const width of [320, 1280]) {
     const withBreath = page.waitForRequest(
       (r) => r.url().includes("/api/refining/plans") && r.postDataJSON()?.equipmentType === "WEAPON" && r.postDataJSON()?.useBreath === true,
     );
+    // One price request for the result and the compare together (PM-프론트 #1932, performance first).
+    let priceCalls = 0;
+    page.on("request", (r) => r.url().includes("/api/markets/material-prices") && priceCalls++);
     await page.goto("/tools/refining");
     // 방어구 without books: the armour rows then use only priced materials (빙하의 숨결 430G) and judge. The weapon keeps
     // its books (unpriced in the mock) in different amounts on the two ways, and its 용암의 숨결 has no price.
@@ -44,6 +47,8 @@ for (const width of [320, 1280]) {
     await expect(weapon).toContainText("시세가 없는 재료를 두 방식이 다르게 써서 비교하지 않았어요.");
     await expect(weapon).toContainText(/시세가 없어 뺀 재료: .*업화.*용암의 숨결|시세가 없어 뺀 재료: .*용암의 숨결.*업화/);
     await page.waitForTimeout(400);
+    // The result's prices and the compare's are one request (the same list: its own materials and each part's breaths).
+    expect(priceCalls, "재료 시세 요청 수").toBe(1);
     const { all, moved } = await shiftsSince(page, mark);
     expect(all, `흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
