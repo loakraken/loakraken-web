@@ -28,22 +28,36 @@ import {
   polishValue,
   type Grade,
   type Level,
-  type PolishOption,
   type Role,
   type SearchItem,
   type SearchRequest,
   type Slot,
 } from "@/lib/accessory-search/model";
 import { koreanGold } from "@/lib/spec-up/model";
+import {
+  ACCESSORY_ANY,
+  ACCESSORY_ENLIGHTENMENT_CODEC,
+  ACCESSORY_GRADE_CODEC,
+  ACCESSORY_OFF,
+  ACCESSORY_POLISH_CODEC,
+  ACCESSORY_QUALITY_CODEC,
+  ACCESSORY_QUALITY_STEPS,
+  ACCESSORY_RANGE_CODEC,
+  ACCESSORY_RANGE_STEPS,
+  ACCESSORY_ROLE_CODEC,
+  ACCESSORY_SLOT_CODEC,
+  type PolishPicks,
+} from "@/lib/tools/accessory-url";
+import { useUrlState } from "@/lib/tools/url-state";
 import { AccessoryCard } from "./accessory-detail";
 import { DetailPanel, RowExpander } from "@/components/market/listing-detail";
 import quote from "./material-quote.module.css";
 import styles from "./accessory-search.module.css";
 
-const ANY = "ANY";
-const OFF = "OFF";
-const RANGE_STEPS = [50, 60, 70, 80, 90];
-const QUALITY_STEPS = [50, 70, 90];
+const ANY = ACCESSORY_ANY;
+const OFF = ACCESSORY_OFF;
+const RANGE_STEPS = ACCESSORY_RANGE_STEPS;
+const QUALITY_STEPS = ACCESSORY_QUALITY_STEPS;
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -94,13 +108,15 @@ function failureCopy(code: string | null, limit?: "client") {
 }
 
 export function AccessorySearchTool() {
-  const [slot, setSlot] = useState<Slot>("NECKLACE");
-  const [grade, setGrade] = useState<Grade>("ANCIENT");
-  const [role, setRole] = useState<Role>("DEALER");
-  const [polish, setPolish] = useState<Partial<Record<PolishOption, Level | typeof ANY | typeof OFF>>>({});
-  const [enlightenment, setEnlightenment] = useState<string>(ANY);
-  const [range, setRange] = useState<string>(ANY);
-  const [quality, setQuality] = useState<string>(ANY);
+  // The conditions are kept in the address (M51 follow-up, PM 총괄 11-22): reload, back and a shared link come back
+  // to them. Not the search: it reads the auction, so the user presses 검색 (lib/tools/accessory-url.ts).
+  const [slot, setSlot] = useUrlState<Slot>("slot", "NECKLACE", ACCESSORY_SLOT_CODEC);
+  const [grade, setGrade] = useUrlState<Grade>("grade", "ANCIENT", ACCESSORY_GRADE_CODEC);
+  const [role, setRole] = useUrlState<Role>("role", "DEALER", ACCESSORY_ROLE_CODEC);
+  const [polish, setPolish] = useUrlState<PolishPicks>("polish", {}, ACCESSORY_POLISH_CODEC);
+  const [enlightenment, setEnlightenment] = useUrlState<string>("enl", ANY, ACCESSORY_ENLIGHTENMENT_CODEC);
+  const [range, setRange] = useUrlState<string>("range", ANY, ACCESSORY_RANGE_CODEC);
+  const [quality, setQuality] = useUrlState<string>("quality", ANY, ACCESSORY_QUALITY_CODEC);
   const [request, setRequest] = useState<SearchRequest | null>(null);
 
   const options = OPTIONS_BY[role][slot];
