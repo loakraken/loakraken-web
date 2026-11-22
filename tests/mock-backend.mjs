@@ -1021,11 +1021,12 @@ createServer(async (req, res) => {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         return [s.name, `${s.grade} ${s.point}P`];
       }
-      // As the api names it (api #1079 gemText): '<core> 젬 <index>', the gem worn as its type, point and options.
+      // As the api names it (api #1079 gemText, counted from 1 since its P3 follow-up, 백엔드 11-22): '<core> 젬 <n>',
+      // the gem worn as its type, point and options.
       case "ARK_GRID_GEM": {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         const g = s?.gems.find((x) => x.index === change.index);
-        return [`${s?.name ?? "코어"} 젬 ${change.index}`, g ? `${g.name.replace(/^.*: /, "")} ${g.corePoint}P ${g.options.map((o) => `${o.name} ${o.level}`).join(" · ")}` : null];
+        return [`${s?.name ?? "코어"} 젬 ${change.index + 1}`, g ? `${g.name.replace(/^.*: /, "")} ${g.corePoint}P ${g.options.map((o) => `${o.name} ${o.level}`).join(" · ")}` : null];
       }
       case "ARM_GUARD": {
         const g = loadout.equipment.find((x) => x.type === "완갑");
