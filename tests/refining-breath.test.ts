@@ -3,7 +3,7 @@
 // total with breath at 0G) ÷ expected breaths, against the breath's market price.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { breathCompare, leftOutText, priceNames } from "../lib/refining/breath";
+import { breathCompare, leftOutLabel, priceNames } from "../lib/refining/breath";
 import type { PartPlan, Plan } from "../lib/refining/model";
 import type { MaterialPrice } from "../lib/market/model";
 
@@ -103,14 +103,16 @@ test("an unpriced material used in the same amount on both sides cancels out: th
   assert.equal(c.verdict, "SKIP");
 });
 
-test("the left-out line names two materials at most, then how many more (it fits two lines at 320)", () => {
-  assert.equal(leftOutText([]), "");
-  assert.equal(leftOutText(["실링"]), "시세가 없어 뺀 재료: 실링");
-  assert.equal(leftOutText(["재봉술 : 업화 [19-20]", "용암의 숨결"]), "시세가 없어 뺀 재료: 재봉술 : 업화 [19-20], 용암의 숨결");
-  assert.equal(
-    leftOutText(["재봉술 : 업화 [15-18]", "재봉술 : 업화 [19-20]", "용암의 숨결", "실링", "골드"]),
-    "시세가 없어 뺀 재료: 재봉술 : 업화 [15-18], 재봉술 : 업화 [19-20] 외 3개",
-  );
+test("the left-out line: two names then how many more on screen, every name in the read text", () => {
+  assert.deepEqual(leftOutLabel([]), { visible: "", full: "" });
+  assert.deepEqual(leftOutLabel(["실링"]), { visible: "시세가 없어 뺀 재료: 실링", full: "시세가 없어 뺀 재료: 실링" });
+  const names = ["재봉술 : 업화 [15-18]", "재봉술 : 업화 [19-20]", "용암의 숨결", "실링", "골드"];
+  const label = leftOutLabel(names);
+  assert.equal(label.visible, "시세가 없어 뺀 재료: 재봉술 : 업화 [15-18], 재봉술 : 업화 [19-20] 외 3개");
+  // PM-프론트 #1943: '외 N개' must not take the names away from screen readers (a breath only 숨결 최대 uses is
+  // nowhere else on the page).
+  assert.equal(label.full, `시세가 없어 뺀 재료: ${names.join(", ")}`);
+  for (const name of names) assert.ok(label.full.includes(name), name);
 });
 
 // PM-프론트 #1932 (performance first): one price request a minute for the result and the compare together.

@@ -46,6 +46,10 @@ for (const width of [320, 1280]) {
     await expect(weapon.getByText("· 더 적게 들어요")).toHaveCount(0);
     await expect(weapon).toContainText("시세가 없는 재료를 두 방식이 다르게 써서 비교하지 않았어요.");
     await expect(weapon).toContainText(/시세가 없어 뺀 재료: .*업화.*용암의 숨결|시세가 없어 뺀 재료: .*용암의 숨결.*업화/);
+    // Every left-out name is in what a screen reader gets (PM-프론트 #1943), and the short screen line is not read twice.
+    const tree = await weapon.ariaSnapshot();
+    for (const name of ["야금술 : 업화 [19-20]", "용암의 숨결"]) expect(tree, tree).toContain(name);
+    expect(tree.match(/시세가 없어 뺀 재료/g) ?? [], tree).toHaveLength(1);
     await page.waitForTimeout(400);
     // The result's prices and the compare's are one request (the same list: its own materials and each part's breaths).
     expect(priceCalls, "재료 시세 요청 수").toBe(1);
