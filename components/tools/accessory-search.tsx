@@ -236,7 +236,12 @@ export function AccessorySearchTool() {
                           { value: ANY, label: "상관없음" },
                           ...Array.from({ length: enlightenmentMax }, (_, i) => ({ value: String(i + 1), label: `${i + 1} 이상` })),
                         ]}
-                        onValueChange={setEnlightenment}
+                        // Its steps shrink with the grade and slot (13 → 10): the select reported no value for the
+                        // step that left the list, which reset the pick to 상관없음. Only a real step is taken; the
+                        // clamp above brings the pick to the new top.
+                        onValueChange={(next) => {
+                          if (next) setEnlightenment(next);
+                        }}
                       />
                     )}
                   </Field>
