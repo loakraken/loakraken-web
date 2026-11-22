@@ -73,7 +73,8 @@ test("캐릭터의 상급 단계는 툴팁에서, 전율 부위는 상급 없음
   await expect(stageBox(page, "머리", "현재")).toHaveText("13");
   await expect(stageBox(page, "하의", "현재")).toBeDisabled();
   await expect(card(page).getByRole("listitem").filter({ hasText: "하의" })).toContainText("없음");
-  await expect(card(page)).toContainText("전율 장비에는 상급 재련이 없어요.");
+  // The fixed note says what '없음' means (전율 has none); no sentence comes and goes with the load (#1955).
+  await expect(card(page)).toContainText("전율 장비(상급 재련이 없음)");
   // 하의 alone: nothing to raise.
   await picks(page).getByRole("button", { name: "하의", exact: true }).click();
   await expect(page.getByRole("button", { name: "고른 부위 상급 +10" })).toHaveAttribute("aria-disabled", "true");

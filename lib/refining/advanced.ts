@@ -34,9 +34,12 @@ export const initialAdvanced = (): AdvancedStages =>
  * the simulator's NO_ADVANCED_REFINE); the api would answer REFINING_ADVANCED_UNCONFIRMED.
  */
 export const hasAdvanced = (state: PartState) => state.enabled && state.grade === "UPHWA";
-export const NO_ADVANCED_JEONYUL = "전율 장비에는 상급 재련이 없어요.";
-/** Under the 상급 rows, always (web #1955: no line appears when a part reads as '모름'). */
-export const ADVANCED_UNREAD_NOTE = "‘모름’은 장비 툴팁에서 상급 재련 단계를 읽지 못한 부위예요. 현재 단계를 고르면 계산해요.";
+/**
+ * Under the 상급 rows, always (web #1955): what '없음' and '모름' mean, so a character landing (a 전율 part, an unread
+ * stage) adds no line and nothing moves.
+ */
+export const ADVANCED_UNREAD_NOTE =
+  "‘없음’은 계산에서 뺀 부위나 전율 장비(상급 재련이 없음), ‘모름’은 장비 툴팁에서 상급 재련 단계를 읽지 못한 부위예요. 현재 단계를 고르면 계산해요.";
 
 /** Current 상급 재련 per part from the equipment tooltips (search advancedRefineLevel); null when not read. */
 export function advancedFromCharacter(data: Character): Record<AdvancedPartId, number | null> {

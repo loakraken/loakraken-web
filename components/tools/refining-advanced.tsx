@@ -12,7 +12,6 @@ import {
   ADVANCED_MAX,
   ADVANCED_PARTS,
   ADVANCED_UNREAD_NOTE,
-  NO_ADVANCED_JEONYUL,
   advancedFailureCopy,
   advancedRequests,
   advancedTotal,
@@ -117,7 +116,6 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
   const { stages, setStages } = advanced;
   const set = (id: AdvancedPartId, next: { current: number | null; target: number }) =>
     setStages((prev) => ({ ...prev, [id]: next }));
-  const jeonyul = ADVANCED_PARTS.filter((part) => parts[part.id].enabled && parts[part.id].grade === "JEONYUL");
   return (
     <section className={styles.advanced} aria-labelledby={headingId}>
       <h3 id={headingId} className={styles.title}>
@@ -163,8 +161,6 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
       </ul>
       <p className={styles.caption}>
         10단계 구간마다 기대값으로 계산해요. 숨결·책은 지금 최저가로 기대 비용이 가장 작은 조합을 써요.
-        {/* Always the same sentence when a 전율 part is in the plan: nothing moves when it comes (A7). */}
-        {jeonyul.length > 0 && ` ${NO_ADVANCED_JEONYUL}`}
       </p>
       {/* Always there (web #1955): a part read as '모름' when the character lands adds no line, so nothing moves. The
           unread rows' current field points here. */}
