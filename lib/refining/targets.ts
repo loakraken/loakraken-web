@@ -59,6 +59,29 @@ export function spreadStages(parts: Parts, stages: number): Parts {
   return next;
 }
 
+/** Where a run of slider steps started, and what its last step made (the slider keeps it between steps). */
+export type SlideAnchor = { base: Parts; made: Parts };
+
+const sameTargets = (a: Parts, b: Parts) =>
+  PARTS.every(
+    (part) =>
+      a[part.id].enabled === b[part.id].enabled &&
+      a[part.id].current === b[part.id].current &&
+      a[part.id].target === b[part.id].target,
+  );
+
+/**
+ * One slider step from the targets the run started at (#1929, codex P3 on #1922): raising fills the lowest and
+ * lowering drains the highest, so steps taken one at a time from each other's result do not undo each other when
+ * targets tie (18/19/19… +1 −1 came back as 19/…/18). While the parts are still what the last step made, every step
+ * spreads from the run's base instead, so going back to a value gives back that value's targets. A change from
+ * anywhere else (a row, '고른 부위 +1', a new character) starts a new run from the parts as they are.
+ */
+export function slideTargets(anchor: SlideAnchor | null, parts: Parts, stages: number): SlideAnchor {
+  const base = anchor && sameTargets(parts, anchor.made) ? anchor.base : parts;
+  return { base, made: spreadStages(base, stages) };
+}
+
 /** '고른 부위 +1': each picked part's target one stage higher, never past 25 (완갑 too, on its own table). */
 export function bumpPicked(parts: Parts, picked: readonly PartId[]): Parts {
   const next = { ...parts };
