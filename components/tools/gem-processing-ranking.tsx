@@ -64,7 +64,7 @@ function Way({ row }: { row: GemRankingRow }) {
         </div>
       </dl>
       {row.expectedCost == null && row.missingPrices.length > 0 && (
-        <p className={styles.missing}>비용은 {missingText(row.missingPrices)}이(가) 있어야 계산해요.</p>
+        <p className={styles.missing}>비용 계산에 필요한 값: {missingText(row.missingPrices)}</p>
       )}
     </div>
   );
