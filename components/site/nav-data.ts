@@ -92,7 +92,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/accessory-search).
-    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/hell-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/shop-exchange", "/tools/raid-rewards", "/tools/more-reward", "/tools/hell-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
     all: { label: "도구 전체 보기", description: "모든 성장 도구를 한눈에", href: "/tools" },
     // The three hubs by the job the user comes with (user 10-25: grow the
     // character, prepare the week's raids, earn or save gold); each tool is a
@@ -104,7 +104,7 @@ export const NAV_SECTIONS: NavSection[] = [
         links: [
           { label: "캐릭터 성장", description: "재련 기대 비용과 성장 계산", href: "/tools/refining" },
           { label: "레이드", description: "보상표·더보기 손익·경매 입찰가·기여도·컨닝페이퍼", href: "/tools/raid-rewards" },
-          { label: "골드 효율", description: "로아샵·아비도스 제작·생명의 기운", href: "/tools/loa-shop" },
+          { label: "골드 효율", description: "로아샵·아비도스 제작·생명의 기운·상점 교환", href: "/tools/loa-shop" },
         ],
       },
       {
@@ -126,6 +126,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
       { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
       { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
+      { label: "상점 교환 효율", description: "상시 상점에서 재화 1개로 얻는 골드 가치", href: "/tools/shop-exchange" },
     ],
   },
   {
@@ -223,6 +224,7 @@ export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
       { label: "로아샵", href: "/tools/loa-shop" },
       { label: "아비도스 제작", href: "/tools/abidos-craft" },
       { label: "생명의 기운", href: "/tools/life-energy" },
+      { label: "상점 교환", href: "/tools/shop-exchange" },
     ],
   },
   growth: {
