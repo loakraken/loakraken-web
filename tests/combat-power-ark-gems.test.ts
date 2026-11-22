@@ -4,7 +4,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  GEM_BASE_WILL,
   GEM_OPTIONS,
+  GEM_SERIES,
   WILL_SHORT_TEXT,
   currentGems,
   gemEditError,
@@ -136,4 +138,31 @@ test("rowOf / rankRows: by the increase, higher first; WILL_SHORT and failures b
   assert.equal(rowOf(item(0), undefined, true).state, "NOT_COMPUTED");
   assert.equal(percentText(0.41), "+0.41%");
   assert.equal(percentText(-0.1), "−0.10%");
+});
+
+test("the gem table matches the api contract's own words (contract-first: one source, a test for the copy)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const contract = JSON.parse(await readFile(new URL("../contracts/combat-power.openapi.json", import.meta.url), "utf8"));
+  const text: string = contract.components.schemas.ChangeRequest.properties.gemType.description;
+  // '질서 코어는 안정·견고·불변, 혼돈 코어는 침식·왜곡·붕괴'
+  for (const [series, types] of Object.entries(GEM_SERIES)) assert.ok(text.includes(`${series} 코어는 ${types.join("·")}`), series);
+  // '안정·침식 = 공격력·추가 피해·아군 피해 강화·낙인력, …'
+  const [pools, wills] = text.split("필요 의지력 기본값");
+  assert.ok(wills, "the base 의지력 part");
+  let seen = 0;
+  for (const match of pools.matchAll(/([가-힣]+)·([가-힣]+) = ([^,.]+)/g)) {
+    seen += 1;
+    const pool = match[3].split("·").map((name) => name.trim());
+    assert.deepEqual([...GEM_OPTIONS[match[1]]], pool, match[1]);
+    assert.deepEqual([...GEM_OPTIONS[match[2]]], pool, match[2]);
+  }
+  assert.equal(seen, 3, "three option pools");
+  // '필요 의지력 기본값 안정·침식 8, 견고·왜곡 9, 불변·붕괴 10'
+  seen = 0;
+  for (const match of wills.split(".")[0].matchAll(/([가-힣]+)·([가-힣]+) (\d+)/g)) {
+    seen += 1;
+    assert.equal(GEM_BASE_WILL[match[1]], Number(match[3]), match[1]);
+    assert.equal(GEM_BASE_WILL[match[2]], Number(match[3]), match[2]);
+  }
+  assert.equal(seen, 3, "three base 의지력 values");
 });
