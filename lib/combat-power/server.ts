@@ -1,9 +1,14 @@
 import "server-only";
-import { isArmorCpSimEnabled, isKarmaSimEnabled } from "../tools/flags";
+import { isArkGemSimEnabled, isArmorCpSimEnabled, isKarmaSimEnabled } from "../tools/flags";
 import { requestOptions, requestSimulation } from "./upstream";
 
 export const simulateCombatPower = (body: unknown, signal?: AbortSignal) =>
-  requestSimulation(body, process.env.LOAKRAKEN_API_ORIGIN, { signal, karma: isKarmaSimEnabled(), armor: isArmorCpSimEnabled() });
+  requestSimulation(body, process.env.LOAKRAKEN_API_ORIGIN, {
+    signal,
+    karma: isKarmaSimEnabled(),
+    armor: isArmorCpSimEnabled(),
+    gem: isArkGemSimEnabled(),
+  });
 
 export const getCombatPowerOptions = (signal?: AbortSignal) =>
   requestOptions(process.env.LOAKRAKEN_API_ORIGIN, { signal });
