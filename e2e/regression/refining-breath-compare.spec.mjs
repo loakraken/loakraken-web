@@ -1,6 +1,6 @@
 // M41 (PM 총괄 11-22 13:40): 재련 기대 비용 shows, per part, the same target 숨결 없이 vs 숨결 최대 (each at market,
 // 누골 apart) and one breath's value against its price. Mock (tests/mock-backend.mjs): 빙하의 숨결 has a price
-// (430G), 용암의 숨결 has none, the 업화 books have none — so the 투구 row judges, the 무기 row says it cannot, and
+// (430G), 용암의 숨결 has none, the 업화 books have none — so an armour row (상의) judges, the 무기 row says it cannot, and
 // both name what was left out. The rows hold their lines while the extra plans load (no shift under the result).
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
@@ -22,17 +22,17 @@ for (const width of [320, 1280]) {
     const compare = page.getByRole("region", { name: "숨결 쓰기 비교" });
     const rows = compare.getByRole("listitem");
     const weapon = rows.filter({ hasText: "무기" });
-    const helmet = rows.filter({ hasText: "투구" });
+    const chest = rows.filter({ hasText: "상의" });
     await expect(weapon).toHaveCount(1);
-    await expect(helmet).toHaveCount(1);
-    for (const row of [weapon, helmet]) {
+    await expect(chest).toHaveCount(1);
+    for (const row of [weapon, chest]) {
       await expect(row.getByRole("definition")).toHaveCount(2);
       await expect(row.getByRole("definition").first()).toContainText(/^[\d,]+ G누골 [\d,]+ G$/);
       await expect(row.getByRole("definition").nth(1)).toContainText(/숨결 [\d,]+개/);
       await expect(row).toContainText(/시세가 없어 뺀 재료: .*업화/);
     }
     await expect(weapon).toContainText(/숨결 1개 가치 [\d,]+ G · 숨결 시세가 없어 판단하지 않았어요\./);
-    await expect(helmet).toContainText(/숨결 1개 가치 -?[\d,]+ G · 시세 430 G → (사서 써도 이득이에요|숨결 없이가 유리해요)\./);
+    await expect(chest).toContainText(/숨결 1개 가치 -?[\d,]+ G · 시세 430 G → (사서 써도 이득이에요|숨결 없이가 유리해요)\./);
 
     await page.waitForTimeout(400);
     const { all, moved } = await shiftsSince(page, mark);
