@@ -37,6 +37,9 @@ for (const width of [320, 1280])
     // The bands' refine gold is the 재련 골드 (mock: band 0 = 18,625.35 G each → ceil(37,250.70) = 37,251), and their
     // materials are the table's rows.
     await expect(page.getByText(/재련 골드 37,251\b/).first()).toBeVisible();
+    // 상급 only: the top line counts its bands, never '총 0단계, 시도 0회'.
+    await expect(page.getByText("상급 재련 2구간")).toBeVisible();
+    await expect(page.getByText(/총 0단계/)).toHaveCount(0);
     for (const name of ["아비도스 융화 재료", "운명의 돌파석", "운명의 파괴석", "운명의 수호석"])
       await expect(page.getByRole("rowheader", { name: new RegExp(`^${name}`) })).toHaveCount(1);
     const bands = page.locator("details", { hasText: "상급 재련 구간별" });
