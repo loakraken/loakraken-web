@@ -16,6 +16,7 @@ import {
   groupByGem,
   missingText,
   pheonField,
+  PRICE_INVALID,
   probabilityText,
   rankingRequest,
   resetTicketField,
@@ -130,6 +131,8 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         <label className={styles.field}>
           <span>초기화권 가격(골드)</span>
           <input
+            name="resetTicketGold"
+            autoComplete="off"
             inputMode="numeric"
             placeholder="넣으면 초기화도 계산"
             value={resetText}
@@ -140,7 +143,9 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         <label className={styles.field}>
           <span>페온 1개 골드</span>
           <input
-            inputMode="numeric"
+            name="pheonGold"
+            autoComplete="off"
+            inputMode="decimal"
             placeholder="넣으면 비용 계산"
             value={pheonText}
             aria-invalid={pheon.invalid || undefined}
@@ -157,20 +162,25 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
           {busy ? "계산하는 중…" : retryLabel(limit.seconds, "순위 계산")}
         </button>
       </div>
-      {/* One line, always there: what is wrong with the typed prices (A7). */}
+      {/* Always there: what is wrong with the typed prices (A7). */}
       <p className={styles.hint} role="status">
-        {invalid ? "초기화권은 1,000만, 페온은 10만 골드까지 숫자만 넣어 주세요." : ""}
+        {invalid ? PRICE_INVALID : ""}
       </p>
-      {failure && (
-        <div className={styles.failure} role="alert">
-          <strong>{gemRankingFailureCopy(failure).title}</strong>
-          <p>{gemRankingFailureCopy(failure).text}</p>
-        </div>
-      )}
-      {data && data.status !== "OK" && <p className={styles.note}>{data.basis ?? "이 캐릭터는 젬 가공 순위를 계산하지 않아요."}</p>}
-      {data?.status === "OK" && (
-        <div className={styles.results} data-stale={busy || undefined}>
-          {groups.length === 0 ? (
+      {/* A fixed box from the first paint: the answer lands well after the press, so whatever it holds scrolls inside
+          and nothing below the card moves (A7, web #1971). */}
+      <div className={styles.results} role="region" aria-label="가공 순위 결과" tabIndex={0} data-stale={busy && data ? true : undefined}>
+        {failure && (
+          <div className={styles.failure} role="alert">
+            <strong>{gemRankingFailureCopy(failure).title}</strong>
+            <p>{gemRankingFailureCopy(failure).text}</p>
+          </div>
+        )}
+        {!data && !failure && (
+          <p className={styles.note}>{busy ? "계산하는 중이에요. 몇 초 걸릴 수 있어요." : "'순위 계산'을 누르면 여기에 젬마다 가장 좋은 방법이 나와요."}</p>
+        )}
+        {data && data.status !== "OK" && <p className={styles.note}>{data.basis ?? "이 캐릭터는 젬 가공 순위를 계산하지 않아요."}</p>}
+        {data?.status === "OK" &&
+          (groups.length === 0 ? (
             <p className={styles.note}>전투력이 오를 가공 방법을 찾지 못했어요.</p>
           ) : (
             <ol className={styles.groups} aria-label="젬마다 가장 좋은 가공 방법">
@@ -196,14 +206,15 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
                 </li>
               ))}
             </ol>
-          )}
+          ))}
+        {data?.status === "OK" && (
           <ul className={styles.assumptions}>
             {data.assumptions.map((text) => (
               <li key={text}>{text}</li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

@@ -75,6 +75,25 @@ test("the page's request: prices only when typed (empty = none, no default), eve
   assert.deepEqual(pheonField("100001"), { value: null, invalid: true });
 });
 
+test("typed prices: 페온 up to two decimal places, 초기화권 whole; nothing stripped silently (web #1971)", () => {
+  for (const [text, value] of [
+    ["72.5", 72.5],
+    ["1,234.56", 1234.56],
+    [" 0.05 ", 0.05],
+    ["100000", 100000],
+    ["100,000.00", 100000],
+  ] as const)
+    assert.deepEqual(pheonField(text), { value, invalid: false }, text);
+  for (const text of ["1.234", "1.", ".5", "-1", "+1", "1e3", "1,2,3", "12,34.5", "1 000", "100000.01", "72.5G"])
+    assert.deepEqual(pheonField(text), { value: null, invalid: true }, text);
+  for (const text of ["1.5", "1,2,3", "-1", "59110.0"])
+    assert.deepEqual(resetTicketField(text), { value: null, invalid: true }, text);
+  assert.deepEqual(resetTicketField("10,000,000"), { value: 10_000_000, invalid: false });
+  // The proxy: 페온 a number, 초기화권 a whole number (int64 in the contract).
+  assert.deepEqual(parseGemRankingRequest({ characterName: "모험가", grade: "HERO", prices: { pheonGold: 72.5 } })?.prices, { pheonGold: 72.5 });
+  assert.equal(parseGemRankingRequest({ characterName: "모험가", grade: "HERO", prices: { resetTicketGold: 59110.5 } }), null);
+});
+
 test("rows grouped per worn gem (0-based slot · gem), each gem's best row first, in the api's order", () => {
   const groups = groupByGem(sample().data.rows);
   assert.deepEqual(
