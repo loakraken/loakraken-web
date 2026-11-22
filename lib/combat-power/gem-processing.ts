@@ -21,16 +21,27 @@ export const RANKING_LIMIT = 200;
 const RESET_TICKET_MAX = 10_000_000;
 const PHEON_MAX = 100_000;
 
-/** A typed gold amount: empty → null (not given), a whole number in range, or invalid. */
-export function goldField(text: string, max: number): { value: number | null; invalid: boolean } {
-  const t = text.trim().replace(/,/g, "");
+/** Digits, or digits with commas every three places ('59110', '59,110'). */
+const WHOLE = /^(?:\d+|\d{1,3}(?:,\d{3})+)$/;
+/** The same, with up to two decimal places ('72.5', '1,234.56'). */
+const CENTS = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/;
+
+/**
+ * A typed gold amount: empty → null (not given), a number in range, or invalid. Nothing is stripped silently (as
+ * crystal-rate.ts, #1889): a sign, commas out of place, a third decimal place or '1.' are invalid, never read as some
+ * other number. The contract takes the 초기화권 price as a whole number and the 페온 gold as a number (web #1971).
+ */
+export function goldField(text: string, max: number, decimals = false): { value: number | null; invalid: boolean } {
+  const t = text.trim();
   if (!t) return { value: null, invalid: false };
-  if (!/^\d+$/.test(t)) return { value: null, invalid: true };
-  const value = Number(t);
-  return value <= max ? { value, invalid: false } : { value: null, invalid: true };
+  if (!(decimals ? CENTS : WHOLE).test(t)) return { value: null, invalid: true };
+  const value = Number(t.replace(/,/g, ""));
+  return Number.isFinite(value) && value <= max ? { value, invalid: false } : { value: null, invalid: true };
 }
 export const resetTicketField = (text: string) => goldField(text, RESET_TICKET_MAX);
-export const pheonField = (text: string) => goldField(text, PHEON_MAX);
+export const pheonField = (text: string) => goldField(text, PHEON_MAX, true);
+/** What the line under the prices says when one is invalid. */
+export const PRICE_INVALID = "초기화권은 1,000만 골드까지 정수, 페온은 10만 골드까지 소수 둘째 자리까지 넣어 주세요.";
 
 /** The request the page sends: all four policies, both 초기화 ways (on only with a ticket price), every row. */
 export function rankingRequest(name: string, grade: GemGrade, resetTicket: number | null, pheon: number | null): GemRankingRequest {
@@ -62,7 +73,9 @@ export function parseGemRankingRequest(body: unknown): GemRankingRequest | null 
     if (!input.prices || typeof input.prices !== "object" || Array.isArray(input.prices)) return null;
     const p = input.prices as Record<string, unknown>;
     const inRange = (v: unknown, max: number) => v === undefined || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= max);
+    // The contract: resetTicketGold is int64, pheonGold a number.
     if (!inRange(p.resetTicketGold, RESET_TICKET_MAX) || !inRange(p.pheonGold, PHEON_MAX)) return null;
+    if (p.resetTicketGold !== undefined && !Number.isInteger(p.resetTicketGold)) return null;
     prices = {
       ...(p.resetTicketGold !== undefined ? { resetTicketGold: p.resetTicketGold as number } : {}),
       ...(p.pheonGold !== undefined ? { pheonGold: p.pheonGold as number } : {}),
