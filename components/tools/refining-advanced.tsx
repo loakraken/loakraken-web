@@ -149,7 +149,8 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
               <label className={styles.mini}>
                 <span>목표</span>
                 <Select
-                  value={target}
+                  // Unread: empty too (its 0 read as a stage, PM-프론트 #1952 P3).
+                  value={unread ? -1 : target}
                   disabled={!open || unread}
                   aria-label={`${part.label} 상급 재련 목표 단계`}
                   onValueChange={(value) => set(part.id, { current, target: value })}

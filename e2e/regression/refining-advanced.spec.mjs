@@ -104,6 +104,29 @@ test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모
   await expect.poll(() => asked.map((r) => [r.equipmentType, r.fromStage, r.toStage])).toEqual([["ARMOR", 7, 10]]);
 });
 
+// #1955 (PM-프론트, before the switch goes on): the character answer late (1.2 s, past the 0.5 s input window of an
+// address load) — the '읽지 못했어요' line and the loaded stages must not move what is drawn.
+for (const width of [320, 1280])
+  test(`${width}: 캐릭터 답이 늦게 와도 상급 재련 줄이 화면을 밀지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await page.route(
+      (url) => url.pathname === "/api/characters",
+      async (route) => {
+        await new Promise((done) => setTimeout(done, 1200));
+        await route.fallback();
+      },
+    );
+    await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
+    const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
+    await expect(gloves).toContainText("모름", { timeout: 15_000 });
+    // The unread target is empty, as the current is (PM-프론트 #1952 P3).
+    await expect(stageBox(page, "장갑", "목표")).toHaveText("");
+    await page.waitForTimeout(600);
+    const { all, moved } = await shiftsSince(page);
+    expect(all, `흔들림 (${moved})`).toBe(0);
+  });
+
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
   const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
   await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
