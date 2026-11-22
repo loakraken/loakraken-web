@@ -41,7 +41,12 @@ for (const width of [320, 1280])
     // 5.02% × 12 = 60.24.
     const line = page.getByText(/^지금 아크 그리드 효율/);
     await expect(line).toHaveText("지금 아크 그리드 효율 +5.02% · 보스 피해 환산 Lv 60.24");
-    await expect(line).toHaveAttribute("title", NOTE);
+    // The note on its term, reachable by keyboard (not a title attribute).
+    const term = line.getByRole("button", { name: /^보스 피해 환산/ });
+    await expect(term).toHaveAccessibleName(`보스 피해 환산: ${NOTE}`);
+    await term.focus();
+    await expect(page.locator("[data-slot=tooltip-content]")).toHaveText(NOTE);
+    await page.keyboard.press("Escape");
     // A character without one (the simulator's other mocks): no line.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력코어도약")}`);
     await expect(page.getByText(/지금 아이템 레벨/)).toBeVisible();

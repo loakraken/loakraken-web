@@ -44,6 +44,7 @@ import {
   type GemEdit,
 } from "@/lib/combat-power/ark-gems";
 import { BOSS_LEVEL_NOTE, arkGridRealView } from "@/lib/character/efficiency-real";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArkGemRanking } from "./ark-gem-ranking";
 import type { GemSwap } from "@/lib/combat-power/gem-ranking";
 import {
@@ -1029,8 +1030,16 @@ function ResultBand({
       )}
       {/* X2: today's value too (a gem swap's own share is in 바꿔 본 젬 순위); drawn with the band, so it never moves it. */}
       {ark && (
-        <p className={styles.bandSub} title={BOSS_LEVEL_NOTE}>
-          지금 아크 그리드 효율 <b>{ark.total}</b> · 보스 피해 환산 <b>Lv {ark.bossLevel}</b>
+        <p className={styles.bandSub}>
+          지금 아크 그리드 효율 <b>{ark.total}</b> ·{" "}
+          {/* What the level is on its term, reachable by keyboard and touch (a title attribute is not). */}
+          <Tooltip>
+            <TooltipTrigger className={styles.bandTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
+              보스 피해 환산
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[min(20rem,calc(100vw-1rem))]">{BOSS_LEVEL_NOTE}</TooltipContent>
+          </Tooltip>{" "}
+          <b>Lv {ark.bossLevel}</b>
         </p>
       )}
     </section>
