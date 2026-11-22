@@ -74,6 +74,7 @@ import {
   type PolishPreset,
   type PolishValues,
   type Simulation,
+  gemLabels,
 } from "@/lib/combat-power/model";
 import {
   historyReducer,
@@ -128,11 +129,13 @@ const withCurrent = (values: number[], current: number) =>
 
 /** The parts of the character the first cut can change. */
 function currentOf(data: Character, karmaSim = false, armorSim = false) {
-  const gems = (data.loadout.gems?.items ?? []).flatMap((gem) =>
+  const worn = (data.loadout.gems?.items ?? []).flatMap((gem) =>
     gem.slot != null && gem.level != null
       ? [{ slot: gem.slot, level: gem.level, name: gem.name ?? `보석 ${gem.slot + 1}` }]
       : [],
   );
+  const labels = gemLabels(worn, data.loadout.gems?.effects?.skills);
+  const gems = worn.map((gem) => ({ ...gem, label: labels.get(gem.slot) ?? gem.name }));
   const gear = data.loadout.equipment.flatMap((item, index) =>
     (GEAR_TYPES as readonly string[]).includes(item.type ?? "") &&
     (item.detail?.refineLevel != null || item.detail?.quality != null)
@@ -352,10 +355,10 @@ function Editors({
           <ul className={styles.rows}>
             {current.gems.map((gem) => (
               <li key={gem.slot}>
-                <span className={styles.rowName}>{gem.name}</span>
+                <span className={styles.rowName}>{gem.label}</span>
                 <span className={styles.rowFrom}>Lv.{gem.level}</span>
                 <Select
-                  label={`${gem.name} 레벨`}
+                  label={`${gem.label} 레벨`}
                   value={gemLevel(edits, gem)}
                   original={gem.level}
                   values={gemValues}

@@ -219,7 +219,8 @@ export type Grade = (typeof GRADES)[number];
 export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIGH: "상" };
 
 export type Current = {
-  gems: { slot: number; level: number }[];
+  /** `label`: the row's visible name (gemLabels); `name`, the gem's own, stays its identity. */
+  gems: { slot: number; level: number; name?: string; label?: string }[];
   /** `upgrade`: 업화 gear (isUpgradeGear); the weapon's 상급 재련 opens only then. */
   gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null; upgrade?: boolean }[];
   /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
@@ -235,6 +236,25 @@ export type Current = {
   /** Armour 재련 · 상급 재련 open on this screen (ARMOR_CP_SIM). Unset: as before, the weapon's refine only. */
   armor?: boolean;
 };
+
+/**
+ * Each gem row's visible name (and its level select's name with '레벨'), by slot (QA v0.3.15 RC P2-1: on real data the
+ * rows read only the gem's name, '6레벨 광휘의 보석 (귀속)' eleven times). The skill the official gem effects give
+ * for the slot comes first, as the spec-up list names a gem ('<skill> · <gem>'); rows that would still read the same
+ * (no skill, or the same skill and gem twice) add their slot ('(3번 칸)'). Display only: the gem's own name stays the
+ * row's identity (input history).
+ */
+export function gemLabels(
+  gems: readonly { slot: number; name: string }[],
+  skills: readonly { gemSlot?: number | null; name?: string | null }[] | null | undefined,
+): Map<number, string> {
+  const skillOf = new Map<number, string>();
+  for (const effect of skills ?? []) if (effect.gemSlot != null && effect.name) skillOf.set(effect.gemSlot, effect.name);
+  const base = gems.map((gem) => [gem.slot, skillOf.has(gem.slot) ? `${skillOf.get(gem.slot)} · ${gem.name}` : gem.name] as const);
+  const count = new Map<string, number>();
+  for (const [, name] of base) count.set(name, (count.get(name) ?? 0) + 1);
+  return new Map(base.map(([slot, name]) => [slot, (count.get(name) ?? 0) > 1 ? `${name} (${slot + 1}번 칸)` : name]));
+}
 
 /** The tree whose karma level the simulator edits, and the request's range (api #1004 KARMA_MAX_LEVEL). */
 export const KARMA_TREE = "깨달음";

@@ -65,6 +65,7 @@ import styles from "./refining-plan.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
 import { RefiningBreathCompare } from "./refining-breath";
+import { RefiningTargets } from "./refining-targets";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -1060,6 +1061,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 누르면 계산에 포함한 모든 부위의 목표가 그 단계로 바뀌어요.
                 이미 더 높은 부위는 그대로예요. 완갑은 단계표가 달라 아래 줄에서 따로 골라요.
               </p>
+              {/* (X3) Target item-level slider and '고른 부위 +1' (components/tools/refining-targets.tsx). */}
+              <RefiningTargets parts={parts} setParts={setParts} itemLevel={loaded?.itemLevel ?? null} />
               <ul className={styles.parts}>
                 {PARTS.map((part) => (
                   <PartRow
