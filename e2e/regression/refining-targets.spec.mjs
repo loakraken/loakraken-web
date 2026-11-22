@@ -62,10 +62,14 @@ for (const width of [320, 1280])
     // Exactly one plan request per distinct plan the release made, none twice (codex P3 on #1922): parts with the same
     // plan (the armour parts at the same grade and stages; the weapon is its own) share one cached request.
     const changed = new Set(LEVEL_PARTS.flatMap((label, i) => (ups[i] > 0 ? [`${label === "무기" ? "WEAPON" : "ARMOR"}:${ups[i]}`] : []))).size;
-    await expect.poll(() => plans.length - before).toBe(changed);
+    // The page's own plans (숨결 꺼짐, the default) and M41's 숨결 쓰기 비교, which asks each plan once more with
+    // 숨결 최대 (#1932): one of each per distinct plan, none twice.
+    const own = (body) => JSON.parse(body || "{}").useBreath === false;
+    await expect.poll(() => plans.slice(before).filter(own).length).toBe(changed);
     await settled(page);
     const sent = plans.slice(before);
-    expect(sent.length, "놓은 뒤 계산 요청 수").toBe(changed);
+    expect(sent.filter(own).length, "놓은 뒤 계산 요청 수").toBe(changed);
+    expect(sent.filter((body) => !own(body)).length, "숨결 비교 요청 수(부위 계획마다 하나)").toBe(changed);
     expect(new Set(sent).size, "같은 요청을 두 번 보내지 않음").toBe(sent.length);
     // The shown gain: stages × 5 ÷ 6.
     await expect(page.locator("output").first()).toHaveText(`+${((stages * 5) / 6).toFixed(2)}`);

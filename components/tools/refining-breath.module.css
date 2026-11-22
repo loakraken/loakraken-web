@@ -82,3 +82,7 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* Kept rows while new prices come (A8): dimmed like the result above. */
+.rows[data-stale] {
+  opacity: 0.55;
+}

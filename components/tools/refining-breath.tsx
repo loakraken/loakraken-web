@@ -102,7 +102,12 @@ export function RefiningBreathCompare({
           {failed ? "비교 계산을 불러오지 못했어요." : "재료 시세를 불러오지 못해 비교하지 않았어요."} 위 결과는 그대로예요.
         </p>
       )}
-      <ul className={styles.rows}>
+      {/* Rows kept from the last basis or mode while the new prices come are dimmed (A8, as the result above). */}
+      <ul
+        className={styles.rows}
+        aria-busy={prices.isPlaceholderData || undefined}
+        data-stale={prices.isPlaceholderData || undefined}
+      >
         {requests.map(({ part, request }, i) => {
           const without = plans[i * 2]?.data?.data;
           const withBreath = plans[i * 2 + 1]?.data?.data;
