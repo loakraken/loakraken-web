@@ -163,11 +163,16 @@
   border-color: var(--destructive);
 }
 /* Its own line under the field (shown only after an invalid entry is applied, so it moves nothing on load). */
+/* Kept rendered when empty (no height then, #1937): hiding it would take the status region out of the tree. */
 .error {
   flex-basis: 100%;
   color: var(--destructive);
   font-size: var(--text-caption);
   line-height: 18px;
+}
+/* Empty: out of the flow (no extra wrapped line or gap in the row), still in the accessibility tree. */
+.error:empty {
+  position: absolute;
 }
 .cart {
   display: grid;
