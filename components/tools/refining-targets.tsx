@@ -6,7 +6,16 @@
 // it is let go (the native change event): a drag never sends a plan request per step.
 import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { formatLevel, PARTS, type PartId, type PartState } from "@/lib/refining/model";
-import { bumpPicked, levelGain, raisable, sliderMax, sliderValue, spreadStages } from "@/lib/refining/targets";
+import {
+  bumpPicked,
+  levelGain,
+  raisable,
+  sameParts,
+  slideTargets,
+  sliderMax,
+  sliderValue,
+  type SlideAnchor,
+} from "@/lib/refining/targets";
 import { useUrlState, type UrlCodec } from "@/lib/tools/url-state";
 import styles from "./refining-targets.module.css";
 
@@ -22,6 +31,8 @@ const pickCodec: UrlCodec<PartId[]> = {
   format: (value) => value.join(","),
 };
 const NONE: PartId[] = [];
+/** Keys that move a range input: letting go of one ends a key step (others, like Shift, do not). */
+const RANGE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]);
 
 export function RefiningTargets({
   parts,
@@ -46,28 +57,62 @@ export function RefiningTargets({
 
   // Set the targets on release only: the native change event (mouse or touch let go, a key step, a fill).
   const range = useRef<HTMLInputElement>(null);
+  // Where this run of slider steps started (#1929): each step spreads from it, so a step back undoes a step forward.
+  // The parts as last drawn, for the step (computed outside the state updater, which must stay pure: StrictMode runs
+  // it twice, codex P3 on #1930). Any change to the parts that is not the run's own last step ends the run, at once,
+  // so an outside change that lands back on the same parts (a chip +20 then +19) still starts afresh (codex P3).
+  const anchor = useRef<SlideAnchor | null>(null);
+  const latest = useRef(parts);
+  useEffect(() => {
+    latest.current = parts;
+    if (anchor.current && !sameParts(parts, anchor.current.made)) anchor.current = null;
+  }, [parts]);
   useEffect(() => {
     const input = range.current;
     if (!input) return;
     const commit = () => {
-      const stages = Number(input.value);
-      setParts((prev) => spreadStages(prev, stages));
+      const step = slideTargets(anchor.current, latest.current, Number(input.value));
+      anchor.current = step;
+      setParts(step.made);
       setDraft(null);
     };
     // Let go without a change event (dragged back to the start), or left: drop the draft, set nothing. A task later,
-    // so a release's own change event commits first.
+    // so a release's own change event commits first. Not while the pointer still holds the thumb, and on a key only
+    // when it is one that moves the slider (#1929: letting go of Shift mid-drag sent the thumb back).
     let timer = 0;
+    let held = false;
     const settle = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => setDraft(null), 0);
     };
-    const ends = ["pointerup", "pointercancel", "keyup", "blur"] as const;
+    const press = () => {
+      held = true;
+    };
+    const release = () => {
+      held = false;
+      settle();
+    };
+    const keyUp = (event: KeyboardEvent) => {
+      if (!held && RANGE_KEYS.has(event.key)) settle();
+    };
+    // A key step while the pointer holds the thumb would move it and commit mid-drag (codex P3 on #1930): the drag
+    // owns the slider until it is let go.
+    const keyDown = (event: KeyboardEvent) => {
+      if (held && RANGE_KEYS.has(event.key)) event.preventDefault();
+    };
+    const releases = ["pointerup", "pointercancel", "blur"] as const;
     input.addEventListener("change", commit);
-    for (const type of ends) input.addEventListener(type, settle);
+    input.addEventListener("pointerdown", press);
+    input.addEventListener("keydown", keyDown);
+    input.addEventListener("keyup", keyUp);
+    for (const type of releases) input.addEventListener(type, release);
     return () => {
       window.clearTimeout(timer);
       input.removeEventListener("change", commit);
-      for (const type of ends) input.removeEventListener(type, settle);
+      input.removeEventListener("pointerdown", press);
+      input.removeEventListener("keydown", keyDown);
+      input.removeEventListener("keyup", keyUp);
+      for (const type of releases) input.removeEventListener(type, release);
     };
   }, [setParts]);
 
@@ -98,7 +143,7 @@ export function RefiningTargets({
           onChange={(event) => setDraft({ stages: Number(event.target.value), from: value })}
         />
         <p className={styles.caption}>
-          계산에 넣은 여섯 부위(완갑 제외)의 목표를 낮은 부위부터 고르게 올려요. 올릴 때 이미 정한 목표는 낮추지 않아요. 손을 떼면 계산해요.
+          계산에 넣은 여섯 부위(완갑 제외)의 목표를 낮은 부위부터 고르게 올려요. 올릴 때 이미 정한 목표는 낮추지 않아요. 내릴 때는 목표가 가장 높은 부위부터 낮춰요. 손을 떼면 계산해요.
         </p>
       </div>
       <div className={styles.pick} role="group" aria-label="고른 부위 한 번에 올리기">
