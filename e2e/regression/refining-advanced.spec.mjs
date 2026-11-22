@@ -127,6 +127,22 @@ for (const width of [320, 1280])
     expect(all, `흔들림 (${moved})`).toBe(0);
   });
 
+test("상급만 실패해도(409) 일반 결과는 그대로, 상급은 따로 알리고 다시 계산 @regression", async ({ page }) => {
+  const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
+  await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
+  await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+  // The 일반 result stands.
+  await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+  await expect(page.getByText(/재련 골드 [\d,]+/).first()).toBeVisible();
+  // The 상급 part in its own notice, with its own retry; no band table (not in the total).
+  const notice = page.getByRole("alert").filter({ hasText: "재료 시세를 모으고 있어요" });
+  await expect(notice).toContainText("위 합계에는 상급 재련이 빠져 있어요.");
+  await expect(page.getByRole("button", { name: "상급 재련 다시 계산" })).toBeVisible();
+  await expect(page.getByText("상급 재련은 빠졌어요(아래에서 다시 계산)")).toBeVisible();
+  await expect(page.locator("details", { hasText: "상급 재련 구간별" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다시 계산", exact: true })).toHaveCount(0);
+});
+
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
   const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
   await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
