@@ -89,7 +89,8 @@ test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모
   await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
   const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
   await expect(gloves).toContainText("모름");
-  await expect(gloves).toContainText("현재 단계를 읽지 못했어요");
+  // What '모름' means: the card's fixed note, which the unread field points to (aria-describedby).
+  await expect(stageBox(page, "장갑", "현재")).toHaveAccessibleDescription(/상급 재련 단계를 읽지 못한 부위예요/);
   await expect(stageBox(page, "장갑", "현재")).toHaveText("");
   await expect(stageBox(page, "장갑", "목표")).toBeDisabled();
   await picks(page).getByRole("button", { name: "장갑", exact: true }).click();
@@ -98,33 +99,40 @@ test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모
   expect(asked, "읽지 못한 부위 요청 없음").toEqual([]);
   // The user picks 7: from there, +10 goes to 10.
   await chooseOption(page, stageBox(page, "장갑", "현재"), "7");
-  await expect(gloves).not.toContainText("현재 단계를 읽지 못했어요");
+  await expect(gloves).not.toContainText("모름");
   await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
   await expect(stageBox(page, "장갑", "목표")).toHaveText("10");
   await expect.poll(() => asked.map((r) => [r.equipmentType, r.fromStage, r.toStage])).toEqual([["ARMOR", 7, 10]]);
 });
 
 // #1955 (PM-프론트, before the switch goes on): the character answer late (1.2 s, past the 0.5 s input window of an
-// address load) — the '읽지 못했어요' line and the loaded stages must not move what is drawn.
+// address load). The 상급 card keeps its size when its rows fill in ('모름' adds no line: the note is always there), so
+// nothing under it moves. Measured on the card's own box: it sits below the fold here, where the shift log would not
+// see it, and the 캐릭터 장비 card above has its own (older) growth at the load.
 for (const width of [320, 1280])
-  test(`${width}: 캐릭터 답이 늦게 와도 상급 재련 줄이 화면을 밀지 않는다 @regression`, async ({ page }) => {
+  test(`${width}: 캐릭터 답이 늦게 와도 상급 재련 카드 크기가 그대로 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await watchShifts(page);
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
     await page.route(
       (url) => url.pathname === "/api/characters",
       async (route) => {
-        await new Promise((done) => setTimeout(done, 1200));
+        await held;
         await route.fallback();
       },
     );
     await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
+    const size = () => card(page).evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    await expect(card(page)).toBeVisible();
+    const before = await size();
+    release();
     const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
     await expect(gloves).toContainText("모름", { timeout: 15_000 });
+    await expect(stageBox(page, "무기", "현재")).toHaveText("21");
     // The unread target is empty, as the current is (PM-프론트 #1952 P3).
     await expect(stageBox(page, "장갑", "목표")).toHaveText("");
-    await page.waitForTimeout(600);
-    const { all, moved } = await shiftsSince(page);
-    expect(all, `흔들림 (${moved})`).toBe(0);
+    await page.waitForTimeout(400);
+    expect(await size(), "상급 재련 카드 높이(px), 답 전 → 뒤").toBe(before);
   });
 
 test("상급만 실패해도(409) 일반 결과는 그대로, 상급은 따로 알리고 다시 계산 @regression", async ({ page }) => {

@@ -39,13 +39,6 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* Its own row under the selects (the row grows at the load, a reply to the user's action). */
-.unread {
-  grid-column: 1 / -1;
-  color: var(--launch);
-  font-size: var(--text-caption);
-  line-height: 18px;
-}
 .mini {
   display: grid;
   gap: 4px;

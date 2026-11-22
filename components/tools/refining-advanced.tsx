@@ -10,8 +10,8 @@ import { Select } from "@/components/ui/select";
 import { RefiningQueryError, postAdvancedPlan } from "@/lib/refining/client";
 import {
   ADVANCED_MAX,
-  ADVANCED_NOT_READ,
   ADVANCED_PARTS,
+  ADVANCED_UNREAD_NOTE,
   NO_ADVANCED_JEONYUL,
   advancedFailureCopy,
   advancedRequests,
@@ -141,7 +141,7 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
                   value={current ?? -1}
                   disabled={!open}
                   aria-label={`${part.label} 상급 재련 현재 단계`}
-                  aria-describedby={unread ? `${headingId}-${part.id}-unread` : undefined}
+                  aria-describedby={unread ? `${headingId}-unread` : undefined}
                   onValueChange={(value) => set(part.id, { current: value, target: Math.max(value, target) })}
                   items={range(0, ADVANCED_MAX - 1).map((n) => ({ value: n, label: String(n) }))}
                 />
@@ -157,11 +157,6 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
                   items={range(current ?? 0, ADVANCED_MAX).map((n) => ({ value: n, label: String(n) }))}
                 />
               </label>
-              {unread && (
-                <small id={`${headingId}-${part.id}-unread`} className={styles.unread}>
-                  {ADVANCED_NOT_READ}. 현재 단계를 고르면 계산해요.
-                </small>
-              )}
             </li>
           );
         })}
@@ -170,6 +165,11 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
         10단계 구간마다 기대값으로 계산해요. 숨결·책은 지금 최저가로 기대 비용이 가장 작은 조합을 써요.
         {/* Always the same sentence when a 전율 part is in the plan: nothing moves when it comes (A7). */}
         {jeonyul.length > 0 && ` ${NO_ADVANCED_JEONYUL}`}
+      </p>
+      {/* Always there (web #1955): a part read as '모름' when the character lands adds no line, so nothing moves. The
+          unread rows' current field points here. */}
+      <p id={`${headingId}-unread`} className={styles.caption}>
+        {ADVANCED_UNREAD_NOTE}
       </p>
     </section>
   );

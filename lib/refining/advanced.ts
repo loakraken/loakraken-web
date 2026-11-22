@@ -35,7 +35,8 @@ export const initialAdvanced = (): AdvancedStages =>
  */
 export const hasAdvanced = (state: PartState) => state.enabled && state.grade === "UPHWA";
 export const NO_ADVANCED_JEONYUL = "전율 장비에는 상급 재련이 없어요.";
-export const ADVANCED_NOT_READ = "현재 단계를 읽지 못했어요";
+/** Under the 상급 rows, always (web #1955: no line appears when a part reads as '모름'). */
+export const ADVANCED_UNREAD_NOTE = "‘모름’은 장비 툴팁에서 상급 재련 단계를 읽지 못한 부위예요. 현재 단계를 고르면 계산해요.";
 
 /** Current 상급 재련 per part from the equipment tooltips (search advancedRefineLevel); null when not read. */
 export function advancedFromCharacter(data: Character): Record<AdvancedPartId, number | null> {
