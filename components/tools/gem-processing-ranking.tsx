@@ -29,6 +29,8 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./gem-processing-ranking.module.css";
 
+const BUSY_CODES = ["GEM_RANKING_BUSY", "CLIENT_RATE_LIMITED"] as const;
+
 /** GEM_RANKING on this deployment (server flag), provided by the tool page and the character page. */
 export const GemRankingEnabled = createContext(false);
 
@@ -88,7 +90,8 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const limit = useRateLimit(query.error);
+  // Seats full (GEM_RANKING_BUSY, Retry-After) counts down on the button like a rate limit.
+  const limit = useRateLimit(query.error, BUSY_CODES);
   const busy = query.isFetching;
   const blocked = busy || limit.seconds > 0 || invalid;
   const failure =
