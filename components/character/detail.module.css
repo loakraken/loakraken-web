@@ -2648,9 +2648,11 @@
   .specUpTable [data-cell="eff"] {
     grid-area: eff;
   }
+  /* Its own column now: one line, so the column is the link's width (min-content would wrap it to '적용해'). */
   .specUpTable [data-cell="try"] {
     grid-area: try;
     align-self: center;
+    white-space: nowrap;
   }
   .specUpTable [data-label]::before {
     content: attr(data-label) " ";
