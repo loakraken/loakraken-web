@@ -19,6 +19,8 @@ const api = {
   PRICE_ALERTS: "on",
   // 상급 재련 on the 재련 계산기 (web #1951), off by default everywhere.
   REFINING_ADVANCED: "on",
+  // 젬 가공 순위 in the simulator (web #1969), off by default everywhere.
+  GEM_RANKING: "on",
   DEV_NOTES_DIR: fileURLToPath(new URL("./support/dev-notes", import.meta.url)),
 };
 // E2E_BASE_URL points the suite at an already running preview (e.g. a PR

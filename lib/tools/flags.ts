@@ -313,6 +313,15 @@ export function isRefiningAdvancedEnabled(env: Env = process.env) {
   return env.REFINING_ADVANCED?.trim().toLowerCase() === "on";
 }
 
+/**
+ * 젬 가공 순위 in the simulator (M49 phase 2, web #1969; api gem-ranking #1095). Off unless `GEM_RANKING=on` — every
+ * deployment — paired with the api's own switch (combat-power-sim.gem-ranking.enabled; switch-on order api → web), and
+ * only with the simulator itself. Off: no card, no requests, no route.
+ */
+export function isGemRankingEnabled(env: Env = process.env) {
+  return isCombatPowerEnabled(env) && env.GEM_RANKING?.trim().toLowerCase() === "on";
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
