@@ -304,6 +304,15 @@ export function isPriceAlertsEnabled(env: Env = process.env) {
   return env.PRICE_ALERTS?.trim().toLowerCase() === "on";
 }
 
+/**
+ * 상급 재련 +10 on the 재련 계산기 (X3 part 2, web #1951; api #1091 advanced-plans). Off unless `REFINING_ADVANCED=on`
+ * — every deployment — paired with the api's own switch (refining.advanced.enabled, off until 백엔드's cache follow-up;
+ * PM 총괄 11-22). Off: no 상급 card, no requests, no route.
+ */
+export function isRefiningAdvancedEnabled(env: Env = process.env) {
+  return env.REFINING_ADVANCED?.trim().toLowerCase() === "on";
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

@@ -982,6 +982,52 @@ createServer(async (req, res) => {
     if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
     return send(plan);
   }
+  // 상급 재련 (api #1091 advanced-plans, web #1951): the api's CI sample (tests/refining-fixtures/refining-advanced-plan.json),
+  // one band per 10 stages crossed. Bands 0·20 copy the sample's first band, 10·30 its second (synthetic numbers, not
+  // the model); a band started inside keeps the whole band's numbers. Weapon names its own materials. 전율 400; a
+  // request from 39 answers 409 (price pending) so the screen's failure line can be seen.
+  if (url.pathname === "/api/v1/refining/advanced-plans" && req.method === "POST") {
+    counts.refiningAdvanced = (counts.refiningAdvanced || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.grade === "JEONYUL") return send({ code: "REFINING_ADVANCED_UNCONFIRMED", message: "운명의 전율 상급 재련은 아직 확인되지 않았습니다." }, 400);
+    if (request.fromStage === 39) return send({ code: "REFINING_PRICE_PENDING", message: "재료 시세를 모으고 있습니다." }, 409);
+    const sample = JSON.parse(readFileSync(new URL("./refining-fixtures/refining-advanced-plan.json", import.meta.url), "utf8"));
+    const weapon = request.equipmentType === "WEAPON";
+    const rename = (name) => (weapon ? { "빙하의 숨결": "용암의 숨결", "운명의 수호석": "운명의 파괴석" }[name] ?? name : name);
+    const bands = [];
+    for (let start = Math.floor(request.fromStage / 10) * 10; start < request.toStage; start += 10) {
+      const template = sample.data.bands[(start / 10) % 2];
+      bands.push({
+        ...template,
+        bandStart: start,
+        fromStage: Math.max(request.fromStage, start),
+        toStage: Math.min(request.toStage, start + 10),
+        growthSupport: start < 20,
+        expectedTurns: { ...template.expectedTurns, enhanced: start >= 20 ? 5 : null },
+        policy: { ...template.policy, enhanced: start >= 20 ? "BOTH" : null },
+        expectedMaterials: template.expectedMaterials.map((item) => ({ ...item, name: rename(item.name) })),
+      });
+    }
+    const sum = (pick) => bands.reduce((total, band) => total + pick(band), 0);
+    const materials = new Map();
+    for (const band of bands) for (const item of band.expectedMaterials) materials.set(item.name, (materials.get(item.name) ?? 0) + item.amount);
+    return send({
+      ...sample,
+      data: {
+        ...sample.data,
+        equipmentType: request.equipmentType,
+        fromStage: request.fromStage,
+        toStage: request.toStage,
+        bands,
+        temperingStages: [10, 20, 30].filter((stage) => stage > request.fromStage && stage < request.toStage),
+        expectedMaterials: [...materials].map(([name, amount]) => ({ name, amount })),
+        expectedRefineGold: sum((band) => band.expectedRefineGold),
+        expectedCostGold: Math.ceil(sum((band) => band.expectedCostGold)),
+      },
+    });
+  }
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
   // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
   // formulas) so the computed path can be seen, "갱신됨" a 409.

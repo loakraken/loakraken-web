@@ -74,6 +74,11 @@
 .picks button:disabled {
   opacity: 0.45;
 }
+.raises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .raise {
   justify-self: start;
   border: 1px solid var(--steel);
