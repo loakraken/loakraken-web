@@ -2654,6 +2654,11 @@
     align-self: center;
     white-space: nowrap;
   }
+  /* The link has no border to reach over, so its tap area (hit-44) is its own width, as '자세히' (#1167): the
+     default + 4px would stick out of a column exactly the link's width (A37 at 320). Still 44px tall. */
+  .specUpTable [data-cell="try"] a::after {
+    width: max(100%, 44px);
+  }
   .specUpTable [data-label]::before {
     content: attr(data-label) " ";
     color: var(--muted-foreground);
