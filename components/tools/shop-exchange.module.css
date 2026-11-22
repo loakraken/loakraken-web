@@ -10,8 +10,11 @@
   font-size: var(--text-caption);
   line-height: 18px;
 }
+/* The age on its own line, held from the first paint: in the caption's line its late text (in another font's glyphs)
+   moved the caption's baseline 2px (A7, the same as the craft tools' agoLine). */
 .ago {
-  white-space: nowrap;
+  display: block;
+  min-height: 1lh;
 }
 .workspace {
   display: grid;

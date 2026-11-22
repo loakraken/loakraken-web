@@ -294,7 +294,7 @@ export function ShopExchangeTool() {
               ))}
             </SegmentedControl>
             <p className={styles.small}>
-              거래소 {priceBases.find((b) => b.value === basis)?.label} 기준, 1분마다 새로 불러와요.{" "}
+              거래소 {priceBases.find((b) => b.value === basis)?.label} 기준, 1분마다 새로 불러와요.
               <span className={styles.ago}>{ago}</span>
             </p>
             {failure && (
