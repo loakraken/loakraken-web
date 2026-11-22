@@ -68,7 +68,14 @@ import { FpEnd } from "@/components/ui/fp-end";
 import { RefiningBreathCompare } from "./refining-breath";
 import { priceNames } from "@/lib/refining/breath";
 import { RefiningTargets } from "./refining-targets";
-import { AdvancedBands, AdvancedModeLine, RefiningAdvanced, useAdvanced, type Advanced } from "./refining-advanced";
+import {
+  AdvancedBands,
+  AdvancedFailureNotice,
+  AdvancedModeLine,
+  RefiningAdvanced,
+  useAdvanced,
+  type Advanced,
+} from "./refining-advanced";
 import {
   advancedFailureCopy,
   advancedFromCharacter,
@@ -563,6 +570,8 @@ function TopSummary({
             ? `총 ${formatCount(summary.stageCount)}단계, 시도 ${formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회`
             : `상급 재련 ${formatCount(advanced.total?.bandCount ?? 0)}구간`}
         </span>
+        {/* (web #1955) The total is the 일반 part alone after a 상급 failure: said here too. */}
+        {advanced.failure && <span className={styles.topLine}>상급 재련은 빠졌어요(아래에서 다시 계산)</span>}
         <a className={styles.topLine} href="#estimate-heading">
           재료와 부위별 내역
         </a>
@@ -631,6 +640,8 @@ function Result({
       </p>
       {/* (X3 part 2) Held while a 상급 target is set; words only in 50% · 90% · 장인의 기운 (프론트 condition c). */}
       <AdvancedModeLine advanced={advanced} mode={mode} />
+      {/* (web #1955) A 상급-only failure: the 일반 total stands, the 상급 part said here with its own retry. */}
+      <AdvancedFailureNotice advanced={advanced} />
       {/* Always there, one line high: appearing and leaving moved the table.
           A refresh in the background keeps the time line (no flicker); the
           line is redrawn when its text changes. */}
@@ -954,13 +965,16 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
   // (X3 part 2, REFINING_ADVANCED) 상급 재련: its own requests; the result waits for both (프론트 condition d).
   const advanced = useAdvanced(parts, advancedOn);
   const pending = queries.some((q) => q.isPending) || advanced.pending;
-  const failed = queries.find((q) => q.isError) ?? advanced.failed;
+  // A 상급-only failure (e.g. 409 price pending) keeps the 일반 result, the 상급 part said in its own notice under the
+  // total (PM-프론트 #1952 P3, web #1955). With no 일반 request, it is the page's failure as before.
+  const advancedAside = !!advanced.failed && requests.length > 0;
+  const failed = queries.find((q) => q.isError) ?? (advancedAside ? undefined : advanced.failed);
   const planLimit = useRateLimit(failed?.error);
   const plans: PartPlan[] = queries.flatMap((q, i) =>
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
   const asked = requests.length + advanced.requests.length > 0;
-  const complete = asked && plans.length === requests.length && advanced.complete;
+  const complete = asked && plans.length === requests.length && (advanced.complete || advancedAside);
   if (!rateKnown && plans.some(({ plan }) => "failedAttemptsFrom" in plan)) setRateKnown(true);
   const derived: Partial<Record<PartId, number>> = Object.fromEntries(
     plans.flatMap(({ part, plan }) => {

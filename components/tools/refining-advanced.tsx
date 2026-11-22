@@ -10,9 +10,8 @@ import { Select } from "@/components/ui/select";
 import { RefiningQueryError, postAdvancedPlan } from "@/lib/refining/client";
 import {
   ADVANCED_MAX,
-  ADVANCED_NOT_READ,
   ADVANCED_PARTS,
-  NO_ADVANCED_JEONYUL,
+  ADVANCED_UNREAD_NOTE,
   advancedFailureCopy,
   advancedRequests,
   advancedTotal,
@@ -117,7 +116,6 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
   const { stages, setStages } = advanced;
   const set = (id: AdvancedPartId, next: { current: number | null; target: number }) =>
     setStages((prev) => ({ ...prev, [id]: next }));
-  const jeonyul = ADVANCED_PARTS.filter((part) => parts[part.id].enabled && parts[part.id].grade === "JEONYUL");
   return (
     <section className={styles.advanced} aria-labelledby={headingId}>
       <h3 id={headingId} className={styles.title}>
@@ -141,7 +139,7 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
                   value={current ?? -1}
                   disabled={!open}
                   aria-label={`${part.label} 상급 재련 현재 단계`}
-                  aria-describedby={unread ? `${headingId}-${part.id}-unread` : undefined}
+                  aria-describedby={unread ? `${headingId}-unread` : undefined}
                   onValueChange={(value) => set(part.id, { current: value, target: Math.max(value, target) })}
                   items={range(0, ADVANCED_MAX - 1).map((n) => ({ value: n, label: String(n) }))}
                 />
@@ -149,26 +147,25 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
               <label className={styles.mini}>
                 <span>목표</span>
                 <Select
-                  value={target}
+                  // Unread: empty too (its 0 read as a stage, PM-프론트 #1952 P3).
+                  value={unread ? -1 : target}
                   disabled={!open || unread}
                   aria-label={`${part.label} 상급 재련 목표 단계`}
                   onValueChange={(value) => set(part.id, { current, target: value })}
                   items={range(current ?? 0, ADVANCED_MAX).map((n) => ({ value: n, label: String(n) }))}
                 />
               </label>
-              {unread && (
-                <small id={`${headingId}-${part.id}-unread`} className={styles.unread}>
-                  {ADVANCED_NOT_READ}. 현재 단계를 고르면 계산해요.
-                </small>
-              )}
             </li>
           );
         })}
       </ul>
       <p className={styles.caption}>
         10단계 구간마다 기대값으로 계산해요. 숨결·책은 지금 최저가로 기대 비용이 가장 작은 조합을 써요.
-        {/* Always the same sentence when a 전율 part is in the plan: nothing moves when it comes (A7). */}
-        {jeonyul.length > 0 && ` ${NO_ADVANCED_JEONYUL}`}
+      </p>
+      {/* Always there (web #1955): a part read as '모름' when the character lands adds no line, so nothing moves. The
+          unread rows' current field points here. */}
+      <p id={`${headingId}-unread`} className={styles.caption}>
+        {ADVANCED_UNREAD_NOTE}
       </p>
     </section>
   );
@@ -182,16 +179,43 @@ export function AdvancedModeLine({ advanced, mode }: { advanced: Advanced; mode:
   if (advanced.requests.length === 0) return null;
   return (
     <p className={styles.modeLine}>
-      {/* One line at 320 (two took a second line the reserve did not hold, +18px). */}
-      {mode === "expected" ? "" : "상급 재련은 기대값으로 더했어요."}
+      {/* One line at 320 (two took a second line the reserve did not hold, +18px). Nothing joined after a failure. */}
+      {mode === "expected" || !advanced.total ? "" : "상급 재련은 기대값으로 더했어요."}
     </p>
+  );
+}
+
+/**
+ * A 상급 failure while the 일반 result stands (web #1955): what failed, in its own words, and a retry for the 상급 part
+ * only. The total above is the 일반 part alone, said in the notice.
+ */
+export function AdvancedFailureNotice({ advanced }: { advanced: Advanced }) {
+  if (!advanced.failure || !advanced.failed) return null;
+  const copy = advancedFailureCopy(advanced.failure);
+  const failed = advanced.failed;
+  return (
+    <div className={styles.failure}>
+      <div role="alert">
+        <strong>{copy.title}</strong>
+        <p>{copy.text} 위 합계에는 상급 재련이 빠져 있어요.</p>
+      </div>
+      <button
+        type="button"
+        className={`${styles.retry} hit-44`}
+        aria-disabled={failed.isFetching || undefined}
+        onClick={() => !failed.isFetching && failed.refetch()}
+      >
+        상급 재련 다시 계산
+      </button>
+    </div>
   );
 }
 
 /** The band rows: each part's 10-stage bands, valued at the page's prices. */
 export function AdvancedBands({ advanced, prices }: { advanced: Advanced; prices: MaterialPrice[] | null }) {
   const { plans } = advanced;
-  if (plans.length === 0) return null;
+  // After a failure the bands are not in the total: none listed (the notice says what is missing).
+  if (plans.length === 0 || advanced.failed) return null;
   const tempering = [...new Set(plans.flatMap((plan) => plan.temperingStages))].sort((a, b) => a - b);
   const single = plans.some((plan) => plan.bands.some((band) => band.singleSource));
   const limited = plans.some((plan) => plan.policyLimited);
@@ -234,7 +258,8 @@ export function AdvancedBands({ advanced, prices }: { advanced: Advanced; prices
         </table>
       </div>
       <p className={styles.caption}>
-        기대 시도는 유료 · 무료 · 선조 턴을 더한 값이에요.
+        기대 시도는 유료 · 무료 · 선조 턴을 더한 값이에요. 숨결·책 조합은 지금 최저가로 골랐고, 표의 값은 위에서 고른
+        가격 기준이에요.
         {tempering.length > 0 && ` ${tempering.join(" · ")}단계 담금질 재료는 귀속이라 금액에 넣지 않았어요.`}
         {limited && " 시세가 없는 숨결·책은 쓰지 않는 조합 중에서 골랐어요."}
         {single && " 아직 한 곳에서만 확인한 값이 들어 있어요."}

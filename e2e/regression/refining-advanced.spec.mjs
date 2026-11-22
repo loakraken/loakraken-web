@@ -73,7 +73,8 @@ test("캐릭터의 상급 단계는 툴팁에서, 전율 부위는 상급 없음
   await expect(stageBox(page, "머리", "현재")).toHaveText("13");
   await expect(stageBox(page, "하의", "현재")).toBeDisabled();
   await expect(card(page).getByRole("listitem").filter({ hasText: "하의" })).toContainText("없음");
-  await expect(card(page)).toContainText("전율 장비에는 상급 재련이 없어요.");
+  // The fixed note says what '없음' means (전율 has none); no sentence comes and goes with the load (#1955).
+  await expect(card(page)).toContainText("전율 장비(상급 재련이 없음)");
   // 하의 alone: nothing to raise.
   await picks(page).getByRole("button", { name: "하의", exact: true }).click();
   await expect(page.getByRole("button", { name: "고른 부위 상급 +10" })).toHaveAttribute("aria-disabled", "true");
@@ -89,7 +90,8 @@ test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모
   await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
   const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
   await expect(gloves).toContainText("모름");
-  await expect(gloves).toContainText("현재 단계를 읽지 못했어요");
+  // What '모름' means: the card's fixed note, which the unread field points to (aria-describedby).
+  await expect(stageBox(page, "장갑", "현재")).toHaveAccessibleDescription(/상급 재련 단계를 읽지 못한 부위예요/);
   await expect(stageBox(page, "장갑", "현재")).toHaveText("");
   await expect(stageBox(page, "장갑", "목표")).toBeDisabled();
   await picks(page).getByRole("button", { name: "장갑", exact: true }).click();
@@ -98,10 +100,59 @@ test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모
   expect(asked, "읽지 못한 부위 요청 없음").toEqual([]);
   // The user picks 7: from there, +10 goes to 10.
   await chooseOption(page, stageBox(page, "장갑", "현재"), "7");
-  await expect(gloves).not.toContainText("현재 단계를 읽지 못했어요");
+  await expect(gloves).not.toContainText("모름");
   await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
   await expect(stageBox(page, "장갑", "목표")).toHaveText("10");
   await expect.poll(() => asked.map((r) => [r.equipmentType, r.fromStage, r.toStage])).toEqual([["ARMOR", 7, 10]]);
+});
+
+// #1955 (PM-프론트, before the switch goes on): the character answer late (1.2 s, past the 0.5 s input window of an
+// address load). The 상급 card keeps its size when its rows fill in ('모름' adds no line: the note is always there), so
+// nothing under it moves. Measured on the card's own box: it sits below the fold here, where the shift log would not
+// see it, and the 캐릭터 장비 card above has its own (older) growth at the load.
+for (const width of [320, 1280])
+  test(`${width}: 캐릭터 답이 늦게 와도 상급 재련 카드 크기가 그대로 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(
+      (url) => url.pathname === "/api/characters",
+      async (route) => {
+        await held;
+        await route.fallback();
+      },
+    );
+    // Not gotoReady: its network-idle wait never ends while the answer is held (the page's own 20 s load timeout
+    // then fires first). Drawn and hydrated is enough here.
+    await page.goto(`/tools/refining?character=${encodeURIComponent("재련상급")}`);
+    const size = () => card(page).evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    await expect(card(page)).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const before = await size();
+    release();
+    const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
+    await expect(gloves).toContainText("모름", { timeout: 15_000 });
+    await expect(stageBox(page, "무기", "현재")).toHaveText("21");
+    // The unread target is empty, as the current is (PM-프론트 #1952 P3).
+    await expect(stageBox(page, "장갑", "목표")).toHaveText("");
+    await page.waitForTimeout(400);
+    expect(await size(), "상급 재련 카드 높이(px), 답 전 → 뒤").toBe(before);
+  });
+
+test("상급만 실패해도(409) 일반 결과는 그대로, 상급은 따로 알리고 다시 계산 @regression", async ({ page }) => {
+  const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
+  await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
+  await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+  // The 일반 result stands.
+  await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+  await expect(page.getByText(/재련 골드 [\d,]+/).first()).toBeVisible();
+  // The 상급 part in its own notice, with its own retry; no band table (not in the total).
+  const notice = page.getByRole("alert").filter({ hasText: "재료 시세를 모으고 있어요" });
+  await expect(notice).toContainText("위 합계에는 상급 재련이 빠져 있어요.");
+  await expect(page.getByRole("button", { name: "상급 재련 다시 계산" })).toBeVisible();
+  await expect(page.getByText("상급 재련은 빠졌어요(아래에서 다시 계산)")).toBeVisible();
+  await expect(page.locator("details", { hasText: "상급 재련 구간별" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다시 계산", exact: true })).toHaveCount(0);
 });
 
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
