@@ -59,8 +59,9 @@ for (const width of [320, 1280])
     for (const label of LEVEL_PARTS) ups.push(await upOf(page, label));
     expect(ups.reduce((a, b) => a + b, 0), `부위별 올림 ${ups}`).toBe(stages);
     expect(Math.max(...ups) - Math.min(...ups), `고르게: ${ups}`).toBeLessThanOrEqual(1);
-    // Exactly one plan request per part the release changed, none twice (codex P3 on #1922).
-    const changed = ups.filter((up) => up > 0).length;
+    // Exactly one plan request per distinct plan the release made, none twice (codex P3 on #1922): parts with the same
+    // plan (the armour parts at the same grade and stages; the weapon is its own) share one cached request.
+    const changed = new Set(LEVEL_PARTS.flatMap((label, i) => (ups[i] > 0 ? [`${label === "무기" ? "WEAPON" : "ARMOR"}:${ups[i]}`] : []))).size;
     await expect.poll(() => plans.length - before).toBe(changed);
     await settled(page);
     const sent = plans.slice(before);
