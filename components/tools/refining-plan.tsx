@@ -64,6 +64,7 @@ import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-contr
 import styles from "./refining-plan.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
+import { RefiningBreathCompare } from "./refining-breath";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -1162,14 +1163,18 @@ function RefiningContent({ initialName }: { initialName: string }) {
               계산하고 있어요.
             </p>
           ) : (
-            <Result
-              plans={plans}
-              mode={mode}
-              basis={basis}
-              setBasis={setBasis}
-              owned={owned}
-              setOwned={setOwned}
-            />
+            <>
+              <Result
+                plans={plans}
+                mode={mode}
+                basis={basis}
+                setBasis={setBasis}
+                owned={owned}
+                setOwned={setOwned}
+              />
+              {/* M41: 숨결 없이 vs 숨결 최대 per part (refining-breath.tsx). */}
+              <RefiningBreathCompare requests={requests} mode={mode} basis={basis} />
+            </>
           )}
         </section>
       </main>
