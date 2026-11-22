@@ -5,15 +5,13 @@
 // target card, 11-22 boundary). Each row keeps its lines from the first frame ('—' until the plans and prices
 // come), so nothing under it moves when they arrive (A7).
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { refreshEvery } from "@/lib/api/rate-limit";
 import { postMaterialPrices } from "@/lib/market/client";
 import { MAX_PRICE_NAMES, type PriceBasis } from "@/lib/market/model";
 import { postRefiningPlan } from "@/lib/refining/client";
-import { breathCompare, type BreathCompare } from "@/lib/refining/breath";
+import { breathCompare, priceNames, type BreathCompare } from "@/lib/refining/breath";
 import {
   formatCount,
   requestKey,
-  stageMaterials,
   type Mode,
   type PartPlan,
   type PlanRequest,
@@ -69,24 +67,21 @@ export function RefiningBreathCompare({
   });
   const loaded = plans.every((q) => q.data);
   const failed = plans.some((q) => q.isError);
-  const names = loaded
-    ? [
-        ...new Set(
-          plans.flatMap((q) => q.data!.data.stages.flatMap((stage) => stageMaterials(stage, mode).map((m) => m.name))),
-        ),
-      ].sort()
+  // The page's own plans (the way the user picked), in its order: the same list the result asks prices for.
+  const own: PartPlan[] = loaded
+    ? requests.map(({ part, request }, i) => ({ part, plan: plans[i * 2 + (request.useBreath ? 1 : 0)].data!.data }))
     : [];
-  // The result's own price query (useRefiningCost) asks for its plans' materials; this list adds the other way's (the
-  // breaths at least), so it is a second request each minute, refreshed on the same minute so the compare's totals
-  // follow the prices like the total above them (a shared request would mean widening the result's own list). A new
-  // basis or mode keeps the last rows, dimmed, until the new prices come (no '—' flash).
+  const names = loaded ? priceNames(own, mode) : [];
+  // The result's own price query (useRefiningCost): same list (priceNames), same key and body, so one request a minute
+  // serves both (PM-프론트 #1932, performance first). This side only reads it: no timer of its own (two timers could
+  // fetch twice a minute); the result's minute refresh brings the new prices here too. A new basis or mode keeps the
+  // last rows, dimmed, until the new prices come (no '—' flash).
   const tooMany = names.length > MAX_PRICE_NAMES;
   const prices = useQuery({
-    queryKey: ["material-prices", basis, names.join("|")],
+    queryKey: ["material-prices", basis, [...names].sort().join("|")],
     queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names }, signal),
     enabled: names.length > 0 && !tooMany,
     staleTime: PRICE_REFRESH_MS,
-    refetchInterval: refreshEvery(PRICE_REFRESH_MS),
     placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,

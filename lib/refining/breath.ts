@@ -3,11 +3,37 @@
 // compared alike whatever is in the bag. One breath's value is what using breaths saves per breath when the breath
 // itself costs nothing: (no-breath total − with-breath total with breath at 0G) ÷ expected breaths, then set against
 // the breath's market price. Not the api's OPTIMAL (switched off until it is opened with its web flag).
-import type { MaterialPrice } from "../market/model";
-import { stageGold, stageMaterials, sumQuantities, type Mode, type Plan } from "./model";
+import { MAX_PRICE_NAMES, type MaterialPrice } from "../market/model";
+import {
+  stageGold,
+  stageMaterials,
+  sumQuantities,
+  summarize,
+  type EquipmentType,
+  type Mode,
+  type PartPlan,
+  type Plan,
+} from "./model";
 
 /** 용암의 숨결 · 빙하의 숨결 (완갑 uses both). */
 export const isBreath = (name: string) => /숨결$/.test(name);
+
+/** The breaths a part's 숨결 최대 plan uses: 무기 용암, 방어구 빙하, 완갑 both (the refining options' hints). */
+export const breathNamesOf = (type: EquipmentType): string[] =>
+  type === "WEAPON" ? ["용암의 숨결"] : type === "ARMOR" ? ["빙하의 숨결"] : ["용암의 숨결", "빙하의 숨결"];
+
+/**
+ * The one price list for the result and the breath compare (PM-프론트 #1932, performance first: one request a minute):
+ * the page's own plans' materials in their order, then each part's breaths. The other way of a part uses the same
+ * materials but for the breaths, so this covers both. Built the same way by both, so the key and the body match and
+ * the query is shared. Past MAX_PRICE_NAMES with the breaths, the page's own list only (its prices never go off for
+ * the compare, which then has no breath price and says so).
+ */
+export function priceNames(plans: readonly PartPlan[], mode: Mode): string[] {
+  const own = summarize([...plans], mode).materials.map((item) => item.name);
+  const all = [...new Set([...own, ...plans.flatMap(({ part }) => breathNamesOf(part.type))])];
+  return all.length <= MAX_PRICE_NAMES ? all : own;
+}
 
 export type BreathSide = {
   /** Gold paid when refining (누골). */
