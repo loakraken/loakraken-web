@@ -4,6 +4,7 @@ import { HubTabs } from "@/components/site/hub-tabs";
 
 import {
   useCallback,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -45,6 +46,7 @@ import {
 import { BOSS_LEVEL_NOTE, arkGridRealView } from "@/lib/character/efficiency-real";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArkGemRanking } from "./ark-gem-ranking";
+import { GemProcessingRanking, GemRankingEnabled } from "./gem-processing-ranking";
 import type { GemSwap } from "@/lib/combat-power/gem-ranking";
 import {
   ARM_GUARD_GRADES,
@@ -1152,6 +1154,8 @@ export function CombatPowerSimulator({
     [],
   );
   const saved = useSavedEdits(name);
+  // GEM_RANKING (web #1969): provided by the tool page and the character page.
+  const rankingOn = useContext(GemRankingEnabled);
   const [notice, setNotice] = useState("");
 
   const character = useQuery({
@@ -1363,7 +1367,13 @@ export function CombatPowerSimulator({
             current={current}
             edits={edits}
             setEdits={setEdits}
-            gemRanking={<ArkGemRanking name={name} fetchedAt={data.fetchedAt} swaps={gemSwaps} />}
+            gemRanking={
+              <>
+                <ArkGemRanking name={name} fetchedAt={data.fetchedAt} swaps={gemSwaps} />
+                {/* M49 phase 2 (GEM_RANKING, web #1969): the api's 젬 가공 순위, under the user's own swaps. */}
+                {rankingOn && current.arkGems.length > 0 && <GemProcessingRanking name={name} fetchedAt={data.fetchedAt} />}
+              </>
+            }
           />
         </div>
       ) : name ? (
@@ -1525,6 +1535,7 @@ export function CombatPowerTool({
   armor = false,
   gem = false,
   efficiency = false,
+  gemRanking = false,
 }: {
   initialName: string;
   karma?: boolean;
@@ -1533,6 +1544,12 @@ export function CombatPowerTool({
   gem?: boolean;
   /** CHARACTER_EFFICIENCY on this deployment (server flag): today's 아크 그리드 효율 and 보스 피해 환산 Lv (X2). */
   efficiency?: boolean;
+  /** GEM_RANKING on this deployment (server flag): 젬 가공 순위 (M49 phase 2, web #1969). */
+  gemRanking?: boolean;
 }) {
-  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />;
+  return (
+    <GemRankingEnabled.Provider value={gemRanking}>
+      <CombatPowerContent initialName={initialName} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />
+    </GemRankingEnabled.Provider>
+  );
 }
