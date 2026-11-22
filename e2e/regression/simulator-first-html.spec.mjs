@@ -48,7 +48,8 @@ test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, �
 
 test("서버가 못 받은 캐릭터는 화면이 지금처럼 받아 알린다 @regression", async ({ page }) => {
   await page.goto(path("미존재"));
-  await expect(page.getByRole("alert")).toBeVisible();
+  // The page's own alert: Next's route announcer is role="alert" too, there or not by timing (#1953).
+  await expect(page.getByRole("alert").filter({ hasText: "캐릭터를 찾지 못했어요" })).toBeVisible();
 });
 
 test.describe("검색봇", () => {
