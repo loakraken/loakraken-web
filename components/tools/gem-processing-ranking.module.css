@@ -1,0 +1,161 @@
+/* (ours, M49 phase 2, web #1969) 젬 가공 순위 card in the simulator. Fixed line heights and tabular numbers (A7). */
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+}
+.title {
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+.lead,
+.note,
+.hint,
+.missing {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+.hint {
+  min-height: 18px;
+}
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.grade {
+  grid-column: 1 / -1;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.field span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.field input {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.field input[aria-invalid="true"] {
+  border-color: var(--danger, var(--launch));
+}
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+.press {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--background);
+  font-size: var(--text-body);
+  white-space: nowrap;
+}
+.press[aria-disabled="true"] {
+  opacity: 0.45;
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .field input,
+  .press {
+    height: 44px;
+  }
+}
+.failure {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+.failure p {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+[data-stale] {
+  opacity: 0.55;
+}
+.groups {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.group {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.gemHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+.gemHead small {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.way {
+  display: grid;
+  gap: 6px;
+}
+.wayHead {
+  font-size: var(--text-body);
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+.figures div {
+  display: grid;
+  gap: 2px;
+}
+.figures dt {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.figures dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.others summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.others[open] {
+  display: grid;
+  gap: 12px;
+}
+.assumptions {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
