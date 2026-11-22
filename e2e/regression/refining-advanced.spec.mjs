@@ -1,0 +1,86 @@
+// 회귀(X3 2단계, web #1951): 재련 기대 비용의 상급 재련. 고른 부위 '상급 +10'은 목표를 다음 10단계 경계로 올리고,
+// 부위마다 api advanced-plans(목: api CI 표본으로 만든 구간 줄)를 한 번 묻는다. 구간의 재료 · 재련 골드는 페이지 합계에
+// 들어가고(상급만 골라도 결과가 나옴), 재료 시세 요청은 결과 · 숨결 비교가 함께 한 번. 50% · 90% · 장인의 기운에서는
+// '상급은 기대값' 줄이 처음부터 잡아 둔 자리에 나온다. 캐릭터의 상급 단계는 툴팁에서 읽고, 전율 부위는 상급이 없다.
+import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
+
+const ADVANCED = "/api/refining/advanced-plans";
+const picks = (page) => page.getByRole("group", { name: "고른 부위 한 번에 올리기" });
+const card = (page) => page.getByRole("region", { name: "상급 재련" });
+const stageBox = (page, label, which) => page.getByRole("combobox", { name: `${label} 상급 재련 ${which} 단계` });
+
+for (const width of [320, 1280])
+  test(`${width}: 고른 부위 상급 +10 — 구간 줄, 합계에 들어감, 시세 요청 한 번, 기대값 줄 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    const asked = [];
+    page.on("request", (r) => r.url().includes(ADVANCED) && asked.push(r.postDataJSON()));
+    let priceCalls = 0;
+    page.on("request", (r) => r.url().includes("/api/markets/material-prices") && priceCalls++);
+    await gotoReady(page, "/tools/refining");
+    await expect(card(page)).toBeVisible();
+
+    // 상급 only (no 일반 target): the result still comes (프론트 condition d).
+    await picks(page).getByRole("button", { name: "무기", exact: true }).click();
+    await picks(page).getByRole("button", { name: "머리", exact: true }).click();
+    await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
+    await expect(stageBox(page, "무기", "목표")).toHaveText("10");
+    await expect(stageBox(page, "머리", "목표")).toHaveText("10");
+    await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+    const mark = await shiftMark(page);
+    expect(asked.map((r) => [r.equipmentType, r.fromStage, r.toStage]).sort(), "부위마다 한 번").toEqual([
+      ["ARMOR", 0, 10],
+      ["WEAPON", 0, 10],
+    ]);
+
+    // The bands' refine gold is the 재련 골드 (mock: band 0 = 18,625.35 G each → ceil(37,250.70) = 37,251), and their
+    // materials are the table's rows.
+    await expect(page.getByText(/재련 골드 37,251\b/).first()).toBeVisible();
+    await expect(page.getByText(/상급 재련 2구간/)).toBeVisible();
+    for (const name of ["아비도스 융화 재료", "운명의 돌파석", "운명의 파괴석", "운명의 수호석"])
+      await expect(page.getByRole("rowheader", { name: new RegExp(`^${name}`) })).toHaveCount(1);
+    const bands = page.locator("details", { hasText: "상급 재련 구간별" });
+    await expect(bands.getByRole("rowheader")).toHaveText(["무기 0→10", "머리 0→10"]);
+    await expect(bands.getByRole("row").nth(1)).toContainText("선조 숨결");
+
+    // The total at the top and the result's are one number (the two '골드' lines, as refining-total-slot reads them).
+    const totals = page.locator("p").filter({ has: page.locator(":scope > span", { hasText: /^골드$/ }) });
+    await expect(totals).toHaveCount(2);
+    const [top, result] = await totals.evaluateAll((lines) => lines.map((line) => line.textContent.replace(/골드$/, "").trim()));
+    expect(top, "위 합계 = 결과 합계").toBe(result);
+    expect(Number(top.replace(/\D/g, "")), "상급만으로도 합계").toBeGreaterThanOrEqual(37_251);
+
+    // 50%: the 일반 part follows the mode, 상급 stays expected — said in the line held since the first frame.
+    const line = page.getByText("상급 재련은 구간별 기대값이에요");
+    await expect(line).toHaveCount(0);
+    await page.getByRole("radiogroup", { name: "확률 기준" }).getByRole("radio", { name: "50%" }).click();
+    await expect(line).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(priceCalls, "재료 시세 요청 수").toBe(1);
+    const { all, moved } = await shiftsSince(page, mark);
+    expect(all, `흔들림 (${moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
+test("캐릭터의 상급 단계는 툴팁에서, 전율 부위는 상급 없음, +10은 다음 경계까지 @regression", async ({ page }) => {
+  await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
+  await expect(stageBox(page, "무기", "현재")).toHaveText("21");
+  await expect(stageBox(page, "머리", "현재")).toHaveText("13");
+  await expect(stageBox(page, "하의", "현재")).toBeDisabled();
+  await expect(card(page).getByRole("listitem").filter({ hasText: "하의" })).toContainText("없음");
+  await expect(card(page)).toContainText("전율 장비에는 상급 재련이 없어요.");
+  // 하의 alone: nothing to raise.
+  await picks(page).getByRole("button", { name: "하의", exact: true }).click();
+  await expect(page.getByRole("button", { name: "고른 부위 상급 +10" })).toHaveAttribute("aria-disabled", "true");
+  await picks(page).getByRole("button", { name: "머리", exact: true }).click();
+  await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
+  await expect(stageBox(page, "머리", "목표")).toHaveText("20");
+  await expect(page.locator("details", { hasText: "상급 재련 구간별" }).getByRole("rowheader")).toHaveText(["머리 13→20"]);
+});
+
+test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
+  const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
+  await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
+  await expect(page.getByRole("alert")).toContainText("재료 시세를 모으고 있어요");
+});

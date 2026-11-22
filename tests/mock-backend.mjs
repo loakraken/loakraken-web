@@ -107,6 +107,28 @@ function withSimulatorGear(data) {
  * (PM-프론트 #1845: with only 0 and 1 the armour steps stayed out for want of a piece, not by the gate). 실표본2's weapon
  * is 업화 as the sample's is (+16, 상급 재련 21 → 40 in its path), so its 상급 재련 opens in the simulator (#1847).
  */
+/**
+ * '재련상급' (web #1951, X3 part 2): 운명의 업화 gear the 재련 계산기 reads (its grade from the name), with 상급 재련 read
+ * from the tooltips: 무기 21, 머리 13, the other armour 0; 하의 is 전율 (no 상급 재련).
+ */
+function withAdvancedGear(data) {
+  const [weapon, helmet] = data.loadout.equipment;
+  const piece = (type, name, refineLevel, advancedRefineLevel) => ({
+    ...helmet,
+    type,
+    name,
+    detail: { ...helmet.detail, refineLevel, advancedRefineLevel },
+  });
+  data.loadout.equipment = [
+    { ...piece("무기", "+18 운명의 업화 무기", 18, 21), icon: weapon.icon },
+    piece("투구", "+18 운명의 업화 투구", 18, 13),
+    piece("상의", "+18 운명의 업화 상의", 18, 0),
+    piece("하의", "+18 운명의 전율 하의", 18, 0),
+    piece("장갑", "+18 운명의 업화 장갑", 18, 0),
+    piece("어깨", "+18 운명의 업화 어깨", 18, 0),
+  ];
+  return data;
+}
 function withSampleGear(data, n) {
   const [weapon, helmet] = data.loadout.equipment;
   const piece = (type, name, refineLevel) => ({ ...helmet, type, name, detail: { ...helmet.detail, refineLevel, advancedRefineLevel: 0 } });
@@ -3174,6 +3196,7 @@ createServer(async (req, res) => {
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
   if (name === GEM_SWAP) withGemSwap(envelope.data);
   if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
+  if (name === "재련상급") withAdvancedGear(envelope.data);
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;

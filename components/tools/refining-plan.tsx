@@ -1124,8 +1124,6 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
                     : undefined
                 }
               />
-              {/* (X3 part 2) 상급 재련 per part (components/tools/refining-advanced.tsx), REFINING_ADVANCED only. */}
-              {advancedOn && <RefiningAdvanced advanced={advanced} parts={parts} />}
               <ul className={styles.parts}>
                 {PARTS.map((part) => (
                   <PartRow
@@ -1144,6 +1142,8 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
                   <strong>{formatLevel(nextLevel)}</strong>
                 </p>
               )}
+              {/* (X3 part 2) 상급 재련 per part (components/tools/refining-advanced.tsx), REFINING_ADVANCED only. */}
+              {advancedOn && <RefiningAdvanced advanced={advanced} parts={parts} />}
               <Progress parts={parts} setPart={setPart} derived={derived} rateKnown={rateKnown} />
             </section>
 
