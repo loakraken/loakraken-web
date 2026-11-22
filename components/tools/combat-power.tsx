@@ -356,7 +356,13 @@ function GemRow({
   return (
     <li className={styles.gemRow}>
       <details className={styles.gemDetails} onToggle={(event) => setOpen(event.currentTarget.open)}>
-        <summary className={`${styles.gemSummary} hit-44`} data-changed={changed || undefined}>
+        <summary
+          className={`${styles.gemSummary} hit-44`}
+          data-changed={changed || undefined}
+          // The editor in the press's own event (#1967): the toggle event comes a task later, so the first open frame
+          // showed the row without its fields. Mouse, Enter and Space all click a summary; toggle still syncs after.
+          onClick={(event) => setOpen(!(event.currentTarget.parentElement as HTMLDetailsElement).open)}
+        >
           <span className={styles.rowName}>{name}</span>
           <span className={styles.gemText}>
             {gemText(swap)}
