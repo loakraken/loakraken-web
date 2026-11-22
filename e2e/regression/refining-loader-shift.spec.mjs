@@ -3,7 +3,7 @@
 // pushed the 목표 단계 card 40px down. The answer is held here until the page is measured; the card keeps its height and
 // nothing below it moves. Mock '재련': 어깨 is not 업화·전율, so the case with a part left out is the one measured.
 // The longest line (PM-프론트 #1957 P3): a 12-letter name on the longest server name, at 320, still fits the lines held.
-import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady, fixtureIgnoresConsole } from "../support/fixtures.mjs";
 import { drawnFace } from "../support/fonts.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
@@ -34,6 +34,19 @@ const leg = ({ width, title, long, face }) =>
   test(`${width}: ${title} 캐릭터 장비 카드 높이와 아래 카드 자리가 그대로다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
+    // The matched leg collects its own console errors (the fixture's check is off for it, below): only the blocked
+    // font file's failed load is dropped, with the fixture's own allowances (PM-프론트 #1964 P3, the #1787 pattern).
+    const errors = [];
+    if (face === "matched") {
+      page.on("console", (message) => {
+        if (message.type() !== "error") return;
+        const source = message.location().url ?? "";
+        if (/\.woff2(\?|$)/.test(source) && message.text().includes("net::ERR_FAILED")) return;
+        if (fixtureIgnoresConsole(message)) return;
+        errors.push(message.text());
+      });
+      page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+    }
     if (face) await useFace(page, face);
     let release;
     const held = new Promise((resolve) => (release = resolve));
@@ -74,11 +87,12 @@ const leg = ({ width, title, long, face }) =>
     const { all, moved } = await shiftsSince(page, mark);
     expect(all, `흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
+    if (face === "matched") expect(errors, "브라우저 콘솔 오류(막은 글꼴 파일 말고)").toEqual([]);
   });
 
 for (const c of cases.filter((c) => c.face !== "matched")) leg(c);
 test.describe(() => {
-  // The blocked font file logs its failed load: only this leg lets console errors through.
+  // The blocked font file logs its failed load: this leg checks its console itself (in the leg, every other error fails).
   test.use({ allowConsoleErrors: true });
   for (const c of cases.filter((c) => c.face === "matched")) leg(c);
 });
