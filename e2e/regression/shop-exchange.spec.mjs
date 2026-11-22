@@ -140,7 +140,12 @@ test("1280: 다른 탭에서 넣은 내 값이 바로 반영되고, 안내 줄�
   await gotoReady(other, "/tools/shop-exchange?shop=guild");
 
   const field = (p) => guildList(p).getByRole("textbox", { name: "요즈의 입장권 상자 1개(상자) 값(골드)" }).first();
-  const row = (p) => guildList(p).getByRole("listitem").filter({ has: field(p) });
+  // The inner locator of `has` is relative to the row: the textbox alone, not one rooted at the list.
+  const row = (p) =>
+    guildList(p)
+      .getByRole("listitem")
+      .filter({ has: p.getByRole("textbox", { name: "요즈의 입장권 상자 1개(상자) 값(골드)" }) })
+      .first();
   // The status line is there, empty, before any entry.
   await expect(row(page).getByRole("status")).toHaveCount(1);
   await expect(row(page).getByRole("status")).toHaveText("");
