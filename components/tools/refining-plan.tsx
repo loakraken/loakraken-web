@@ -1231,7 +1231,11 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
                 type="button"
                 className={quote.outlinePill}
                 aria-disabled={planLimit.seconds > 0 || undefined}
-                onClick={() => planLimit.seconds === 0 && failed?.refetch()}
+                // A 상급-only failure: every errored 상급 part asked again (web #1961); a 일반 one as before.
+                onClick={() =>
+                  planLimit.seconds === 0 &&
+                  (queries.some((q) => q.isError) ? failed?.refetch() : advanced.retry())
+                }
               >
                 {retryLabel(planLimit.seconds, "다시 계산")}
               </button>

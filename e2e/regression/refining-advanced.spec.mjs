@@ -155,6 +155,53 @@ test("상급만 실패해도(409) 일반 결과는 그대로, 상급은 따로 �
   await expect(page.getByRole("button", { name: "다시 계산", exact: true })).toHaveCount(0);
 });
 
+/** Each part's first 상급 request answers 409 (price pending), later ones go through: two parts fail, then a retry. */
+async function failFirstPerPart(page, asked) {
+  const seen = new Set();
+  await page.route(
+    (url) => url.pathname === ADVANCED,
+    async (route) => {
+      const body = route.request().postDataJSON();
+      asked.push(body.equipmentType);
+      if (seen.has(body.equipmentType)) return route.fallback();
+      seen.add(body.equipmentType);
+      await route.fulfill({ status: 409, json: { ok: false, error: { code: "REFINING_PRICE_PENDING", status: 409 } } });
+    },
+  );
+}
+const twoParts = encodeURIComponent(JSON.stringify({ weapon: { current: 0, target: 10 }, helmet: { current: 0, target: 10 } }));
+
+test("상급 재련 다시 계산은 실패한 부위를 모두 다시 묻고, 성공하면 알림이 사라지고 구간이 합계에 든다 @regression", async ({ page }) => {
+  const asked = [];
+  await failFirstPerPart(page, asked);
+  await gotoReady(page, `/tools/refining?adv=${twoParts}`);
+  await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+  const notice = page.getByRole("alert").filter({ hasText: "재료 시세를 모으고 있어요" });
+  await expect(notice).toBeVisible();
+  await expect.poll(() => [...asked].sort()).toEqual(["ARMOR", "WEAPON"]);
+  // One press asks both failed parts again (web #1961: before, only the first).
+  await page.getByRole("button", { name: "상급 재련 다시 계산" }).click();
+  await expect.poll(() => [...asked].sort()).toEqual(["ARMOR", "ARMOR", "WEAPON", "WEAPON"]);
+  // Answered: the notice and the top line go, the bands join the result.
+  await expect(notice).toHaveCount(0);
+  await expect(page.getByText("상급 재련은 빠졌어요(아래에서 다시 계산)")).toHaveCount(0);
+  await expect(page.locator("details", { hasText: "상급 재련 구간별" }).getByRole("rowheader")).toHaveText(["무기 0→10", "머리 0→10"]);
+});
+
+test("상급만 고른 때 결과 자리의 다시 계산도 실패한 부위를 모두 다시 묻는다 @regression", async ({ page }) => {
+  const asked = [];
+  await failFirstPerPart(page, asked);
+  await gotoReady(page, `/tools/refining?adv=${twoParts}`);
+  const alert = page.getByRole("alert").filter({ hasText: "재료 시세를 모으고 있어요" });
+  await expect(alert).toBeVisible();
+  await expect.poll(() => [...asked].sort()).toEqual(["ARMOR", "WEAPON"]);
+  await page.getByRole("button", { name: "다시 계산", exact: true }).click();
+  await expect.poll(() => [...asked].sort()).toEqual(["ARMOR", "ARMOR", "WEAPON", "WEAPON"]);
+  await expect(alert).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+  await expect(page.locator("details", { hasText: "상급 재련 구간별" }).getByRole("rowheader")).toHaveText(["무기 0→10", "머리 0→10"]);
+});
+
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {
   const adv = JSON.stringify({ weapon: { current: 39, target: 40 } });
   await gotoReady(page, `/tools/refining?adv=${encodeURIComponent(adv)}`);
