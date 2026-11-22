@@ -47,7 +47,7 @@ test("깨달음 최소는 등급·부위의 최댓값 안으로 (주소도) @reg
   await gotoReady(page, `${PATH}?grade=RELIC&slot=EARRING&enl=13`);
   await expect(page.getByRole("combobox", { name: "깨달음 최소" })).toHaveText("9 이상");
   await expect.poll(() => param(page, "enl")).toBe("9");
-  // A lower top after a change: 고대 목걸이 12 → 유물 반지 9.
+  // A lower top after a change: 고대 목걸이에서 12를 고르고 유물로(목걸이 10까지).
   await gotoReady(page, `${PATH}?grade=ANCIENT&slot=NECKLACE`);
   await chooseOption(page, page.getByRole("combobox", { name: "깨달음 최소" }), "12 이상");
   await page.getByRole("radiogroup", { name: "등급" }).getByRole("radio", { name: "유물" }).click();

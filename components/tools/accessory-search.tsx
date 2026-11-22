@@ -28,6 +28,7 @@ import {
   polishValue,
   type Grade,
   type Level,
+  type PolishOption,
   type Role,
   type SearchItem,
   type SearchRequest,
@@ -121,6 +122,12 @@ export function AccessorySearchTool() {
 
   const options = OPTIONS_BY[role][slot];
   const enlightenmentMax = ENLIGHTENMENT_MAX[grade][slot];
+  // The address holds what this slot, role and grade take (codex #1925 P3): a polish effect the slot does not carry
+  // for the role is dropped, and 깨달음 최소 comes down to the top. Adjusting state while rendering (guarded, so it
+  // settles in one pass); useUrlState then writes the address.
+  if (Object.keys(polish).some((option) => !options.includes(option as PolishOption)))
+    setPolish(Object.fromEntries(Object.entries(polish).filter(([option]) => options.includes(option as PolishOption))));
+  if (enlightenment !== ANY && Number(enlightenment) > enlightenmentMax) setEnlightenment(String(enlightenmentMax));
 
   const search = useInfiniteQuery({
     queryKey: ["accessory-search", request],
