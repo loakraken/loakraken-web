@@ -280,7 +280,7 @@
   cursor: pointer;
 }
 .gemSummary[data-changed] .gemText {
-  color: var(--primary);
+  color: var(--link);
 }
 .gemText {
   flex: 1 1 220px;
