@@ -86,8 +86,18 @@ const onStorage = (event: StorageEvent) => {
   valueListeners.forEach((listener) => listener());
 };
 const subscribeValues = (listener: () => void) => {
+  if (valueListeners.size === 0) {
+    // Nothing listened while away (the tool was not on screen): another tab may have saved meanwhile, with no one
+    // here to hear its storage event. Read it again (as #1911's rate store; PM-프론트 P3 on #1938); blocked storage
+    // keeps what is in memory.
+    try {
+      memoryValues = window.localStorage.getItem(VALUES_KEY) ?? "{}";
+    } catch {
+      // the values in memory stay
+    }
+    window.addEventListener("storage", onStorage);
+  }
   valueListeners.add(listener);
-  if (valueListeners.size === 1) window.addEventListener("storage", onStorage);
   return () => {
     valueListeners.delete(listener);
     if (valueListeners.size === 0) window.removeEventListener("storage", onStorage);

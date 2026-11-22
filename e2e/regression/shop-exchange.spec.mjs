@@ -164,3 +164,28 @@ test("1280: 내 값 안내 줄은 처음부터 상태 영역이고 글만 바뀐
   await yozField(page).press("Enter");
   await expect(yozRow(page).getByRole("status")).toHaveText("0보다 큰 숫자로 넣어 주세요. 넣은 값은 저장하지 않았어요.");
 });
+
+// PM-프론트 P3 on #1938 (as #1911): saved in another tab while this tab's tool was not on screen (no one to hear the
+// storage event), the value is there when the tool comes back without a reload (client-side back).
+test("1280: 이 탭이 다른 화면에 있는 동안 다른 탭이 넣은 값도 돌아오면 보인다 @regression", async ({ page, context }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/shop-exchange?shop=guild");
+  await expect(yozField(page)).toHaveValue("");
+  // Away inside the app (the tool unmounts, its listeners go; the module and its memory stay): a marker on window
+  // proves no full reload happens on the way out or back.
+  await page.evaluate(() => {
+    window.__sameDocument = true;
+  });
+  await page.getByRole("link", { name: "홈으로" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("list", { name: "길드 혈석 교환 품목" })).toHaveCount(0);
+  const other = await context.newPage();
+  await gotoReady(other, "/tools/shop-exchange?shop=guild");
+  await yozField(other).fill("3000");
+  await yozField(other).press("Enter");
+  await expect(firstRow(other)).toContainText("3,000G");
+  await other.close();
+  await page.goBack();
+  await expect(yozField(page)).toHaveValue("3000");
+  expect(await page.evaluate(() => window.__sameDocument === true), "client-side both ways").toBe(true);
+});
