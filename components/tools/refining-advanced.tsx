@@ -98,7 +98,9 @@ export function useAdvanced(parts: Parts, enabled: boolean) {
      * Once they answer, `failed` clears and the notice goes.
      */
     retry() {
-      for (const q of queries) if (q.isError && !q.isFetching) void q.refetch();
+      // cancelRefetch false: two presses in one frame both see the same state; the second joins the request in
+      // flight instead of aborting and resending it (PM-프론트 #1963 P3).
+      for (const q of queries) if (q.isError && !q.isFetching) void q.refetch({ cancelRefetch: false });
     },
     /**
      * After a character load: each part's current from its tooltip, the target kept only when it is still above. A
