@@ -107,7 +107,7 @@ function useShopValues(): [UserValues, (key: string, value: number | null) => vo
 /** What a row without a value is waiting for, said in words. */
 const WAITING: Record<string, string> = {
   BOX: "구성 · 확률 미공개",
-  CHOICE: "고르는 상자",
+  CHOICE: "선택 상자",
   BOUND: "귀속 · 시세 없음",
   NO_PRICE: "거래소 시세 없음",
 };
@@ -323,7 +323,7 @@ export function ShopExchangeTool() {
               <p className={styles.small}>{shop.limitNote}</p>
               {/* Always drawn (a button appearing would move the list). */}
               <p className={styles.order}>
-                <span aria-live="polite">{stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 높은 순서예요."}</span>
+                <span aria-live="polite">{stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "재화 1개당 가치가 높은 순서예요."}</span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>
@@ -333,10 +333,10 @@ export function ShopExchangeTool() {
                   const position = value.state === "OK" ? shown.filter((r) => r.value.state === "OK").findIndex((r) => r.row.id === row.id) + 1 : null;
                   const inCart = !!cart[row.id];
                   return (
-                    <li key={row.id} className={styles.row} data-checking={value.state === "CHECKING" || undefined}>
+                    <li key={row.id} className={styles.row}>
                       <div className={styles.rowHead}>
                         <span className={styles.rank} aria-label={position ? `${position}위` : undefined}>
-                          {position ?? "–"}
+                          {position ?? "-"}
                         </span>
                         <strong className={styles.item}>
                           {row.item} <span className={styles.qty}>×{row.qty.toLocaleString("ko-KR")}</span>
@@ -348,7 +348,8 @@ export function ShopExchangeTool() {
                           aria-label={`${row.item} ${row.cost.toLocaleString("ko-KR")} ${row.currency} 담기`}
                           onClick={() => toggle(row)}
                         >
-                          {inCart ? "담음" : "담기"}
+                          {/* One label: the pressed state (and its look) says it is in the cart. */}
+                          담기
                         </button>
                       </div>
                       <p className={styles.meta}>
@@ -400,7 +401,7 @@ export function ShopExchangeTool() {
                         <dt>{s.currency}</dt>
                         <dd>
                           {s.cost.toLocaleString("ko-KR")}개
-                          <span className={styles.per}>{s.perCurrency == null ? " · 1개당 —" : ` · 1개당 ${per(s.perCurrency)}G`}</span>
+                          <span className={styles.per}>{s.perCurrency == null ? " · 1개당 값 없음" : ` · 1개당 ${per(s.perCurrency)}G`}</span>
                         </dd>
                       </div>
                     ))}
@@ -415,7 +416,7 @@ export function ShopExchangeTool() {
                   </dl>
                   <p className={styles.small}>
                     순이익은 골드 가치에서 재화를 거래소에 팔면 받을 값을 뺀 값이에요
-                    {summary.unpricedCurrencies.length > 0 && ` (${summary.unpricedCurrencies.join(" · ")}은 시세가 없어 0으로 셈)`}.
+                    {summary.unpricedCurrencies.length > 0 && `. 시세가 없는 재화(${summary.unpricedCurrencies.join(" · ")})는 0으로 셌어요`}.
                     {summary.unvalued > 0 && ` 값이 없는 ${summary.unvalued}개는 가치에 넣지 않았어요.`}
                   </p>
                   <button type="button" className={quote.outlinePill} onClick={() => setCart(EMPTY_CART)}>

@@ -33,7 +33,7 @@ for (const width of [320, 1280])
     // Rows being checked: shown, never ranked.
     const checking = guildList(page).getByRole("listitem").filter({ hasText: "확인 중" });
     await expect(checking).toHaveCount(8);
-    await expect(checking.first().locator("span").first()).toHaveText("–");
+    await expect(checking.first().locator("span").first()).toHaveText("-");
 
     // A box value: typed (nothing moves yet), applied on Enter → 2,000 for 3,240 혈석 = 0.62 per 혈석, now first.
     const yoz = guildList(page).getByRole("textbox", { name: "요즈의 입장권 상자 1개(상자) 값(골드)" }).first();
@@ -51,7 +51,7 @@ for (const width of [320, 1280])
     await expect(cart).toContainText("1,380개");
     await expect(cart.getByRole("definition").filter({ hasText: "G" }).first()).toBeVisible();
     await expect(cart).toContainText("720G");
-    await expect(cart).toContainText("실마엘 혈석은 시세가 없어 0으로 셈");
+    await expect(cart).toContainText("시세가 없는 재화(실마엘 혈석)는 0으로 셌어요");
 
     // Kept: the cart in the address, the value in this browser.
     await page.reload();
