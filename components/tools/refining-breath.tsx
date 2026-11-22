@@ -8,7 +8,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { postMaterialPrices } from "@/lib/market/client";
 import { MAX_PRICE_NAMES, type PriceBasis } from "@/lib/market/model";
 import { postRefiningPlan } from "@/lib/refining/client";
-import { breathCompare, priceNames, type BreathCompare } from "@/lib/refining/breath";
+import { breathCompare, leftOutLabel, priceNames, type BreathCompare } from "@/lib/refining/breath";
 import {
   formatCount,
   requestKey,
@@ -117,6 +117,7 @@ export function RefiningBreathCompare({
           const without = plans[i * 2]?.data?.data;
           const withBreath = plans[i * 2 + 1]?.data?.data;
           const c = without && withBreath ? breathCompare(without, withBreath, mode, priceList) : null;
+          const left = leftOutLabel(c?.unpriced ?? []);
           return (
             <li key={`${part.id}:${request.fromStage}:${request.toStage}`} className={styles.row}>
               <p className={styles.part}>
@@ -148,7 +149,14 @@ export function RefiningBreathCompare({
               </dl>
               <p className={styles.verdict}>{verdictText(c)}</p>
               {/* Same line every time (empty when all are priced), so a refresh never moves the next row. */}
-              <p className={styles.unpriced}>{c && c.unpriced.length > 0 ? `시세가 없어 뺀 재료: ${c.unpriced.join(", ")}` : ""}</p>
+              {/* Short on screen (two names + '외 N개'), every name read out and on hover (PM-프론트 #1943). */}
+              {/* The title sits on the hidden visible span: on the paragraph it became its description, read twice. */}
+              <p className={styles.unpriced}>
+                <span aria-hidden="true" title={left.full || undefined}>
+                  {left.visible}
+                </span>
+                <span className={styles.sr}>{left.full}</span>
+              </p>
             </li>
           );
         })}

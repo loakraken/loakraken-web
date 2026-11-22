@@ -95,6 +95,18 @@ function side(plan: Plan, mode: Mode, prices: readonly MaterialPrice[], unpriced
   return { gold, value, breathCost, breaths, breathUnpriced, missing, materials };
 }
 
+/**
+ * The row's left-out line. On screen at most two names, then how many more, so it stays within its two reserved lines
+ * at 320 (#1932 follow-up P3). Read out, every name (PM-프론트 #1943: a breath only 숨결 최대 uses is nowhere else on
+ * the page, so '외 N개' alone would take it away).
+ */
+export function leftOutLabel(names: readonly string[]) {
+  if (names.length === 0) return { visible: "", full: "" };
+  const lead = "시세가 없어 뺀 재료: ";
+  const visible = `${lead}${names.slice(0, 2).join(", ")}${names.length > 2 ? ` 외 ${names.length - 2}개` : ""}`;
+  return { visible, full: `${lead}${names.join(", ")}` };
+}
+
 /** Unpriced non-breath materials whose amounts differ between the sides (a rounding hair is the same amount). */
 function unevenOf(a: Map<string, number>, b: Map<string, number>) {
   const names = [...new Set([...a.keys(), ...b.keys()])];
@@ -127,11 +139,12 @@ export function breathCompare(
       : null;
   const totalA = Math.round(aTotal);
   const totalB = Math.round(bTotal);
-  // A side is short of something the other is not: an unpriced breath (숨결 최대 only, PM-프론트 #1932 P2), or the
-  // uneven materials (both sides). Then which one costs less is not known.
-  const withIncomplete = b.breathUnpriced || uneven.length > 0;
-  const withoutIncomplete = a.breathUnpriced || uneven.length > 0;
-  const comparable = !withIncomplete && !withoutIncomplete;
+  // Which one costs less is known only when no side is short of something the other is not: an unpriced breath
+  // (숨결 최대 only, PM-프론트 #1932 P2) or the uneven materials (both sides). The same gap on both sides cancels out.
+  const comparable = !a.breathUnpriced && !b.breathUnpriced && uneven.length === 0;
+  // A total that leaves anything out reads '이상', even when the other side leaves out the same (#1932 follow-up P3).
+  const withIncomplete = b.breathUnpriced || b.missing.size > 0;
+  const withoutIncomplete = a.breathUnpriced || a.missing.size > 0;
   return {
     without: { nugol: Math.round(a.gold), total: totalA, breaths: Math.round(a.breaths), incomplete: withoutIncomplete },
     with: { nugol: Math.round(b.gold), total: totalB, breaths: Math.round(b.breaths), incomplete: withIncomplete },

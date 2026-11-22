@@ -62,6 +62,7 @@ import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
+import amount from "./refining-total.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
 import { RefiningBreathCompare } from "./refining-breath";
@@ -529,8 +530,13 @@ function TopSummary({
   const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
   return (
     <>
+      {/* The number in its own slot (PM-프론트 #1943 P2): the first prices (재련 골드 alone → the longer total) and a
+          minute refresh with more digits only grow it inside the slot, so '골드' stays put. A <data>, not a span:
+          the line's span rule styles the unit. */}
       <p className={styles.topTotal}>
-        {formatCount(total)}
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       {/* One line per part: in a single run, a basis or count that changed
@@ -592,8 +598,11 @@ function Result({
   ];
   return (
     <>
+      {/* The number in its own slot, as the total above (PM-프론트 #1943 P2). */}
       <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
-        {formatCount(total)}
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>

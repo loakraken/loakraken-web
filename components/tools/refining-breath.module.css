@@ -99,3 +99,12 @@
 .unpriced {
   min-height: 3em;
 }
+/* Two lines at most (#1932 follow-up P3): leftOutText names two materials then '외 N개'; very long names are clamped
+   rather than growing the row past its reserved lines. */
+.unpriced {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
