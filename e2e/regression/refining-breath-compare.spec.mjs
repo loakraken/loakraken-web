@@ -22,6 +22,10 @@ for (const width of [320, 1280]) {
     await page.getByRole("switch", { name: /^방어구 책 효과 적용/ }).click();
     await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
     await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+    // Measured from when the result has its prices: the total above redraws as they land (the result's own behaviour,
+    // not the compare's), which raced this mark at 1280 (0.0003 on #1943's run). The compare's other-way plans still
+    // land after it, so its rows are measured.
+    await expect(page.getByText(/^시세 \d{2}:\d{2} 기준 · 1분마다 새로 불러와요$/)).toBeVisible();
     const mark = await shiftMark(page);
     await withBreath;
 
