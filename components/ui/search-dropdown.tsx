@@ -49,6 +49,7 @@ export default function SearchDropdown({
         groups={groups}
         activeId={current}
         onActive={results.setActive}
+        text={text}
         onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
         header={
           <div className="grid gap-1.5">

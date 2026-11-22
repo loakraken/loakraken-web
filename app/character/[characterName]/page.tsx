@@ -1,9 +1,11 @@
 import {
+  isArmorCpSimEnabled,
   isArmoryPageEnabled,
   isCharacterEfficiencyEnabled,
   isCharacterIndexingEnabled,
   isCombatPowerEnabled,
   isCritSpeedEnabled,
+  isKarmaSimEnabled,
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
@@ -109,6 +111,8 @@ export default async function CharacterPage({
         settingCheck={isSettingCheckEnabled()}
         armoryPage={isArmoryPageEnabled()}
         simulator={isCombatPowerEnabled()}
+        karmaSim={isKarmaSimEnabled()}
+        armorSim={isArmorCpSimEnabled()}
         specUp={isSpecUpEnabled()}
         specUpPath={isSpecUpPathEnabled()}
         titleStats={isTitleStatsEnabled()}

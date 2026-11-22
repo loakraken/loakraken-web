@@ -6,6 +6,27 @@ import { NAV_SECTIONS, type NavFlags } from "@/components/site/nav-data";
 
 export type MenuHit = { id: string; label: string; section: string; href: string };
 
+/** Menu rows shown before '메뉴 N개 더 보기' (PM 총괄 11-21, M53: was 5). */
+export const MENU_ROWS = 8;
+
+/**
+ * 도구 바로가기 in the empty search panel (PM 총괄 11-21, M53), in this order. Always-on tools first and the
+ * flagged one last, so a flag answer arriving after the first frame fills the held last row instead of moving the
+ * others (A7). Labels and descriptions come from the menu itself (NAV_SECTIONS), never a second copy.
+ */
+export const QUICK_TOOL_HREFS = ["/tools/refining", "/tools/auction", "/market", "/tools/homework", "/tools/combat-power"] as const;
+
+export type QuickTool = { id: string; label: string; description: string; href: string };
+
+export function quickTools(flags: NavFlags): QuickTool[] {
+  const links = NAV_SECTIONS.flatMap((section) => [...(section.search ?? []), ...section.groups.flatMap((group) => group.links)]);
+  return QUICK_TOOL_HREFS.flatMap((href) => {
+    const link = links.find((l) => l.href === href && l.description);
+    if (!link || (link.flag && flags[link.flag] !== true)) return [];
+    return [{ id: `tool:${href}`, label: link.label, description: link.description, href }];
+  });
+}
+
 const fold = (text: string) => text.toLowerCase().replace(/\s+/g, "");
 
 /**

@@ -6,6 +6,8 @@ import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 // The day table as people see it (the 7일 skeleton and its unseen size copy are aria-hidden, #1634).
 const REAL_ROWS = "table:not([aria-hidden]) tbody tr";
+// The range's days on record ('3개월 중 39일치 기록'): under the title by the period buttons (user 11-16).
+const countOf = (detail) => detail.getByText(/^\S+ 중 \d+일치 기록$/);
 const detailOf = (page) => page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
 
 for (const width of [320, 1280])
@@ -22,12 +24,14 @@ for (const width of [320, 1280])
     await expect(caption).toHaveText("하루 평균 거래가와 거래량");
     // 3개월: the mock has 39 completed days (45 kept, a 5-day hole, today partial), shown as they are and said.
     const moved = await shiftsDuring(page, () => ranges.getByRole("button", { name: "3개월" }).click(), 1500);
-    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
+    await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+    await expect(countOf(detail)).toHaveText("3개월 중 39일치 기록");
     await expect(detail.getByText(/공식 거래소 일별 통계와 LOAKraken 저장 기록/)).toBeVisible();
     await expect(detail.getByText(/^3개월 [▲▼]?\d+\.\d%$/)).toBeVisible();
     expect(moved.all, `3개월 전환 흔들림 (${moved.moved})`).toBe(0);
     await ranges.getByRole("button", { name: "1년" }).click();
-    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 39일치 기록");
+    await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+    await expect(countOf(detail)).toHaveText("1년 중 39일치 기록");
     // The table lists the latest 14 days at most, whatever the range.
     await expect(detail.locator(REAL_ROWS)).toHaveCount(14);
     await ranges.getByRole("button", { name: "7일" }).click();
@@ -131,7 +135,8 @@ test("기록 없는 날은 선이 끊기고, 긴 기간을 읽는 동안 보던 
   await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
   await expect(caption).toHaveText("하루 평균 거래가와 거래량");
   release();
-  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  await expect(countOf(detail)).toHaveText("3개월 중 39일치 기록");
   // The mock's 5-day hole (20–24 days ago): two strokes, nothing drawn across it.
   await expect.poll(strokes, { message: "3개월: the line breaks at the hole" }).toBe(2);
 });
@@ -154,7 +159,8 @@ test("7일은 최근 7일 날짜 안의 기록만, 모자라면 'N일치 기록'
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
   const detail = detailOf(page);
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
-  await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량 · 7일 중 2일치 기록");
+  await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량");
+  await expect(countOf(detail)).toHaveText("7일 중 2일치 기록");
   // Today (partial), 1 and 5 days ago: nothing from 9 days ago or older.
   await expect(detail.locator(REAL_ROWS)).toHaveCount(3);
 });
@@ -174,14 +180,16 @@ test("기간 전환 중 자리 데이터는 제 기간 이름으로(3개월 → 
   const ranges = detail.getByRole("group", { name: "기간" });
   const caption = detail.getByText(/^하루 평균 거래가와 거래량|^판매 최저가/);
   await ranges.getByRole("button", { name: "3개월" }).click();
-  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  await expect(countOf(detail)).toHaveText("3개월 중 39일치 기록");
   await ranges.getByRole("button", { name: "1시간" }).click();
   await expect(caption).toHaveText(/^판매 최저가/);
   await ranges.getByRole("button", { name: "1년" }).click();
   await page.waitForTimeout(500);
   await expect(caption).toHaveText("하루 평균 거래가와 거래량");
   release();
-  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 39일치 기록");
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  await expect(countOf(detail)).toHaveText("1년 중 39일치 기록");
 });
 
 // codex #1595 delta: 7일 with no record in its window keeps the chart's box (a message inside, same height) and
@@ -213,7 +221,8 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
   const before = await place();
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
   await expect(detail.getByText("최근 7일 기록이 없어요.")).toBeVisible();
-  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 7일 중 0일치 기록");
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  await expect(countOf(detail)).toHaveText("7일 중 0일치 기록");
   expect(await place(), "차트 상자 높이·캡션·표 자리").toEqual(before);
 });
 
@@ -235,7 +244,7 @@ for (const width of [320, 360, 1280])
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
   const detail = detailOf(page);
-  await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 2일치 기록$/)).toBeVisible();
+  await expect(countOf(detail).filter({ hasText: /^30일 중 2일치 기록$/ })).toBeVisible();
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
   // Older days exist (9 and 15 days ago), so the line also says where they are (ux-copy: the next step).
   const empty = detail.getByText("최근 7일 동안 거래 기록이 없어요. 30일을 고르면 지난 기록을 볼 수 있어요.");
@@ -388,7 +397,7 @@ test("기록 하나뿐인 차트에는 하루 점이 없다 @regression", async 
   // The first item came with the page; another one reads its history through the thinned answer.
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
   const detail = detailOf(page);
-  await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 1일치 기록$/)).toBeVisible();
+  await expect(countOf(detail).filter({ hasText: /^30일 중 1일치 기록$/ })).toBeVisible();
   await expect(detail.getByRole("img", { name: /^일 평균 거래가와 거래량/ })).toBeVisible();
   await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
 });

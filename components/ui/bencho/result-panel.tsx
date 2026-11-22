@@ -21,7 +21,7 @@
 //  6. Reduced motion: the card and rows appear at once.
 // The springs and their reasons are Bencho's and are kept as published.
 import "./result-panel.css";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { AnimatePresence, LazyMotion, m as motion, useReducedMotion } from "motion/react";
 
 const loadFeatures = () => import("@/lib/motion-dom-animation").then((mod) => mod.default);
@@ -61,6 +61,8 @@ type ResultPanelProps = {
   onPick: (item: ResultItem) => void;
   /** pointer over a row: let the arrows carry on from there */
   onActive?: (id: string) => void;
+  /** the field's text as typed: an edit hands the active row back to the keys (a hover no longer owns it) */
+  text?: string;
   /** above the rows (ours, 10-12): what must not move when rows arrive later */
   header?: ReactNode;
   /** under the rows: key hints, an empty state */
@@ -100,12 +102,88 @@ function useRoomOnScreen(open: boolean) {
   return panel;
 }
 
+/**
+ * Scrolls the box just enough to show the row, in layout pixels at the row's
+ * resting place: the card may still be unfolding (scaled down to 0.72 tall),
+ * and a row still dealing in is drawn 8px higher (its entrance, y −8 → 0).
+ */
+function keepInView(view: HTMLElement, row: HTMLElement) {
+  const outer = view.getBoundingClientRect();
+  const rect = row.getBoundingClientRect();
+  const scale = view.offsetHeight ? outer.height / view.offsetHeight : 1;
+  const transform = getComputedStyle(row).transform;
+  const lift = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
+  const top = (rect.top - outer.top) / scale - view.clientTop - lift + view.scrollTop;
+  const bottom = top + row.offsetHeight;
+  if (top < view.scrollTop) view.scrollTop = top;
+  else if (bottom > view.scrollTop + view.clientHeight) view.scrollTop = bottom - view.clientHeight;
+}
+
+/**
+ * (ours, M53) The row the arrows reach stays in view inside the scroll box:
+ * the input keeps focus (aria-activedescendant), so the browser never scrolls
+ * to it, and at 320 the list runs past the box. A row the pointer entered is
+ * already under the pointer and is left alone, so a hover never scrolls. When
+ * the screen gets shorter (a phone keyboard, a rotated or resized window) the
+ * box shrinks under the active row, so it is checked again then (#1881 P3) —
+ * only a row the keys chose: the pointer's row stays where it was, even after
+ * the pointer has left (#1883 P3). An edit of the field hands the row back to
+ * the keys, also when the edit keeps the same active row (#1887 P3).
+ */
+function useActiveInView(activeId: string | null | undefined, panelId: string, text: string | undefined) {
+  const box = useRef<HTMLDivElement>(null);
+  // Set by the row's pointer-enter, read (and cleared) once the active row has changed.
+  const pointed = useRef(false);
+  // How the current active row was chosen, kept until it changes: the resize recheck reads it.
+  const byPointer = useRef(false);
+  const find = useCallback(() => {
+    const view = box.current;
+    const row = activeId ? document.getElementById(optionId(panelId, activeId)) : null;
+    return view && row && view.contains(row) ? { view, row } : null;
+  }, [activeId, panelId]);
+  useLayoutEffect(() => {
+    byPointer.current = pointed.current;
+    if (pointed.current) {
+      pointed.current = false;
+      return;
+    }
+    const found = find();
+    if (found) keepInView(found.view, found.row);
+  }, [find]);
+  useLayoutEffect(() => {
+    byPointer.current = false;
+  }, [text]);
+  useEffect(() => {
+    if (!activeId) return;
+    let frame = 0;
+    // After the card's own room is fitted to the new height (useRoomOnScreen, same events).
+    const recheck = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (byPointer.current) return;
+        const found = find();
+        if (found) keepInView(found.view, found.row);
+      });
+    };
+    const view = window.visualViewport;
+    window.addEventListener("resize", recheck);
+    view?.addEventListener("resize", recheck);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", recheck);
+      view?.removeEventListener("resize", recheck);
+    };
+  }, [activeId, find]);
+  return { box, pointed };
+}
+
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
-function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
+function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, text, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
   const panel = useRoomOnScreen(open);
+  const { box: scrollBox, pointed } = useActiveInView(open ? activeId : null, id, text);
   let order = 0;
   return (
     <LazyMotion features={loadFeatures}>
@@ -144,7 +222,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
             }}
           >
             {header && <div className="rsp-top">{header}</div>}
-            <div className="rsp-scroll" id={id} role="listbox" aria-label={label}>
+            <div ref={scrollBox} className="rsp-scroll" id={id} role="listbox" aria-label={label}>
               {groups.map((group) =>
                 group.items.length === 0 && !group.reserve ? null : (
                   <div key={group.id} role="group" aria-labelledby={group.title ? `${id}-g-${group.id}` : undefined}>
@@ -167,7 +245,10 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                           /* the input keeps focus; a press must not take it */
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => onPick(item)}
-                          onPointerEnter={() => onActive?.(item.id)}
+                          onPointerEnter={() => {
+                            if (item.id !== activeId) pointed.current = true;
+                            onActive?.(item.id);
+                          }}
                           /* they deal out under the card rather than
                              arriving with it — four rows appearing at
                              once is a panel, four arriving in order is

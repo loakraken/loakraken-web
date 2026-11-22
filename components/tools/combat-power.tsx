@@ -32,6 +32,7 @@ import {
 import {
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
+  notComputedHere,
   ROLE_REASONS,
   GEAR_TYPES,
   NO_ADVANCED_REFINE,
@@ -45,12 +46,19 @@ import {
   arkPassiveNote,
   isArkPassiveOpen,
   isCoreOpen,
+  isAdvancedRefineOpen,
   isOpen,
   isRefineOpen,
+  isUpgradeGear,
+  KARMA_MAX,
+  KARMA_TREE,
+  karmaLevelOf,
   polishValue,
   polishOptionText,
   polishSwapOf,
   polishSwapValue,
+  polishPreset,
+  polishPresetOf,
   wornPolish,
   POLISH_NONE,
   refineEdit,
@@ -63,6 +71,7 @@ import {
   type Current,
   type Edits,
   type Options,
+  type PolishPreset,
   type PolishValues,
   type Simulation,
 } from "@/lib/combat-power/model";
@@ -118,7 +127,7 @@ const withCurrent = (values: number[], current: number) =>
   values.includes(current) ? values : [...values, current].sort((x, y) => x - y);
 
 /** The parts of the character the first cut can change. */
-function currentOf(data: Character) {
+function currentOf(data: Character, karmaSim = false, armorSim = false) {
   const gems = (data.loadout.gems?.items ?? []).flatMap((gem) =>
     gem.slot != null && gem.level != null
       ? [{ slot: gem.slot, level: gem.level, name: gem.name ?? `보석 ${gem.slot + 1}` }]
@@ -134,9 +143,14 @@ function currentOf(data: Character) {
             name: item.name ?? item.type ?? "",
             refine: item.detail?.refineLevel ?? null,
             quality: item.detail?.quality ?? null,
-            // No advanced step on 전율 gear: nothing to show or edit.
-            advanced: hasNoAdvancedRefine(item.name) ? null : (item.detail?.advancedRefineLevel ?? null),
+            // No advanced step on 전율 gear: nothing to show or edit. A weapon's opens only when it is 업화; any
+            // other weapon (에스더, special, 결단) has no model, so its field is hidden (PM 총괄 11-21).
+            advanced:
+              hasNoAdvancedRefine(item.name) || (item.type === "무기" && !isUpgradeGear(item.name))
+                ? null
+                : (item.detail?.advancedRefineLevel ?? null),
             noAdvanced: hasNoAdvancedRefine(item.name),
+            upgrade: isUpgradeGear(item.name),
           },
         ]
       : [],
@@ -178,7 +192,10 @@ function currentOf(data: Character) {
     guardItem && guardItem.detail?.refineLevel != null && guardItem.grade
       ? { level: guardItem.detail.refineLevel, grade: guardItem.grade, name: guardItem.name ?? "팔 보호구" }
       : null;
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores, armGuard };
+  // 깨달음 카르마 레벨 (api #1004): only where the screen edits it, and only once it was read.
+  const karma = karmaSim ? karmaLevelOf(data.loadout.arkPassive?.points) : null;
+  // Armour 재련 · 상급 재련 (ARMOR_CP_SIM): the rows open and their edits go out.
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, armGuard, armor: armorSim };
 }
 
 function Choice({
@@ -234,6 +251,14 @@ function Card({
 }
 
 const LOCKED_NOTE = "계산식을 확인하고 있어 아직 바꿀 수 없어요. 확인되는 대로 열어요.";
+
+/** 연마 한꺼번에: the grades the options offer, then no scoring option. */
+const POLISH_PRESETS: readonly { value: PolishPreset; label: string }[] = [
+  { value: "HIGH", label: "모두 상" },
+  { value: "MID", label: "모두 중" },
+  { value: "LOW", label: "모두 하" },
+  { value: POLISH_NONE, label: "모두 없음" },
+];
 
 /** A control the 1차판 keeps closed: the current value and "준비 중". */
 function Locked({ caption, value }: { caption: string; value: ReactNode }) {
@@ -362,14 +387,14 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null && !isRefineOpen(item.type) ? (
+                {item.refine != null && !isRefineOpen(item.type, current.armor) ? (
                   <Locked caption="재련" value={`+${item.refine}`} />
                 ) : item.refine != null ? (
                   <Select
                     label={`${item.type} 재련 단계`}
                     caption="재련"
                     value={
-                      refineEdit(edits.refine[item.index], item, { min: options.refineMin, max: options.refineMax }) ??
+                      refineEdit(edits.refine[item.index], item, { min: options.refineMin, max: options.refineMax }, current.armor) ??
                       item.refine
                     }
                     original={item.refine}
@@ -386,10 +411,10 @@ function Editors({
                     상급 재련 없음
                   </span>
                 )}
-                {item.advanced != null && !isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                {item.advanced != null && !isAdvancedRefineOpen(item.type, current.armor, item.upgrade) && (
                   <Locked caption="상급" value={item.advanced} />
                 )}
-                {item.advanced != null && isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                {item.advanced != null && isAdvancedRefineOpen(item.type, current.armor, item.upgrade) && (
                   <Select
                     label={`${item.type} 상급 재련 단계`}
                     caption="상급"
@@ -453,6 +478,27 @@ function Editors({
 
       {current.polish.length > 0 && (
         <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
+          {/* 연마 한꺼번에 (PM 총괄 11-21, X1): every line at one grade on its own option, or every line with no
+              scoring option. One press is one 이전; a button is pressed while every line is at it. */}
+          {isOpen("POLISH") && (
+            <li className={styles.presetRow}>
+              <div className={styles.presets} role="group" aria-label="연마 모든 줄 한꺼번에">
+                {POLISH_PRESETS.filter((preset) => preset.value === POLISH_NONE || options.polishGrades.includes(preset.value)).map(
+                  (preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className={`${styles.preset} hit-44`}
+                      aria-pressed={polishPresetOf(edits, current.polish) === preset.value}
+                      onClick={() => setEdits((prev) => polishPreset(prev, current.polish, preset.value))}
+                    >
+                      {preset.label}
+                    </button>
+                  ),
+                )}
+              </div>
+            </li>
+          )}
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
             // A spec-up 연마 step (api #951) puts another accessory in: the line names its new option, the one worn
@@ -612,7 +658,7 @@ function Editors({
         <Card
           id="cp-ark-passive"
           title="아크 패시브"
-          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree))}
+          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree)) && current.karma == null}
         >
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
@@ -637,6 +683,23 @@ function Editors({
               )}
             </li>
           ))}
+          {/* 깨달음 카르마 레벨 (api #1004, KARMA_SIM): its own row, apart from the tree's points. */}
+          {current.karma != null && (
+            <li key="karma">
+              <span className={styles.rowName}>
+                깨달음 카르마
+                <small className={styles.rowSub}>레벨</small>
+              </span>
+              <span className={styles.rowFrom}>Lv.{current.karma}</span>
+              <Select
+                label="깨달음 카르마 레벨"
+                value={edits.karma[KARMA_TREE] ?? current.karma}
+                original={current.karma}
+                values={range(0, KARMA_MAX)}
+                onChange={(level) => setEdits((prev) => ({ ...prev, karma: { ...prev.karma, [KARMA_TREE]: level } }))}
+              />
+            </li>
+          )}
         </Card>
       )}
 
@@ -676,10 +739,17 @@ function Editors({
           })}
         </Card>
       )}
-      <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 진화와 도약을 바꿀 수
-        있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
-      </p>
+      {current.armor ? (
+        <p className={styles.later}>
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·재련·상급 재련(업화 무기·방어구)·아크 그리드 코어·아크 패시브
+          진화와 도약을 바꿀 수 있어요. 아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        </p>
+      ) : (
+        <p className={styles.later}>
+          지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·업화 무기 상급 재련·아크 그리드 코어·아크 패시브 진화와
+          도약을 바꿀 수 있어요. 방어구 재련·상급 재련·아크 패시브 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
+        </p>
+      )}
     </div>
   );
 }
@@ -759,6 +829,12 @@ function ResultBand({
 }) {
   const computed = data && hasComputed(data);
   const before = data?.before ?? base;
+  // Changes without a number, split as the 바꾼 것 rows say them (v0.3.15 RC P1-1): not computed for this character
+  // (the armour CP gate) is counted as 계산하지 않음, never as 'coming soon'.
+  const open = data?.contributions.filter((item) => !(item.status === "OK" && item.delta != null)) ?? [];
+  const held = open.filter(notComputedHere).length;
+  const counts = (pending: number) =>
+    `${pending > 0 ? ` · 계산 준비 중 ${pending}개` : ""}${held > 0 ? ` · 계산하지 않음 ${held}개` : ""}`;
   return (
     <section className={styles.band} aria-labelledby="cp-result" data-stale={stale || undefined}>
       <p id="cp-result" className={styles.bandLabel}>
@@ -785,8 +861,10 @@ function ResultBand({
           : computed && data.delta === 0 && !data.partial
             ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
             : computed
-            ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
-            : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
+            ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial || held > 0 ? counts(Math.max(0, data.unsupportedCount - held)) : ""}.`
+            : held === 0
+              ? `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`
+              : `바꾼 ${changed}개 항목은 반영하지 않았어요${counts(open.length - held)}. 이유는 아래 ‘바꾼 것’에 있어요.`}
       </p>
       {/* Item level moves with refining; the simulation does not return one, so
           this is today's value, no made-up change (PM-프론트 16:37 ②), and says
@@ -836,7 +914,9 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
             {item.status === "OK" && item.delta != null ? (
               <b className={item.delta >= 0 ? styles.gain : styles.loss}>{signed(item.delta)}</b>
             ) : (
-              <span className={styles.pending}>계산 준비 중</span>
+              // Outside the armour CP gate the api does not compute armour for this character (not 'coming soon'):
+              // its sentence follows right under (PM 총괄 11-21).
+              <span className={styles.pending}>{notComputedHere(item) ? "계산하지 않음" : "계산 준비 중"}</span>
             )}
             {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
                 not computed, says why right under it — the backend's
@@ -861,9 +941,15 @@ export function CombatPowerSimulator({
   initial,
   start,
   head,
+  karma = false,
+  armor = false,
 }: {
   name: string;
   initial?: Character;
+  /** KARMA_SIM on this deployment (server flag): the 깨달음 카르마 레벨 field. */
+  karma?: boolean;
+  /** ARMOR_CP_SIM on this deployment (server flag): armour 재련 · 상급 재련. */
+  armor?: boolean;
   /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
   start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
@@ -877,7 +963,7 @@ export function CombatPowerSimulator({
     // The character tab passes the character, so a weapon refine step comes in (#1567).
     const gearType = gearTypeOf(initial);
     const first = (start ?? []).reduce<Edits | null>(
-      (edits, change) => editsFor(change, edits ?? NO_EDITS, gearType) ?? edits,
+      (edits, change) => editsFor(change, edits ?? NO_EDITS, gearType, armor) ?? edits,
       null,
     );
     return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
@@ -906,7 +992,7 @@ export function CombatPowerSimulator({
     retry: false,
   });
   const data = character.data?.data ?? initial ?? null;
-  const current = useMemo(() => (data ? currentOf(data) : null), [data]);
+  const current = useMemo(() => (data ? currentOf(data, karma, armor) : null), [data, karma, armor]);
   const refineMin = options.data?.data.refineMin;
   const refineMax = options.data?.data.refineMax;
   // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
@@ -1131,7 +1217,15 @@ const savedTime = (iso: string) =>
     timeZone: "Asia/Seoul",
   });
 
-function CombatPowerContent({ initialName }: { initialName: string }) {
+function CombatPowerContent({
+  initialName,
+  karma = false,
+  armor = false,
+}: {
+  initialName: string;
+  karma?: boolean;
+  armor?: boolean;
+}) {
   const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
@@ -1212,7 +1306,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
             </form>
 
             {/* A new character starts from its own values (keyed). */}
-            <CombatPowerSimulator key={name} name={name} />
+            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} />
           </div>
         </div>
       </main>
@@ -1223,6 +1317,14 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
   );
 }
 
-export function CombatPowerTool({ initialName }: { initialName: string }) {
-  return <CombatPowerContent initialName={initialName} />;
+export function CombatPowerTool({
+  initialName,
+  karma = false,
+  armor = false,
+}: {
+  initialName: string;
+  karma?: boolean;
+  armor?: boolean;
+}) {
+  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} />;
 }

@@ -1,0 +1,108 @@
+/* (ours, X6) 블루 크리스탈 card under the board: the detail panel's surface and facts. */
+.card {
+  margin-top: 16px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  background: var(--mist);
+}
+.card h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.facts > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--background);
+}
+.facts dt {
+  color: var(--slate);
+  font-size: 12px;
+}
+.facts dd {
+  margin-top: 2px;
+}
+.value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.field {
+  display: grid;
+  /* One column the card's width: no item's own width (the input's ~20 characters) may widen it (CI 320: +28px). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13px;
+}
+.field > * {
+  min-width: 0;
+}
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  /* 44px: the whole field is the tap target (A36; an input draws no ::after for hit-44). */
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--ink);
+  /* 16px: phones do not zoom in on focus. */
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus-visible {
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent);
+}
+.field input[aria-invalid] {
+  border-color: var(--destructive);
+}
+.error {
+  color: var(--destructive);
+  font-size: 12px;
+}
+.error:not(:empty) {
+  margin-top: 6px;
+}
+.hint {
+  margin-top: 6px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--link);
+}
+@media (max-width: 699px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

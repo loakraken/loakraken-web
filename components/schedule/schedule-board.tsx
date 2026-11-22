@@ -329,7 +329,11 @@ function Section({
       : items.length;
   return (
     <section className={styles.section} aria-label={title}>
-      <header>
+      {/* Drawn once whole (data-fp-whole, QA v0.3.14 RC P1-2): after a day's last round the head ends in the
+          '내일 일정 보기' button; a first HTML cut inside it drew the empty button (its 44px press area) at the end of
+          the status line, then its text wrapped it under the line and the status re-laid (CLS 0.006–0.0076 at
+          320/390, 23:00–24:00 KST). Holding the head until its end mark keeps the parts from placing each other. */}
+      <header data-fp-whole="">
         <h3>{title}</h3>
         {/* Drawn anew when it changes: a different count rewritten in place
             moves what follows it in the head (A7). */}
@@ -339,27 +343,41 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          // Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
-          // line in a phone's own font.
-          <span className={styles.next} data-state={status.state} data-fp-whole="">
-            {status.state === "done" && "오늘 일정 종료"}
-            {status.state === "done" && status.next && " · "}
-            {status.next && (
-              <>
-                {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
-                {kstTime(status.next)} · <Countdown to={status.next} fallback={now} />
-                {status.state !== "upcoming" && " 후"}
-              </>
+          // The status and the '내일 일정 보기' button stay together on one line (#1799 follow-up): its own line in a
+          // narrow head, the title's line in a wide one, the same in every state (home.module.css). The board shows
+          // the server's hour until the client clock starts; when the two sit on either side of the day's last round
+          // (a device clock off, or staying on the page through the round), the state changes after the page woke.
+          // On the old wrapping line that change re-wrapped the head (320: one line → three) and pushed the rows
+          // down. The done line is short enough for the button at 320 (no countdown to tomorrow: the time is enough).
+          <span className={styles.statusLine}>
+            {/* Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
+                line in a phone's own font. */}
+            <span className={styles.next} data-state={status.state} data-fp-whole="">
+              {status.state === "done" ? (
+                <>
+                  오늘 일정 종료
+                  {status.next && ` · ${dayLabel(status.next, now)} ${kstTime(status.next)}`}
+                </>
+              ) : (
+                status.next && (
+                  <>
+                    {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
+                    {kstTime(status.next)} · <Countdown to={status.next} fallback={now} />
+                    {status.state !== "upcoming" && " 후"}
+                  </>
+                )
+              )}
+              <FpEnd />
+            </span>
+            {status.state === "done" && onShowTomorrow && (
+              // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
+              <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
+                내일 일정 보기
+              </button>
             )}
-            <FpEnd />
           </span>
         )}
-        {status?.state === "done" && onShowTomorrow && (
-          // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
-          <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
-            내일 일정 보기
-          </button>
-        )}
+        <FpEnd />
       </header>
       <ul className={styles.rows}>
         {byTimeThenLevel(items).map((item) => (

@@ -47,7 +47,33 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
  * (MODEL_UNCONFIRMED, api #866) until its formula is confirmed, so armour rows
  * stay "준비 중" (PM 총괄 11-12).
  */
-export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+export const isRefineOpen = (type: string | null | undefined, armor = false) =>
+  isOpen("EQUIPMENT_REFINE") || type === "무기" || (armor && !!type);
+
+/**
+ * 업화 gear, by the api's own rule (CombatPowerRefineModel: the item name contains 업화). The contract has no family
+ * field, and grade / tier do not tell 업화 from 전율 (both tier 4 고대).
+ */
+export const isUpgradeGear = (name: string | null | undefined) => !!name?.includes("업화");
+
+/**
+ * 상급 재련, where it opens:
+ * - The weapon when it is 업화 (`upgrade`): the api computes it and 계산 검증 matched the baseline (11-21 04:36, 1 → 40
+ *   within 0.01 CP). 전율 · 에스더 · special · 결단 weapons have no model, so their field is hidden (currentOf).
+ * - Armour with the api's armour CP gate (ARMOR_CP_SIM, `armor`): the api lifts its hold on armour 재련 · 상급 재련 ·
+ *   완갑 for a dealer whose item-built CP matches the official CP.
+ */
+export const isAdvancedRefineOpen = (type: string | null | undefined, armor = false, upgrade = false) =>
+  isOpen("EQUIPMENT_ADVANCED_REFINE") || (type === "무기" ? upgrade : armor && !!type);
+
+/**
+ * The api's refine bounds (combat-power options refineMin / refineMax / advancedRefineMax; the screen reads them
+ * from the options, the proxy guard from here). tests/combat-power-karma.test.ts holds them to the committed
+ * options fixture, so the two cannot drift apart unseen.
+ */
+export const REFINE_MIN = 10;
+export const REFINE_MAX = 25;
+export const ADVANCED_REFINE_MAX = 40;
 
 /**
  * Ark passive trees the simulator takes, one by one: 도약 (api #842), 진화 (api #965, PM 총괄 11-16).
@@ -131,6 +157,8 @@ export type Edits = {
   engraving: Record<string, number>;
   stone: Record<string, number>;
   arkPassive: Record<string, number>;
+  /** 깨달음 카르마 레벨 (api #1004), keyed by the tree (깨달음), apart from its points. */
+  karma: Record<string, number>;
   core: Record<number, { grade: string; point: number }>;
   /** 팔 보호구(완갑) step and grade (backend #342). */
   armGuard: { level?: number; grade?: string };
@@ -148,6 +176,7 @@ export const NO_EDITS: Edits = {
   engraving: {},
   stone: {},
   arkPassive: {},
+  karma: {},
   core: {},
   armGuard: {},
 };
@@ -191,16 +220,43 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
+  /** `upgrade`: 업화 gear (isUpgradeGear); the weapon's 상급 재련 opens only then. */
+  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null; upgrade?: boolean }[];
   /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
   polish?: { index: number; line: number; option: string; grade: Grade | null; value?: string; part?: string | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
+  /** 깨달음 카르마 레벨 worn, only where the screen edits it (isKarmaSimEnabled) and the level was read. */
+  karma?: number | null;
   cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
   armGuard?: { level: number; grade: string } | null;
+  /** Armour 재련 · 상급 재련 open on this screen (ARMOR_CP_SIM). Unset: as before, the weapon's refine only. */
+  armor?: boolean;
 };
+
+/** The tree whose karma level the simulator edits, and the request's range (api #1004 KARMA_MAX_LEVEL). */
+export const KARMA_TREE = "깨달음";
+export const KARMA_MAX = 30;
+
+/**
+ * The 깨달음 karma level of the point named 깨달음 (not the first point with a level: 진화 and 도약 carry one too).
+ * - The api's karmaLevel (api #1023) when the field is there: it wins over the description.
+ * - The field absent (an api before #1023; the contract keeps it optional for the deploy order) or null: read the
+ *   description ("6랭크 29레벨") as the api reads it (CombatPowerRefineModel.karmaLevel: the first "N레벨").
+ * null when neither gives a level in the request's range (0~30): the field stays hidden, as the api would answer
+ * that it could not read it. A field outside that range is not read from the description instead.
+ */
+export function karmaLevelOf(
+  points: readonly { name?: string | null; description?: string | null; karmaLevel?: number | null }[] | null | undefined,
+) {
+  const point = points?.find((item) => item.name === KARMA_TREE);
+  if (!point) return null;
+  const parsed = point.description?.match(/(\d+)레벨/)?.[1];
+  const value = point.karmaLevel != null ? point.karmaLevel : parsed == null ? null : Number(parsed);
+  return value != null && Number.isInteger(value) && value >= 0 && value <= KARMA_MAX ? value : null;
+}
 
 export type PolishValues = NonNullable<Options["polishValues"]>;
 
@@ -253,8 +309,9 @@ export function refineEdit(
   edit: number | null | undefined,
   item: Current["gear"][number],
   range: RefineRange,
+  armor = false,
 ): number | null {
-  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type)) return null;
+  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type, armor)) return null;
   if (!range || edit < range.min || edit > range.max) return null;
   return edit;
 }
@@ -273,6 +330,41 @@ export function polishSwapOf(
   if (option == null || !isOpen("POLISH")) return null;
   if (line.value != null && option === (line.value.includes("%") ? `${line.option} %` : line.option)) return null;
   return option;
+}
+
+/** 연마 한꺼번에 (PM 총괄 11-21, X1): every line at one grade, or every line with no scoring option. */
+export type PolishPreset = Grade | typeof POLISH_NONE;
+type PolishLine = { index: number; line: number; option: string; grade: Grade | null; value?: string };
+
+/**
+ * Every polish line at once (one setEdits, one 이전 step). A grade keeps each line's own option, the worn one (a
+ * line set to another option or to no scoring option goes back to its worn option first), at that grade: the
+ * values are the official polish table's, as for one line. POLISH_NONE makes every line a line with no scoring
+ * option (no grade). A grade a line already wears is no edit, so it sends nothing for that line.
+ */
+export function polishPreset(edits: Edits, lines: readonly PolishLine[], preset: PolishPreset): Edits {
+  const keys = lines.map((line) => `${line.index}:${line.line}`);
+  const keep = <T,>(record: Record<string, T>) => Object.fromEntries(Object.entries(record).filter(([at]) => !keys.includes(at)));
+  if (preset === POLISH_NONE)
+    return {
+      ...edits,
+      polish: keep(edits.polish) as Edits["polish"],
+      polishOption: { ...keep(edits.polishOption), ...Object.fromEntries(keys.map((key) => [key, POLISH_NONE])) },
+    };
+  const graded = lines.flatMap((line, i) => (line.grade === preset ? [] : [[keys[i], preset] as const]));
+  return { ...edits, polish: { ...keep(edits.polish), ...Object.fromEntries(graded) }, polishOption: keep(edits.polishOption) };
+}
+
+/** The preset every line is at now (its button pressed), or null when the lines differ or there are none. */
+export function polishPresetOf(edits: Edits, lines: readonly PolishLine[]): PolishPreset | null {
+  if (lines.length === 0) return null;
+  const states = lines.map((line) => {
+    const swap = polishSwapOf(edits, line);
+    if (swap === POLISH_NONE) return POLISH_NONE;
+    if (swap != null) return null;
+    return edits.polish[`${line.index}:${line.line}`] ?? line.grade;
+  });
+  return states.every((state) => state != null && state === states[0]) ? (states[0] as PolishPreset) : null;
 }
 
 /** A polish line back to the one worn: its other option and grade go (one 이전 step). */
@@ -298,13 +390,21 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
       changes.push({ kind: "GEM_LEVEL", slot: gem.slot, level });
   }
   for (const item of current.gear) {
-    const refine = refineEdit(edits.refine[item.index], item, range);
+    const refine = refineEdit(edits.refine[item.index], item, range, current.armor);
     if (refine != null) changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
+    // Only where 상급 재련 is open (an 업화 weapon; armour with ARMOR_CP_SIM): elsewhere no edit reaches here, as before.
     const advanced = edits.advanced[item.index];
-    if (advanced != null && item.advanced != null && advanced !== item.advanced)
+    if (
+      advanced != null &&
+      item.advanced != null &&
+      advanced !== item.advanced &&
+      isAdvancedRefineOpen(item.type, current.armor, item.upgrade) &&
+      advanced >= 0 &&
+      advanced <= ADVANCED_REFINE_MAX
+    )
       changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
   // Nothing for polish while the card is locked: it cannot show or undo an edit (review P3 #1700).
@@ -344,6 +444,10 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (points != null && points !== item.points && points <= arkPassiveMax(item.tree))
       changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
   }
+  // 깨달음 카르마 레벨 (api #1004): its own field, never with points.
+  const karma = edits.karma[KARMA_TREE];
+  if (current.karma != null && karma != null && karma !== current.karma && karma >= 0 && karma <= KARMA_MAX)
+    changes.push({ kind: "ARK_PASSIVE_POINT", tree: KARMA_TREE, karmaLevel: karma });
   for (const item of (current.cores ?? []).filter((item) => isCoreOpen(item.name ?? ""))) {
     const edit = edits.core[item.slotIndex];
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
@@ -361,6 +465,18 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
 /** Supporters and unjudged roles are not computed at all (backend #332): one line, not one per row. */
 export const ROLE_REASONS: ReadonlySet<string> = new Set(["SUPPORTER_MODEL_PENDING", "ROLE_UNKNOWN"]);
 
+/**
+ * The armour CP gate's reason (api PR3): the item-built CP misses the official CP by more than the gate, so the api
+ * does not compute armour 재련 · 상급 재련 · 완갑 for this character. Its own sentence goes in basis / reason.
+ */
+export const ARMOR_CP_RESIDUAL = "ARMOR_CP_RESIDUAL_HIGH";
+
+/**
+ * A change the api does not compute for this character (the armour CP gate): '계산하지 않음', never 'coming soon'.
+ * One test for the 바꾼 것 row and the 예상 전투력 note, so the two never say different things (v0.3.15 RC P1-1).
+ */
+export const notComputedHere = (item: { reasonCode?: string | null }) => item.reasonCode === ARMOR_CP_RESIDUAL;
+
 /** 팔 보호구 grades the simulator takes (backend #342). */
 export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
 export const ARM_GUARD_MAX = 25;
@@ -373,8 +489,59 @@ export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {
 const KINDS = new Set(Object.keys(KIND_LABEL));
 const int = (value: unknown) => Number.isInteger(value);
 
-/** Server-side guard before the body leaves the proxy. */
-export function parseSimulateRequest(body: unknown): SimulateRequest | null {
+/**
+ * A 깨달음 카르마 change as the api takes it (api #1004): ARK_PASSIVE_POINT, tree 깨달음, a level 0~30, no points or
+ * level beside it. Only with KARMA_SIM on: off (production until the api switch opens), the proxy forwards none
+ * (PM 총괄 #1815 P2).
+ */
+const karmaAllowed = (out: Record<string, unknown>, karma: boolean) =>
+  karma &&
+  out.kind === "ARK_PASSIVE_POINT" &&
+  out.tree === KARMA_TREE &&
+  out.points === undefined &&
+  out.level === undefined &&
+  (out.karmaLevel as number) >= 0 &&
+  (out.karmaLevel as number) <= KARMA_MAX;
+
+/**
+ * Exactly these fields on the change as it came in (`raw`, before the general pass drops unknown keys): an extra key
+ * is a local 400, never stripped and sent on (PM-프론트 #1843 P2).
+ */
+const only = (raw: Record<string, unknown>, keys: string[]) =>
+  Object.keys(raw).every((key) => key === "kind" || keys.includes(key)) && keys.every((key) => raw[key] !== undefined);
+
+/**
+ * 재련 · 상급 재련 · 완갑: exactly the fields the simulator sends, inside the api's bounds.
+ * - 상급 재련 always: index + level, 0..ADVANCED_REFINE_MAX (the 업화 weapon's opens without a flag, PM 총괄 11-21). The
+ *   proxy cannot tell armour from the weapon (index is the search answer's equipment position), so an armour index
+ *   passes too: the api's armour switch (spec-up.armor-cp-gate.enabled) is what holds armour 상급 재련, as it holds
+ *   armour 재련 (backend must hold).
+ * - 재련 with ARMOR_CP_SIM on: index + refine, REFINE_MIN..REFINE_MAX; off, as before (the weapon's, api #884).
+ * - 완갑 (api #342): level 0..ARM_GUARD_MAX and a grade the simulator offers (the api rejects others; PM-프론트 P3).
+ */
+const changeAllowed = (raw: Record<string, unknown>, out: Record<string, unknown>, armor: boolean) => {
+  if (out.kind === "EQUIPMENT_ADVANCED_REFINE")
+    return only(raw, ["index", "level"]) && (out.index as number) >= 0 && (out.level as number) >= 0 && (out.level as number) <= ADVANCED_REFINE_MAX;
+  if (out.kind === "EQUIPMENT_REFINE" && armor)
+    return only(raw, ["index", "refine"]) && (out.index as number) >= 0 && (out.refine as number) >= REFINE_MIN && (out.refine as number) <= REFINE_MAX;
+  if (out.kind === "ARM_GUARD")
+    return (
+      only(raw, ["level", "grade"]) &&
+      (out.level as number) >= 0 &&
+      (out.level as number) <= ARM_GUARD_MAX &&
+      (ARM_GUARD_GRADES as readonly unknown[]).includes(out.grade)
+    );
+  return true;
+};
+
+/**
+ * Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment; `armor`: ARMOR_CP_SIM
+ * on this deployment.
+ */
+export function parseSimulateRequest(
+  body: unknown,
+  { karma = false, armor = false }: { karma?: boolean; armor?: boolean } = {},
+): SimulateRequest | null {
   if (!body || typeof body !== "object") return null;
   const { characterName, changes } = body as Record<string, unknown>;
   if (typeof characterName !== "string" || characterNameError(characterName))
@@ -386,7 +553,8 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
     const change = raw as Record<string, unknown>;
     if (typeof change.kind !== "string" || !KINDS.has(change.kind)) return null;
     const out: Record<string, unknown> = { kind: change.kind };
-    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point"]) {
+    // karmaLevel: 깨달음 카르마 레벨 (api #1004); dropped here, the api got 깨달음 without a level (web #1781).
+    for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point", "karmaLevel"]) {
       if (change[key] === undefined) continue;
       if (!int(change[key])) return null;
       out[key] = change[key];
@@ -397,6 +565,8 @@ export function parseSimulateRequest(body: unknown): SimulateRequest | null {
         return null;
       out[key] = change[key];
     }
+    if (out.karmaLevel !== undefined && !karmaAllowed(out, karma)) return null;
+    if (!changeAllowed(change, out, armor)) return null;
     clean.push(out as Change);
   }
   return { characterName: normalizeCharacterName(characterName), changes: clean };

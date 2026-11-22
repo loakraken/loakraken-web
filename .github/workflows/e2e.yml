@@ -6,8 +6,12 @@ name: E2E
 # 목록은 proxy.ts처럼 빠진 파일을 놓쳤다). 같은 PR의 이전 실행은 취소한다.
 # PR은 경로와 상관없이 늘 시작하고, 첫 job 'changes'가 글만 바뀐 PR이면 나머지 job을 건너뛴다. 'e2e webkit'이 필수
 # 검사라(11-15) 실행 자체가 안 뜨면 글만 바꾼 PR이 병합되지 못하는데, 조건(if:)으로 건너뛴 job은 통과로 친다.
-# 초안 PR은 e2e를 돌리지 않고, 필수 'e2e webkit'은 건너뛰지 않고 바로 실패한다. 건너뜀(통과)으로 두면 준비 완료로
-# 바꾼 같은 커밋의 새 실행이 webkit에 닿기 전까지 그 통과가 최신 결과라 병합이 열렸다(11-19 보안 점검).
+# 그래서 뒤 job은 판정(run)이 분명히 'false'일 때만 건너뛴다. 비었거나 다른 값이면 모두 돈다(11-20 보안 점검: 'true'일
+# 때만 돌게 두면 출력이 빈 판정에서 필수 검사가 건너뜀=통과로 끝났다). 판정 로그에는 파일 수만 남기고 이름은 찍지
+# 않는다(PR이 지은 파일 이름이 러너의 로그 명령으로 읽힐 수 있다).
+# 초안 PR은 글만 바꿨어도 e2e를 돌리지 않고, 필수 'e2e webkit'은 건너뛰지 않고 바로 실패한다(준비 완료로 바꾸면
+# 판정대로 건너뛰거나 돈다). 건너뜀(통과)으로 두면 준비 완료로 바꾼 같은 커밋의 새 실행이 webkit에 닿기 전까지 그
+# 통과가 최신 결과라 병합이 열렸다(11-19 보안 점검).
 # develop push는 on.push.paths로 같은 규칙을 쓴다(대기 중인 코드 push 실행이 뒤이은 글만 바뀐 push 실행으로 바뀌어
 # 빠지는 일이 없게).
 # develop push(병합 뒤)에도 돌아 병합마다 통계 표본(e2e-stats)을 남긴다(10-10, 저장소 공개로 Actions 시간 제한 없음).
@@ -83,9 +87,10 @@ jobs:
           files=$(git -c core.quotepath=off diff --no-renames --name-only HEAD^1 HEAD) || run_all "변경 파일 비교 실패"
           [ -n "$files" ] || run_all "바뀐 파일 없음"
           # 글: content/ · docs/, 그리고 e2e/ 밖의 .md(e2e/의 .md는 시험 자료). on.push.paths와 같은 규칙.
-          matched=$(printf '%s\n' "$files" | awk 'NF && !/^(content|docs)\// && !(/\.md$/ && !/^e2e\//)')
+          # awk가 실패하면 -e(러너 기본 bash -e)로 판정 job이 실패해 필수 검사가 빨갛게 막힌다. 실패도 모두 돌리는 쪽으로 간다.
+          matched=$(printf '%s\n' "$files" | awk 'NF && !/^(content|docs)\// && !(/\.md$/ && !/^e2e\//)') || run_all "판정 실패"
+          # 수만 찍는다. 이름은 PR이 짓는 값이라 로그에 그대로 내지 않는다(머리말).
           echo "바뀐 파일 $(printf '%s\n' "$files" | grep -c .)개, 그중 글이 아닌 것 $(printf '%s\n' "$matched" | grep -c .)개"
-          [ -z "$matched" ] || printf '%s\n' "$matched" | head -20
           if [ -n "$matched" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
@@ -95,8 +100,9 @@ jobs:
 
   build:
     needs: changes
-    # changes가 e2e 경로 변경을 찾았을 때만. 초안 PR은 changes를 건너뛰어 여기도 건너뛴다.
-    if: needs.changes.outputs.run == 'true'
+    # changes가 통과하고 판정이 분명히 'false'(글만 바뀜)가 아닐 때. 빈 판정은 돈다(머리말). 초안 PR은 changes를
+    # 건너뛰어 여기도 건너뛴다(기본 조건 success()).
+    if: needs.changes.outputs.run != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -277,6 +283,12 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: e2e
         run: npx playwright test -c playwright.byok.config.mjs
+      # 방어구 전투력 스위치(ARMOR_CP_SIM)를 끈 서버를 따로(3204) 띄워 운영 기본값 화면을 본다. 기본 설정은 켠 채로 돈다
+      # (운영이 아닌 곳의 기본값). 같은 빌드를 쓰고, 실패하면 이 job과 'e2e'가 실패한다(PM-프론트 #1843 P2).
+      - name: Run ARMOR_CP_SIM off
+        if: ${{ !cancelled() }}
+        working-directory: e2e
+        run: npx playwright test -c playwright.armor-off.config.mjs
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -362,7 +374,8 @@ jobs:
     # 필수 검사다. 건너뛰는 때는 changes가 '글만 바뀜'이라 한 때뿐이다. 초안 PR, changes나 build의 실패, 실행 취소에는
     # 건너뛰지 않고 돌아 아래 첫 단계에서 실패한다(건너뛴 필수 검사는 통과로 쳐서, 그런 때를 건너뜀으로 숨기면 안 된다).
     # 그래서 !cancelled()가 아니라 always()다: 취소된 실행에서도 이 job은 뜬다.
-    if: ${{ always() && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true') }}
+    # 판정이 비었거나 'false'가 아닌 다른 값이면 돈다(머리말).
+    if: ${{ always() && (needs.changes.result != 'success' || needs.changes.outputs.run != 'false') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -430,8 +443,9 @@ jobs:
   e2e:
     # 검사 이름 'e2e'를 지키는 묶음 job: 모든 shard·serial 결과를 합쳐 요약하고, 하나라도 실패하면 실패한다.
     needs: [changes, build, shard, serial]
-    # changes가 'e2e 경로 변경 없음'이라 하면 건너뛴다. changes가 실패하면 돌아서 아래 마지막 단계에서 실패한다.
-    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run == 'true')
+    # changes가 분명히 '글만 바뀜'(false)이라 할 때만 건너뛴다. 빈 판정은 돈다. changes가 실패하면 돌아서 아래 마지막
+    # 단계에서 실패한다.
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && (needs.changes.result != 'success' || needs.changes.outputs.run != 'false')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

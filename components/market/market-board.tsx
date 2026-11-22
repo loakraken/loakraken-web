@@ -66,6 +66,7 @@ import { BoardSearch } from "./board-search";
 import { MarketCategoryRow } from "./category-row";
 import { useTallest } from "@/components/ui/use-tallest";
 import styles from "./market.module.css";
+import { CrystalCard, type CrystalShopRate } from "./crystal-card";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { pendingProps } from "@/lib/api/pending";
@@ -208,10 +209,9 @@ function PeriodChange({ range, points }: { range: ChartRange; points: { value: n
       <span className="sr-only">
         {label} 동안 {amount}% {said}
       </span>
-      <span aria-hidden="true">
-        {label} {arrow}
-        {amount}%
-      </span>
+      {/* One text node: split ones ('3개월', ' ', '▲', '12.3', '%') moved left when the label narrowed on a
+          range switch (3개월 → 1년), a layout shift @360. */}
+      <span aria-hidden="true">{`${label} ${arrow}${amount}%`}</span>
     </small>
   );
 }
@@ -459,12 +459,17 @@ function Detail({
       </dl>
 
       <div className={styles.trendHead}>
-        <div className={styles.trendTitle}>
+        <div className={`${styles.trendTitle} ${styles.countedTitle} ${styles.changedTitle}`}>
           <h3>시세 추이</h3>
           <PeriodChange
             range={view}
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
+          {/* How many days the range has on record, by the period buttons so it is read before the chart
+              (user 11-16); held from the first paint. */}
+          <small className={`${styles.periodChange} ${styles.recordCount}`}>
+            {short != null ? `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록` : " "}
+          </small>
         </div>
         {/* The row's width is set from its labels too, so a first HTML cut before the buttons draws it at its
             final width (rangeRowWidth). */}
@@ -559,7 +564,7 @@ function Detail({
       <p className={styles.chartCaption}>
         {range === "hour"
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
-          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
+          : "하루 평균 거래가와 거래량"}
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
@@ -680,9 +685,12 @@ function BoardRows({
 function MarketContent({
   initial,
   initialItem,
+  crystal,
 }: {
   initial: BoardQuery;
   initialItem: number | null;
+  /** The official shop's crystal rate, read on the server (the shop data stays out of this page's script). */
+  crystal: CrystalShopRate;
 }) {
   // The address is the board's state: picks write it in place (replaceState, below), and Back / Forward
   // restore an entry whose server props are those of its first render (QA 11-15: /market → 요리 → 보석 →
@@ -1075,6 +1083,7 @@ function MarketContent({
               )}
             </section>
           </div>
+          <CrystalCard {...crystal} />
         </div>
       </main>
       <footer className={quote.footer}>
@@ -1087,6 +1096,7 @@ function MarketContent({
 export function MarketBoardView(props: {
   initial: BoardQuery;
   initialItem: number | null;
+  crystal: CrystalShopRate;
 }) {
   return (
     <LandingMotion>

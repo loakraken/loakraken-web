@@ -38,7 +38,7 @@ import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
+import { ArmorSimEnabled, CharacterEfficiencyEnabled, GuildTabEnabled, KarmaSimEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -469,6 +469,8 @@ export function CharacterView({
   receipt = true,
   settingCheck = true,
   simulator = true,
+  karmaSim = false,
+  armorSim = false,
   specUp = true,
   specUpPath = true,
   armoryPage = true,
@@ -487,6 +489,10 @@ export function CharacterView({
   settingCheck?: boolean;
   /** COMBAT_POWER_SIM on this deployment (server flag). */
   simulator?: boolean;
+  /** KARMA_SIM on this deployment (server flag): the simulator's 깨달음 카르마 레벨 field and karma steps. */
+  karmaSim?: boolean;
+  /** ARMOR_CP_SIM on this deployment (server flag): armour 재련 · 상급 재련 in the simulator and spec-up hand-offs. */
+  armorSim?: boolean;
   /** SPEC_UP_GUIDE on this deployment (server flag). */
   specUp?: boolean;
   /** SPEC_UP_PATH on this deployment (server flag): the 추천 순서 section. */
@@ -508,6 +514,8 @@ export function CharacterView({
     <ReceiptEnabled.Provider value={receipt}>
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
+          <KarmaSimEnabled.Provider value={karmaSim}>
+          <ArmorSimEnabled.Provider value={armorSim}>
           <SpecUpEnabled.Provider value={specUp}>
           <SpecUpPathEnabled.Provider value={specUpPath}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
@@ -525,6 +533,8 @@ export function CharacterView({
             </ArmoryPageEnabled.Provider>
           </SpecUpPathEnabled.Provider>
           </SpecUpEnabled.Provider>
+          </ArmorSimEnabled.Provider>
+          </KarmaSimEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>

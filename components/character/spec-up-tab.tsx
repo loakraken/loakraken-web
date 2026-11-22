@@ -1,14 +1,15 @@
 "use client";
 // 스펙업 tab (PM-프론트 10-11 16:37 ⑤): loaded when the tab opens, like the
 // simulator, so the other tabs do not carry it.
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
 import type { Character } from "@/lib/character/model";
 import { positionOf } from "@/lib/character/detail";
 import { fetchSpecUp } from "@/lib/spec-up/client";
-import { DEFAULT_SORT, specUpQuery } from "@/lib/spec-up/model";
+import { DEFAULT_SORT, specUpLead, specUpQuery } from "@/lib/spec-up/model";
 import { Panel } from "./panel";
+import { SpecUpPathEnabled } from "./tabs";
 import styles from "./detail.module.css";
 
 const loadGuide = () => import("./spec-up-guide");
@@ -55,6 +56,15 @@ export function SpecUpTab({ data }: { data: Character }) {
   if (!shown && (list.data || list.error)) setShown(true);
   const answer = list.data?.data;
   const supporterScored = !!answer && answer.sort === "KRAKEN" && !answer.krakenSortUnavailableReason;
+  // The lead sentence, drawn here so it is in the server HTML with the panel (#1858: it was the tab's LCP and
+  // came only after the guide's code and the first answer, ~5s on a slow phone). A dealer's is known now; a
+  // supporter's once their first answer (or its error) is in, as the guide was (the guide's pathOpen).
+  const pathEnabled = useContext(SpecUpPathEnabled);
+  const pathOpen = pathEnabled && (!supporter || answer?.supportOrderAvailable === true);
+  // A supporter's sentence waits for their first answer on purpose (it depends on supportOrderAvailable), so it is
+  // not in the server HTML. An unknown role (positionOf null) is asked and shown the dealer list (supporter false),
+  // so the dealer sentence describes what is on screen (PM-프론트 11-21, #1862).
+  const lead = !supporter || shown ? specUpLead({ supporter, pathOpen, pathEnabled }) : null;
   if (supporter && answer && !supporterScored)
     return (
       <Panel title="스펙업 가이드" wide>
@@ -66,6 +76,7 @@ export function SpecUpTab({ data }: { data: Character }) {
   return (
     <Panel title="스펙업 가이드" wide>
       <div className={styles.specUpBody}>
+        {lead && <p className={styles.simulatorLead}>{lead}</p>}
         {shown ? (
           <Guide data={data} supporter={supporter} />
         ) : (

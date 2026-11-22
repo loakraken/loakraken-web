@@ -12,6 +12,25 @@ const PIXEL = Buffer.from(
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const isLocal = (url) => LOCAL_HOSTS.has(new URL(url).hostname);
 
+/**
+ * The console errors the fixture does not count. Exported so a spec that collects its own errors (allowConsoleErrors,
+ * e.g. to also allow a font it blocks on purpose) keeps exactly these, not a copy that drifts (PM-프론트 #1787 P3).
+ */
+export function fixtureIgnoresConsole(message) {
+  const source = message.location().url;
+  // Blocked third-party requests are expected noise, not app errors.
+  if (source && !isLocal(source)) return true;
+  // Local Windows socket exhaustion under parallel runs, not an app error.
+  if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return true;
+  // The browser logs every 4xx/5xx fetch. Error-flow tests trigger those on
+  // purpose and assert the visible message instead.
+  return Boolean(
+    source &&
+      message.text().startsWith("Failed to load resource: the server responded with a status of") &&
+      new URL(source).pathname.startsWith("/api/"),
+  );
+}
+
 export const test = base.extend({
   allowConsoleErrors: [false, { option: true }],
 
@@ -25,20 +44,7 @@ export const test = base.extend({
     );
     const errors = [];
     page.on("console", (message) => {
-      if (message.type() !== "error") return;
-      const source = message.location().url;
-      // Blocked third-party requests are expected noise, not app errors.
-      if (source && !isLocal(source)) return;
-      // Local Windows socket exhaustion under parallel runs, not an app error.
-      if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
-      // The browser logs every 4xx/5xx fetch. Error-flow tests trigger those on
-      // purpose and assert the visible message instead.
-      if (
-        source &&
-        message.text().startsWith("Failed to load resource: the server responded with a status of") &&
-        new URL(source).pathname.startsWith("/api/")
-      )
-        return;
+      if (message.type() !== "error" || fixtureIgnoresConsole(message)) return;
       errors.push(message.text());
     });
     page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));

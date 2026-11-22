@@ -1,7 +1,7 @@
 // 회귀(#1567, #1555 리뷰 P2-2): 시뮬레이터가 무기 재련을 바꿀 수 있게 된 뒤에도 스펙업 '적용해 보기'와
-// 목표 경로가 무기 재련 단계를 빼고 넘겼다. 무기 재련은 넘기고, 방어구 재련은(api가 아직 계산하지 않음,
-// MODEL_UNCONFIRMED) 넘기지 않는다. 목: "스펙업무기재련"은 무기 +20(0번), 투구 +19(1번)이고, 무기·투구
-// 재련 후보가 둘 다 OK로 와서 화면의 무기만 열기 확인이 투구 줄을 막는지 본다.
+// 목표 경로가 무기 재련 단계를 빼고 넘겼다. 무기 재련은 넘긴다. 목: "스펙업무기재련"은 무기 +20(0번), 투구 +19(1번)이고,
+// 무기·투구 재련 후보가 둘 다 OK로 온다. 방어구 재련은 ARMOR_CP_SIM(e2e에서 켜짐)일 때만 넘긴다: 켜진 여기서는 투구
+// 줄도 열리고, 꺼진 화면(무기만)은 tests/armor-cp-sim.test.ts가 본다(PM 총괄 11-21).
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
@@ -17,13 +17,12 @@ async function expandAll(page) {
   await expect(more).toHaveCount(0);
 }
 
-/** The simulator tab with the weapon at +21 and the helmet still locked at +19; no shift while the answer lands. */
-async function expectWeaponAt21(page, mark) {
+/** The simulator tab with the weapon at +21 and the helmet at `helmet`; no shift while the answer lands. */
+async function expectWeaponAt21(page, mark, helmet = "19") {
   const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
   await expect(tabs.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("combobox", { name: "무기 재련 단계" })).toHaveText("21");
-  await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
-  await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveText(helmet);
   await expect(page.getByRole("region", { name: "바꾼 것" })).toContainText("20 → 21");
   await page.waitForTimeout(500);
   const { all, moved } = await shiftsSince(page, mark);
@@ -60,15 +59,15 @@ test("옵션이 늦게 와도 무기 재련 바꾸기는 옵션을 받은 뒤에
 });
 
 for (const width of [320, 1280]) {
-  test(`${width}: 무기 재련 후보만 '적용해 보기'가 있고, 누르면 그 단계로 시뮬레이터가 열린다 @regression`, async ({ page }) => {
+  test(`${width}: 무기 재련 '적용해 보기'는 무기 한 단계만 넣어 시뮬레이터를 연다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await page.goto(`${characterPath(NAME, "specup")}&sort=DELTA`);
     await expandAll(page);
     const table = page.getByRole("table", { name: /스펙업 후보/ });
-    // Both refine rows are listed; only the weapon's opens the simulator.
+    // Both refine rows are listed; with ARMOR_CP_SIM (on in e2e) the helmet's opens the simulator too.
     await expect(table.locator("tbody tr").filter({ hasText: "+19 테스트 투구" })).toHaveCount(1);
-    await expect(table.getByRole("link", { name: "+19 테스트 투구 +20 시뮬레이터에서 적용해 보기" })).toHaveCount(0);
+    await expect(table.getByRole("link", { name: "+19 테스트 투구 +20 시뮬레이터에서 적용해 보기" })).toHaveCount(1);
     const asked = simulateRequest(page);
     await table.getByRole("link", { name: "+20 테스트 무기 +21 시뮬레이터에서 적용해 보기" }).click();
     const body = (await asked).postDataJSON();
@@ -77,7 +76,7 @@ for (const width of [320, 1280]) {
     await expectWeaponAt21(page, mark);
   });
 
-  test(`${width}: 목표 경로를 시뮬레이터에서 열면 무기 재련 단계는 들어가고 방어구 재련 단계는 빠진다 @regression`, async ({ page }) => {
+  test(`${width}: 목표 경로를 시뮬레이터에서 열면 무기 재련 단계와 (ARMOR_CP_SIM) 방어구 재련 단계가 들어간다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await page.goto(`${characterPath(NAME, "specup")}&sort=DELTA`);
@@ -85,16 +84,17 @@ for (const width of [320, 1280]) {
     // Past the weapon step (12,495.52), so the path ends on the helmet step (12,505.52).
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12500");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal).toContainText("1개 단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.");
+    await expect(goal).not.toContainText("시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요");
     const asked = simulateRequest(page);
     await goal.getByRole("link", { name: "이 경로를 시뮬레이터에서 열기" }).click();
     const body = (await asked).postDataJSON();
     const mark = await shiftMark(page);
-    // Gems 8 → 10 (slot 1 in the mock), weapon quality 90 → 100 and the weapon's refine; no armour refine.
+    // Gems 8 → 10 (slot 1 in the mock), weapon quality 90 → 100, the weapon's refine and (ARMOR_CP_SIM) the helmet's.
     expect(body.changes.filter((change) => change.kind === "EQUIPMENT_REFINE")).toEqual([
       { kind: "EQUIPMENT_REFINE", index: 0, refine: 21 },
+      { kind: "EQUIPMENT_REFINE", index: 1, refine: 20 },
     ]);
-    expect(body.changes.map((change) => change.kind)).toEqual(["GEM_LEVEL", "EQUIPMENT_REFINE", "EQUIPMENT_QUALITY"]);
-    await expectWeaponAt21(page, mark);
+    expect(body.changes.map((change) => change.kind)).toEqual(["GEM_LEVEL", "EQUIPMENT_REFINE", "EQUIPMENT_QUALITY", "EQUIPMENT_REFINE"]);
+    await expectWeaponAt21(page, mark, "20");
   });
 }

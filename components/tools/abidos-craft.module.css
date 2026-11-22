@@ -329,3 +329,41 @@
     display: none;
   }
 }
+
+/* 직접 채집 (abidos-craft.tsx GatherField): one switch for all, then a box per material by life skill. */
+.gather {
+  display: grid;
+  gap: var(--space-2);
+}
+.gatherSkill {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.gatherSkill legend {
+  padding: 0;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.gatherMaterials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+.gatherMaterials label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.gatherMaterials input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--action);
+}

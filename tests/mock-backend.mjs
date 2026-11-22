@@ -1,6 +1,6 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
@@ -102,6 +102,31 @@ function withSimulatorGear(data) {
   return data;
 }
 /**
+ * '실표본n' (v0.3.15 real path answers): the gear their steps name, in the official order the steps index (0 weapon,
+ * 1 투구, 2 상의, 3 하의, 4 장갑, 5 어깨) plus the arm guard, so the simulator gate sees each refine step's piece
+ * (PM-프론트 #1845: with only 0 and 1 the armour steps stayed out for want of a piece, not by the gate). 실표본2's weapon
+ * is 업화 as the sample's is (+16, 상급 재련 21 → 40 in its path), so its 상급 재련 opens in the simulator (#1847).
+ */
+function withSampleGear(data, n) {
+  const [weapon, helmet] = data.loadout.equipment;
+  const piece = (type, name, refineLevel) => ({ ...helmet, type, name, detail: { ...helmet.detail, refineLevel, advancedRefineLevel: 0 } });
+  const upgrade = n === "2";
+  data.loadout.equipment = [
+    {
+      ...weapon,
+      name: upgrade ? "+16 업화 테스트 무기" : "+20 테스트 무기",
+      detail: { ...helmet.detail, refineLevel: upgrade ? 16 : 20, advancedRefineLevel: upgrade ? 21 : 0, quality: 90 },
+    },
+    piece("투구", "+20 테스트 투구", 20),
+    piece("상의", "+20 테스트 상의", 20),
+    piece("하의", "+20 테스트 하의", 20),
+    piece("장갑", "+20 테스트 장갑", 20),
+    piece("어깨", "+20 테스트 어깨", 20),
+    { ...piece("완갑", "+20 테스트 완갑", 20), grade: "고대" },
+  ];
+  return data;
+}
+/**
  * The simulator's ark rows (api #838 core, #842 도약): a 도약 tree beside 진화, and a
  * 혼돈의 별 : 무기 core the api does not compute yet, so its row stays locked.
  */
@@ -112,6 +137,53 @@ function withArkSimulator(data) {
     { name: "도약", value: 60, description: "포인트 설명" },
   );
   data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
+  return data;
+}
+/**
+ * 깨달음 카르마 레벨 (api #1004, web #1781): the ark rows with a 깨달음 point whose description carries the karma
+ * level ("6랭크 29레벨", as the official armory writes it), and since api #1023 the same level as karmaLevel.
+ * '전투력카르마' opens the simulator with it; '스펙순서카르마' is the spec-up path with a KARMA_LEVEL step on the
+ * same character.
+ */
+const KARMA_NAMES = ["전투력카르마", "스펙순서카르마"];
+/**
+ * The armour CP gate (api PR3, spec-up.armor-cp-gate.enabled on; web ARMOR_CP_SIM). '방어구문열림' is a dealer inside
+ * the gate (item-built CP = official): armour 재련 · 상급 재련 · 완갑 are computed like any row. '방어구문닫힘' is
+ * outside (official CP 1% above): those rows come back ARMOR_CP_RESIDUAL_HIGH with the agreed sentence; the rest is
+ * computed. Names and sentence as in the backend's PR3 samples.
+ */
+const ARMOR_OPEN = "방어구문열림";
+const ARMOR_CLOSED = "방어구문닫힘";
+const ARMOR_GATE_NAMES = [ARMOR_OPEN, ARMOR_CLOSED];
+const ARMOR_RESIDUAL_CODE = "ARMOR_CP_RESIDUAL_HIGH";
+const ARMOR_RESIDUAL_TEXT = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+/**
+ * An 업화 weapon with 상급 재련 21 (PM 총괄 11-21: the weapon's 상급 재련 opens for 업화 only; 계산 검증 04:36 PASS).
+ * Other mock weapons ("테스트 무기") are not 업화, so their field stays hidden.
+ */
+const UPGRADE_WEAPON = "무기상재업화";
+/** An 에스더 weapon that reads a 상급 재련 step (10): no model there, so the field is hidden all the same. */
+const ESTHER_WEAPON = "무기상재에스더";
+function withUpgradeWeapon(data, name = UPGRADE_WEAPON) {
+  const weapon = data.loadout.equipment.find((item) => item.type === "무기");
+  weapon.name = name === ESTHER_WEAPON ? "+8 에스더 테스트 무기" : "+16 업화 테스트 무기";
+  weapon.detail = { ...weapon.detail, refineLevel: name === ESTHER_WEAPON ? 8 : 16, advancedRefineLevel: name === ESTHER_WEAPON ? 10 : 21 };
+  return data;
+}
+/** Armour (not the weapon) 재련 · 상급 재련: what the api's armour switch holds while it is off (MODEL_UNCONFIRMED). */
+const armourRefine = (search, change) =>
+  (change.kind === "EQUIPMENT_REFINE" || change.kind === "EQUIPMENT_ADVANCED_REFINE") &&
+  search.loadout.equipment[change.index]?.type !== "무기";
+/** A change the gate holds: armour (not the weapon) 재련 · 상급 재련, or 완갑. */
+const armourGated = (search, change) =>
+  change.kind === "ARM_GUARD" ||
+  ((change.kind === "EQUIPMENT_REFINE" || change.kind === "EQUIPMENT_ADVANCED_REFINE") &&
+    search.loadout.equipment[change.index]?.type !== "무기");
+function withKarma(data) {
+  withArkSimulator(data);
+  const point = data.loadout.arkPassive.points.find((item) => item.name === "깨달음");
+  point.description = "6랭크 29레벨";
+  point.karmaLevel = 29;
   return data;
 }
 const marketRead = (name) =>
@@ -908,6 +980,11 @@ createServer(async (req, res) => {
         return [`스톤 ${s.name}`, String(s.level)];
       }
       case "ARK_PASSIVE_POINT": {
+        // 깨달음 카르마 (api #1004): its own target, from the level in the point's description.
+        if (change.karmaLevel != null) {
+          const point = loadout.arkPassive.points.find((x) => x.name === "깨달음");
+          return ["깨달음 카르마", point?.description?.match(/(\d+)레벨/)?.[1] ?? null];
+        }
         const p = loadout.arkPassive.points.find((x) => x.name === change.tree);
         return [`아크 패시브 ${p.name}`, String(p.value)];
       }
@@ -928,7 +1005,7 @@ createServer(async (req, res) => {
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
     : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
-    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
+    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? change.karmaLevel ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
   // 스펙업 가이드(백엔드 #318 표본). '스펙업꺼짐'은 SPEC_UP_DISABLED, '스펙업시세'는
@@ -947,16 +1024,59 @@ createServer(async (req, res) => {
     const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // Real answers (v0.3.15 readiness, api develop c76685dc: #1019 jumps, #1029 armor/완갑 with the CP stop, #1033 상재):
+    // '실표본<n>' serves spec-up-fixtures/v0315/<n>-<SORT>.json as saved, names already placeholders.
+    if (who?.startsWith("실표본")) {
+      const file = new URL(`./spec-up-fixtures/v0315/${who.slice(3)}-${sort}.json`, import.meta.url);
+      // 점수 효율 is offered by the list answer's supportOrderAvailable (on for '실표본', below).
+      // The switch fields (api, v0.3.15, PM 총괄 11-21): saved on a stub api with both switches on, so 1 and 2 say so —
+      // 실표본1 has no karma step (on, none picked: the note follows the field, not the steps); 3 and 4 stay as saved,
+      // an api before the fields.
+      const considered = { 1: true, 2: true }[who.slice(3)];
+      if (existsSync(file)) {
+        const saved = JSON.parse(readFileSync(file, "utf8"));
+        if (considered) Object.assign(saved.data, { polishStepsConsidered: true, karmaStepsConsidered: true });
+        return send(saved);
+      }
+    }
+    // '범위카르마30' (api #1038, develop 7c96875d): 백엔드's real answer for a dealer whose karma is already 30 with the
+    // karma switch on (karmaStepsConsidered true, no karma step) and the polish switch off. Names are placeholders.
+    if (who === "범위카르마30")
+      return send(JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-karma-considered.json", import.meta.url), "utf8")));
     // Busy every time: the web asks again after each Retry-After (3 times, api #989), then shows the notice.
     if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" });
     // 추천 순서 by score (api #967), offered where the api says it runs (supportOrderAvailable, api #971):
     // '점수순서서폿' answers sort=KRAKEN with the api's own supporter answer (#969 test, combat power null),
     // '점수순서딜러' with the sample in its 크라켄 점수 (combat power kept). Every other name: switch off.
-    const supportOrder = who === "점수순서딜러" || who === "점수순서서폿";
+    // api #993: every path answer carries knownCostTotal (the gold of the steps whose cost is known, their extraCost)
+    // and unknownCostSteps (how many have none); 0 and 0 with no steps. Answers that set their own ('스펙순서비용모름…')
+    // keep them, and '스펙순서비용모름옛' stays an answer from an api before #993. The supporter KRAKEN answer (the api's
+    // #969 test answer, from before #993) gets them too, as today's api sends them (PM-프론트 #1778 P3).
+    // Path rule (the web's cost note keys on it): every answer is on the coming rule, spec-up-path-v7 (api #1019 level
+    // jumps); '스펙순서규칙6' on v6 (the api before #1019); '…옛' on the rule before #993 (v5) and '스펙순서규칙모름' on one
+    // the web has not checked (v9), so their notes make no per-step claim (PM-프론트 #1793 P3, 11-20 22:53).
+    const pathRule = { 스펙순서비용모름옛: "spec-up-path-v5", 스펙순서규칙6: "spec-up-path-v6", 스펙순서규칙모름: "spec-up-path-v9" };
+    const withCostParts = (env) => {
+      const data = env.data;
+      if (data) data.ruleVersion = pathRule[who] ?? "spec-up-path-v7";
+      // '스펙순서범위꺼짐': production after the switch fields ship, both switches off (false); every other name here is an
+      // api before the fields (no field).
+      if (data && who === "스펙순서범위꺼짐") Object.assign(data, { polishStepsConsidered: false, karmaStepsConsidered: false });
+      // '스펙순서범위켜짐': both switches on but no such step picked (e.g. karma already at 30): no sentence about them.
+      if (data && who === "스펙순서범위켜짐") Object.assign(data, { polishStepsConsidered: true, karmaStepsConsidered: true });
+      if (!data || "knownCostTotal" in data || who === "스펙순서비용모름옛") return env;
+      const extras = (data.steps ?? []).map((step) => step.extraCost ?? null);
+      data.knownCostTotal = extras.reduce((sum, extra) => sum + (extra ?? 0), 0);
+      data.unknownCostSteps = extras.filter((extra) => extra === null).length;
+      return env;
+    };
+    // '점수순서방어구…' (api #1029): a dealer whose 점수 효율 path stops giving combat power at step 2 ('…첫': step 1).
+    const krakenDealer = who === "점수순서딜러" || !!who?.startsWith("점수순서방어구");
+    const supportOrder = krakenDealer || who === "점수순서서폿";
     if (who === "점수순서서폿" && sort === "KRAKEN") {
       const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-supporter.json", import.meta.url), "utf8"));
       Object.assign(real.data, { characterName: who, supportOrderAvailable: true, krakenScoreRole: "SUPPORT" });
-      return send(real);
+      return send(withCostParts(real));
     }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
     const d = envelope.data;
@@ -970,29 +1090,37 @@ createServer(async (req, res) => {
     if (who === "점수순서서폿") {
       // A supporter's other orders: no combat-power model, no steps (as 상세서포터).
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     // QA 11-01 P3: no step because every candidate is unpriced (gem prices missing).
     if (who === "스펙순서시세없음") {
       const unpriced = Array.from({ length: 3 }, (_, i) => ({ ...structuredClone(d.unpriced[0]), candidateId: `GEM_LEVEL:${i}:9`, target: `보석 ${i + 1}` }));
       Object.assign(d, { steps: [], unpriced, finalCombatPower: base, totalCost: 0, stopReasonCode: "NO_CANDIDATE", stopReason: "시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요." });
-      return send(envelope);
+      return send(withCostParts(envelope));
     }
     for (const step of d.steps) {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
     }
-    if (who === "점수순서딜러" && sort === "KRAKEN") {
+    if (krakenDealer && sort === "KRAKEN") {
       const start = 1000;
       d.steps.forEach((step, i) =>
         Object.assign(step, { deltaKrakenScore: 7.5, krakenScoreAfter: start + 7.5 * (i + 1), krakenScorePer100kGold: i === 0 ? 1.25 : 0.38 }),
       );
       Object.assign(d, { krakenScore: start, finalKrakenScore: start + 7.5 * d.steps.length, krakenScoreRole: "DEALER", stopReason: "시세가 있는 항목 가운데 점수가 오르는 것을 모두 골랐어요." });
+      // From the armor step on the api leaves combat power out (null), score and cost stay (api #1029).
+      // '…잔차' (api #1036, armour gate switch on): the dealer's official and equipment-built CP differ by more than 0.10%.
+      if (who.startsWith("점수순서방어구")) {
+        const stop = who.endsWith("첫") ? 1 : 2;
+        const code = who.endsWith("잔차") ? "ARMOR_CP_RESIDUAL_HIGH" : "ARMOR_REFINE_CP_UNCONFIRMED";
+        d.steps.forEach((step) => step.order >= stop && Object.assign(step, { deltaCombatPower: null, combatPowerAfter: null, combatPowerPer10kGold: null }));
+        Object.assign(d, { finalCombatPower: null, combatPowerStopOrder: stop, combatPowerStopReasonCode: code });
+      }
     }
     // A stone step as api #812 words it (two engravings each side): the longest change text.
     if (who === "스펙순서스톤") {
@@ -1070,13 +1198,31 @@ createServer(async (req, res) => {
         added.push(step);
       }
       d.steps = all ? added : [...d.steps, ...added];
-      Object.assign(d, { finalCombatPower: after, totalCost: null, unpriced: [], ruleVersion: "spec-up-path-v6" });
+      Object.assign(d, { finalCombatPower: after, totalCost: null, unpriced: [] });
       if (who === "스펙순서비용모름긴") Object.assign(d, { stopReasonCode: "STEP_LIMIT", limit: d.steps.length });
       if (who !== "스펙순서비용모름옛")
         Object.assign(d, { knownCostTotal: who === "스펙순서비용모름긴" ? 1_234_567_890 : known, unknownCostSteps: count });
     }
     // A 연마 step (api #951): another 목걸이 for the simulator gear's one, a line per change; its second line
     // has no scoring option (NONE, grade null), and `change` is the first (a named option).
+    // A 깨달음 카르마 step (api #1004): KARMA_LEVEL, change ARK_PASSIVE_POINT 깨달음 karmaLevel (no points).
+    if (who === "스펙순서카르마") {
+      const change = { ...d.steps[0].change, kind: "ARK_PASSIVE_POINT", slot: null, level: null, tree: "깨달음", karmaLevel: 30 };
+      d.steps.push({
+        ...structuredClone(d.steps[0]),
+        order: d.steps.length + 1,
+        candidateId: "KARMA_LEVEL:깨달음:30",
+        kind: "KARMA_LEVEL",
+        target: "깨달음 카르마",
+        from: "29레벨",
+        to: "30레벨",
+        change,
+        changes: [change],
+        deltaCombatPower: 3.1,
+        combatPowerAfter: Math.round((d.finalCombatPower + 3.1) * 100) / 100,
+      });
+      d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
+    }
     if (who === "스펙순서연마") {
       const index = withSimulatorGear(read("character-full-data.json")).loadout.equipment.findIndex((item) => item.type === "목걸이");
       const line = (n, option, grade) => ({ ...d.steps[0].change, kind: "POLISH", slot: null, level: null, index, line: n, option, grade });
@@ -1096,7 +1242,7 @@ createServer(async (req, res) => {
       });
       d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
     }
-    return send(envelope);
+    return send(withCostParts(envelope));
   }
   if (url.pathname === "/api/v1/characters/spec-up/goal") {
     const who = url.searchParams.get("characterName");
@@ -1168,6 +1314,41 @@ createServer(async (req, res) => {
       d.steps.push(refine(0, "+20 테스트 무기", 20, top + 10), refine(1, "+19 테스트 투구", 19, top + 20));
       d.steps.forEach((step, i) => (step.order = i + 1));
     }
+    // The armour CP gate, inside (PR3): the path may rank a 투구 재련 and a 투구 상급 재련 step, both with CP.
+    if (who === ARMOR_OPEN) {
+      const [gem] = d.steps;
+      const last = d.steps.at(-1);
+      const top = last.combatPowerAfter;
+      const step = (candidateId, kind, target, from, to, change, after) => ({
+        ...gem,
+        candidateId,
+        kind,
+        target,
+        from,
+        to,
+        change: { slot: null, level: null, refine: null, quality: null, name: null, ...change },
+        changes: undefined,
+        deltaCombatPower: after - top,
+        combatPowerAfter: after,
+        cost: { ...last.cost },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+      });
+      d.steps.push(
+        step("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { kind: "EQUIPMENT_REFINE", index: 1, refine: 20 }, top + 12.5),
+        // Path 상급 재련 steps go by tens (api #1019): 10 → 20.
+        step(
+          "EQUIPMENT_ADVANCED_REFINE:1:20",
+          "EQUIPMENT_ADVANCED_REFINE",
+          "+19 테스트 투구",
+          "상급 재련 10단계",
+          "상급 재련 20단계",
+          { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, level: 20 },
+          top + 20.75,
+        ),
+      );
+      d.steps.forEach((s, i) => (s.order = i + 1));
+    }
     const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
     d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
     const last = d.steps.at(-1);
@@ -1207,6 +1388,25 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
+    // web's own limit=50 request. '실목록2전체' is 실목록2's limit=200 KRAKEN answer, for the weapon 상급 재련 row a limit-50
+    // answer never carries.
+    // api #1042: '실목록1사유' is 실목록1's answer (any sort) with the score reason the api now gives its empty gem
+    // slots (OK, ΔK null, emptySlot true): code + sentence as api #1042 sends them.
+    if (who === "실목록1사유") {
+      const answer = specUp(`v0315-list/실목록1-${url.searchParams.get("sort") ?? "EFFICIENCY"}.json`);
+      for (const c of answer.data.candidates)
+        if (c.emptySlot && c.deltaKrakenScore == null)
+          Object.assign(c, {
+            krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT",
+            krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.",
+          });
+      return send(answer);
+    }
+    if (who?.startsWith("실목록")) {
+      const sort = who === "실목록2전체" ? "KRAKEN" : (url.searchParams.get("sort") ?? "EFFICIENCY");
+      return send(specUp(`v0315-list/${who}-${sort}.json`));
+    }
     // 크라켄 점수 정렬 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
     // score switched off (the answer comes as EFFICIENCY with a reason), and
     // "스펙업옛응답" is a backend from before #573 (no score fields at all).
@@ -1223,12 +1423,12 @@ createServer(async (req, res) => {
       if (who === "상세서포터" || who === "점수순서서폿")
         for (const c of kraken.data.candidates)
           Object.assign(c, { deltaCombatPower: null, combatPowerPer10kGold: null, deltaPercent: null });
-      if (who === "점수순서딜러" || who === "점수순서서폿")
+      if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who === "점수순서서폿")
         Object.assign(kraken.data, { supportOrderAvailable: true, krakenScoreRole: who === "점수순서서폿" ? "SUPPORT" : "DEALER" });
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
-    if (who === "점수순서딜러") envelope.data.supportOrderAvailable = true;
+    if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who?.startsWith("실표본")) envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
     // '적용해 보기' off the armour row.
@@ -1245,6 +1445,60 @@ createServer(async (req, res) => {
         deltaCombatPower: 12.5,
         deltaPercent: 0.4,
       });
+    }
+    // An 업화 weapon's 상급 재련 candidate (the list's +1 step), computed (PM 총괄 11-21).
+    if (who === UPGRADE_WEAPON) {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      envelope.data.candidates.push({
+        ...weapon,
+        id: "EQUIPMENT_ADVANCED_REFINE:0:22",
+        kind: "EQUIPMENT_ADVANCED_REFINE",
+        target: "+16 업화 테스트 무기",
+        from: "상급 재련 21단계",
+        to: "상급 재련 22단계",
+        change: { ...weapon.change, kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, refine: null, level: 22 },
+        status: "OK",
+        deltaCombatPower: 9.12,
+        deltaPercent: 0.228,
+        reasonCode: null,
+        reason: null,
+        reasonDetail: null,
+      });
+    }
+    // The armour CP gate (PR3): a 투구 재련 and a 투구 상급 재련 candidate. Inside, computed like any row (ΔCP and
+    // per 10k); outside, held with the gate's code and sentence (folded at the end of the list).
+    if (ARMOR_GATE_NAMES.includes(who)) {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      const open = who === ARMOR_OPEN;
+      const armour = (id, kind, target, from, to, change, deltaCombatPower) => ({
+        ...weapon,
+        id,
+        kind,
+        target,
+        from,
+        to,
+        change: { ...weapon.change, ...change },
+        status: open ? "OK" : "UNSUPPORTED",
+        deltaCombatPower: open ? deltaCombatPower : null,
+        deltaPercent: open ? Math.round((deltaCombatPower / 4000) * 100_000) / 1000 : null,
+        combatPowerPer10kGold: open && weapon.cost?.amount ? Math.round((deltaCombatPower / weapon.cost.amount) * 1_000_000) / 100 : null,
+        reasonCode: open ? null : ARMOR_RESIDUAL_CODE,
+        reason: open ? null : ARMOR_RESIDUAL_TEXT,
+        reasonDetail: null,
+      });
+      envelope.data.candidates.push(
+        armour("EQUIPMENT_REFINE:1:20", "EQUIPMENT_REFINE", "+19 테스트 투구", "+19", "+20", { index: 1, refine: 20, level: null }, 12.5),
+        // 상급 재련 (업화 gear only), the list's +1 step: kind and id as the api sends them (백엔드 11-21).
+        armour(
+          "EQUIPMENT_ADVANCED_REFINE:1:11",
+          "EQUIPMENT_ADVANCED_REFINE",
+          "+19 테스트 투구",
+          "상급 재련 10단계",
+          "상급 재련 11단계",
+          { kind: "EQUIPMENT_ADVANCED_REFINE", index: 1, refine: null, level: 11 },
+          8.25,
+        ),
+      );
     }
     if (who !== "스펙업옛응답")
       Object.assign(envelope.data, {
@@ -1317,12 +1571,14 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약"].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
-    if (request.characterName === "전투력코어도약") withArkSimulator(search);
+    if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
+    else if (request.characterName === "전투력코어도약") withArkSimulator(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
+    if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -1344,12 +1600,26 @@ createServer(async (req, res) => {
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
-    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
+    // The api's armour switch off (every character but the gate's two): armour 재련 · 상급 재련 held as today, whatever
+    // the web sent. The proxy passes an armour 상급 재련 (it cannot tell its index from the weapon's); this holds it.
+    if (computed && !ARMOR_GATE_NAMES.includes(request.characterName))
+      request.changes.forEach((change, i) => {
+        if (armourRefine(search, change))
+          Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: "방어구 재련 전투력은 계산식을 확인하고 있습니다.", reasonCode: "MODEL_UNCONFIRMED" });
+      });
+    // Outside the armour CP gate: the armour rows are held with the gate's reason, the rest computed.
+    if (request.characterName === ARMOR_CLOSED)
+      request.changes.forEach((change, i) => {
+        if (armourGated(search, change))
+          Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: ARMOR_RESIDUAL_TEXT, reasonCode: ARMOR_RESIDUAL_CODE });
+      });
+    const held = d.contributions.filter((item) => item.status !== "OK").length;
+    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + (item.delta ?? 0), 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
     d.delta = d.before == null ? null : delta;
     d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
-    d.unsupportedCount = computed ? 0 : d.contributions.length;
-    d.partial = !computed && d.contributions.length > 0;
+    d.unsupportedCount = computed ? held : d.contributions.length;
+    d.partial = held > 0 && d.contributions.length > 0;
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
@@ -1576,7 +1846,11 @@ createServer(async (req, res) => {
     const times = (...hours) => hours.map((h) => at(h));
     // Real calendar minutes (backend 2026-10-09): chaos gates at :50, others mixed.
     const timesAt = (minute, ...hours) => hours.map((h) => at(h, minute));
-    const next = (list) => list.find((t) => Date.parse(t) > Date.now()) ?? (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
+    // nextAt = the next day's first round, at any real hour (#1816). The web reads nextAt only once a section has no
+    // round left today ('오늘 일정 종료 · 내일 09:00'); a spec that pins the page past the day's last round must get
+    // tomorrow's time, as the backend would answer at that hour, not the next round after the mock's own clock (which
+    // the page has already passed). A section with rounds still ahead uses its startTimes, not nextAt.
+    const next = (list) => (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
     const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
     // Rewards (backend #118): ItemLevel groups in official order; timed = tied to that day's rounds.
     const rw = (name, grade, timed = false) => ({ name, icon: null, grade, timed });
@@ -2796,8 +3070,11 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(name)) withSimulatorGear(envelope.data);
+  if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
+  if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
+  if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
+  if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
@@ -3101,6 +3378,13 @@ createServer(async (req, res) => {
     d.analysis.position = supportRole ? "SUPPORT" : "DEALER";
     d.analysis.positionEvidence = supportRole ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
+    // #1862: a support class whose role is not settled — no position from the api and no 깨달음 node (positionOf null).
+    if (name === "역할모름바드") {
+      d.className = "바드";
+      d.analysis.position = null;
+      d.analysis.positionEvidence = null;
+      if (d.loadout.arkPassive) d.loadout.arkPassive.effects = [];
+    }
     // Ark grid detail (F-4): six cores with options, gems and willpower.
     const icon = (path) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/${path}`;
     const cores = [

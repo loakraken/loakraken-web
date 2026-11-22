@@ -181,6 +181,10 @@ export type TabId = (typeof TABS)[number]["id"];
 export const SettingCheckEnabled = createContext(true);
 /** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
 export const SimulatorEnabled = createContext(true);
+/** KARMA_SIM (server flag): the simulator's 깨달음 카르마 레벨 field, and spec-up karma steps opening in it. */
+export const KarmaSimEnabled = createContext(false);
+/** ARMOR_CP_SIM (server flag): armour 재련 · 상급 재련 in the simulator, and spec-up armour steps opening in it. */
+export const ArmorSimEnabled = createContext(false);
 /** TITLE_STATS (server flag): the equip share beside each roster title. */
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */

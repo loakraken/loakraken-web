@@ -3,7 +3,7 @@
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
-import { ARM_GUARD_GRADES, GRADES, isRefineOpen, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
+import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, isUpgradeGear, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
 
 const isGrade = (value: unknown): value is Grade => (GRADES as readonly unknown[]).includes(value);
 
@@ -77,6 +77,8 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
   EQUIPMENT_QUALITY: "품질",
   EQUIPMENT_REFINE: "재련",
   ADVANCED_REFINE: "상급 재련",
+  // The list's 상급 재련 candidates (업화 gear) come as EQUIPMENT_ADVANCED_REFINE (백엔드 11-21): without it they read "기타".
+  EQUIPMENT_ADVANCED_REFINE: "상급 재련",
   ENGRAVING_LEVEL: "각인",
   STONE_ENGRAVING: "스톤",
   POLISH: "연마",
@@ -102,6 +104,33 @@ export const polishBasis = (candidate: Pick<Candidate, "kind" | "deltaCombatPowe
   candidate.kind === "POLISH" && candidate.deltaCombatPower != null ? POLISH_BASIS : null;
 export const kindLabel = (kind: string) =>
   Object.hasOwn(SPEC_UP_KIND_LABEL, kind) ? SPEC_UP_KIND_LABEL[kind] : UNKNOWN_KIND_LABEL;
+
+/**
+ * The 스펙업 tab's lead sentence (the tab draws it, not the guide, so it is in the server HTML: the tab's LCP at
+ * 320 on a slow network, #1858). A supporter's depends on their first answer (`pathOpen`: 추천 순서 by score runs).
+ */
+export function specUpLead({ supporter, pathOpen, pathEnabled }: { supporter: boolean; pathOpen: boolean; pathEnabled: boolean }) {
+  if (supporter)
+    return pathOpen
+      ? // A supporter's first view is 추천 순서 by score once it runs (PM 총괄 11-15).
+        "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
+      : "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요.";
+  return pathEnabled
+    ? // The dealer's first view is 추천 순서 (layout A, 11-02).
+      "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
+    : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
+      "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요.";
+}
+
+/** A row with no combat power: the 전투력 cell shows a dash, and the 크라켄 점수 footer counts it (one test for both). */
+export const noCombatPower = (candidate: { deltaCombatPower?: number | null }) => candidate.deltaCombatPower == null;
+
+/**
+ * A candidate's kind as the screen names it. 완갑 rows come as kind EQUIPMENT_REFINE with change.kind ARM_GUARD (api,
+ * 백엔드 11-21): named 완갑, as the path names the same step, not 재련.
+ */
+export const candidateKindLabel = (candidate: { kind: string; change?: { kind?: string | null } | null }) =>
+  candidate.change?.kind === "ARM_GUARD" ? "완갑" : kindLabel(candidate.kind);
 
 /** The site reads a gem by its role (보석은 '10겁 8작', user 10-22): gemType → word. */
 const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" };
@@ -208,7 +237,6 @@ export function keepOrder(list: Candidate[], ids: readonly string[] | null) {
     .map((row) => row.candidate);
 }
 
-/** OK rows in the backend's order; the rest folded into one line per reason. */
 /**
  * Several stages of one target (각인 0→2 / 0→3 / 0→4, one gem slot's 9·10레벨,
  * one part's +19 / +20) as one row (사용자 제보 #26): the first stage in the list's
@@ -228,20 +256,47 @@ export function groupStages(list: Candidate[]): { head: Candidate; more: Candida
   return [...groups.values()];
 }
 
-export function splitCandidates(list: Candidate[]) {
-  const ok = list.filter((c) => c.status === "OK");
+/**
+ * A computed (OK) row the 크라켄 점수 split cannot rank: no Δ점수 and no reason from the api (빈 보석 칸 rows,
+ * v0.3.15). The web's own code, never the api's; it folds with a plain sentence instead of being dropped. Where the
+ * api says why (krakenScoreReasonCode · krakenScoreReason, api #1042; optional until it ships) the 크라켄 점수 fold uses
+ * its code and sentence (splitKrakenCandidates), over a combat-power reason too.
+ */
+export const KRAKEN_UNSCORED = "WEB_KRAKEN_UNSCORED";
+export const KRAKEN_UNSCORED_REASON = "이 항목은 크라켄 점수를 아직 계산하지 않았어요.";
+
+/**
+ * Whether the api counts a row in a 크라켄 점수 list's total (SpecUpService: ranked = OK or a Δ점수): the rows
+ * the answer's first `limit` were taken from, ranked on screen or folded.
+ */
+export const krakenRanked = (c: Pick<Candidate, "status" | "deltaKrakenScore">) => c.status === "OK" || c.deltaKrakenScore != null;
+
+/**
+ * The ranked rows (`ranked`, by default OK) in the list's order; every other row folded into one line per
+ * reason, so no row is left off the screen.
+ */
+export function splitCandidates(
+  list: Candidate[],
+  ranked: (c: Candidate) => boolean = (c) => c.status === "OK",
+  /** The reason a folded row shows when it is not the combat-power one (크라켄 점수: the score's own, api #1042). */
+  ownReason: (c: Candidate) => { code: string; reason: string } | null = () => null,
+) {
+  const ok = list.filter(ranked);
   const folded = new Map<string, Folded>();
   for (const c of list) {
-    if (c.status === "OK") continue;
-    const code = c.reasonCode ?? "UNKNOWN";
+    if (ranked(c)) continue;
+    const own = ownReason(c);
+    const unscored = c.status === "OK" && !c.reasonCode;
+    // An unscored row says why when the api does (krakenScoreReasonCode, api #1042: 빈 보석 칸); else the web's line.
+    const code = own?.code ?? c.reasonCode ?? (unscored ? KRAKEN_UNSCORED : "UNKNOWN");
     const entry = folded.get(code) ?? {
       code,
-      reason: c.reason ?? "이 항목은 아직 계산하지 않았어요.",
+      reason: own?.reason ?? c.reason ?? (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
       kinds: [],
       candidates: [],
     };
     entry.candidates.push(c);
-    const label = kindLabel(c.kind);
+    const label = candidateKindLabel(c);
     if (!entry.kinds.includes(label)) entry.kinds.push(label);
     folded.set(code, entry);
   }
@@ -254,7 +309,7 @@ export function splitCandidates(list: Candidate[]) {
       .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
       .map((entry) => {
         const candidates = [...entry.candidates].sort(byId);
-        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => kindLabel(c.kind)))] };
+        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => candidateKindLabel(c)))] };
       }),
   };
 }
@@ -265,12 +320,18 @@ export function splitCandidates(list: Candidate[]) {
  * not edit yet give null, and the screen shows no button for them.
  * `gearType` names the slot of an equipment index (무기, 투구 …): refine opens
  * for the weapon only (api #884), so without it a refine step gives null (#1567).
+ * `armor` (ARMOR_CP_SIM): armour 재련 and 상급 재련 open too (the api's armour CP gate, PM 총괄 11-21).
  */
-export function editsFor(change: SpecUpChange | null | undefined, base: Edits, gearType?: GearType): Edits | null {
+export function editsFor(
+  change: SpecUpChange | null | undefined,
+  base: Edits,
+  gearType?: GearType,
+  armor = false,
+): Edits | null {
   if (!change) return null;
   switch (change.kind) {
     case "EQUIPMENT_REFINE":
-      return change.index != null && change.refine != null && gearType && isRefineOpen(gearType(change.index))
+      return change.index != null && change.refine != null && gearType && isRefineOpen(gearType(change.index), armor)
         ? { ...base, refine: { ...base.refine, [change.index]: change.refine } }
         : null;
     case "GEM_LEVEL":
@@ -290,6 +351,16 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
     case "STONE_ENGRAVING":
       return change.name && change.level != null
         ? { ...base, stone: { ...base.stone, [change.name]: change.level } }
+        : null;
+    // 상급 재련: an 업화 weapon (gearType.upgrade), or armour with ARMOR_CP_SIM, inside 0..ADVANCED_REFINE_MAX.
+    case "EQUIPMENT_ADVANCED_REFINE":
+      return change.index != null &&
+        change.level != null &&
+        change.level >= 0 &&
+        change.level <= ADVANCED_REFINE_MAX &&
+        gearType &&
+        isAdvancedRefineOpen(gearType(change.index), armor, gearType.upgrade?.(change.index) ?? false)
+        ? { ...base, advanced: { ...base.advanced, [change.index]: change.level } }
         : null;
     // 완갑 (api #809): the simulator edits 팔 보호구 by level and grade; a step
     // without a grade keeps the one worn.
@@ -315,19 +386,32 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits, g
           }
         : null;
     }
+    // 깨달음 카르마 (api #1004): a KARMA_LEVEL step's change is ARK_PASSIVE_POINT 깨달음 with karmaLevel (no
+    // points). Point changes still open nothing here (깨달음 points stay locked).
+    case "ARK_PASSIVE_POINT":
+      return change.tree === KARMA_TREE && isKarmaLevel(change.karmaLevel)
+        ? { ...base, karma: { ...base.karma, [KARMA_TREE]: change.karmaLevel } }
+        : null;
     default:
       return null;
   }
 }
 
+const isKarmaLevel = (value: unknown): value is number =>
+  Number.isInteger(value) && (value as number) >= 0 && (value as number) <= KARMA_MAX;
+
+/** A 깨달음 karma-level change (api #1004 karmaChange: ARK_PASSIVE_POINT with karmaLevel). */
+export const isKarmaChange = (change: SpecUpChange) => change.kind === "ARK_PASSIVE_POINT" && change.karmaLevel != null;
+
 /** The slot type of an equipment index ("무기", "투구" …), from the character on screen. */
-export type GearType = (index: number) => string | null | undefined;
+/** The slot of an equipment index (무기, 투구 …); `upgrade` says whether it is 업화 (isUpgradeGear), when known. */
+export type GearType = ((index: number) => string | null | undefined) & { upgrade?: (index: number) => boolean };
 
 /** Change indexes are positions in loadout.equipment, as the simulator's own rows. */
-export const gearTypeOf =
-  (data: Pick<Character, "loadout"> | null | undefined): GearType =>
-  (index) =>
-    data?.loadout.equipment[index]?.type;
+export const gearTypeOf = (data: Pick<Character, "loadout"> | null | undefined): GearType =>
+  Object.assign((index: number) => data?.loadout.equipment[index]?.type, {
+    upgrade: (index: number) => isUpgradeGear(data?.loadout.equipment[index]?.name),
+  });
 
 /** ?try= on the simulator tab carries one change; readTry reads it back. */
 export const tryParam = (change: SpecUpChange) => JSON.stringify(change);
@@ -385,6 +469,10 @@ function changeOf(value: unknown): SpecUpChange | null {
           ...(isGrade(v.grade) ? { grade: v.grade } : {}),
         }
       : {}),
+    // 깨달음 카르마 steps (api #1004): the tree and the level. Dropped, a path opened without its karma step.
+    ...(v.kind === "ARK_PASSIVE_POINT" && v.tree === KARMA_TREE && isKarmaLevel(v.karmaLevel)
+      ? { tree: KARMA_TREE, karmaLevel: v.karmaLevel }
+      : {}),
   };
 }
 
@@ -395,9 +483,14 @@ function changeOf(value: unknown): SpecUpChange | null {
  * fold by reason as before.
  */
 export function splitKrakenCandidates(list: Candidate[]) {
-  const scored = list.filter((c) => c.deltaKrakenScore != null);
-  const { folded } = splitCandidates(list.filter((c) => c.deltaKrakenScore == null));
-  return { ok: scored, folded };
+  // Rows with no Δ점수 fold, an OK one too (it was dropped before: neither ranked nor folded).
+  // A row folds here for want of a Δ점수, so the score's own reason (krakenScoreReasonCode, api #1042) comes first,
+  // before a combat-power one (a supporter's UNSUPPORTED row carries both).
+  return splitCandidates(
+    list,
+    (c) => c.deltaKrakenScore != null,
+    (c) => (c.krakenScoreReasonCode ? { code: c.krakenScoreReasonCode, reason: c.krakenScoreReason ?? KRAKEN_UNSCORED_REASON } : null),
+  );
 }
 
 /** Why the 크라켄 점수 sort could not be used; the list then comes in 전투력 효율 order. */

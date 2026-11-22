@@ -22,7 +22,7 @@ import {
 import { gearTypeOf, koreanGold, notCachedText, tryPathParam, type GearType } from "@/lib/spec-up/model";
 import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
-import { SimulatorEnabled } from "./tabs";
+import { ArmorSimEnabled, KarmaSimEnabled, SimulatorEnabled } from "./tabs";
 
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -186,7 +186,7 @@ function GoalAnswer({ name, goal, gearType }: { name: string; goal: Goal; gearTy
   const cost = goal.totalCost != null ? `${koreanGold(goal.totalCost)}G` : null;
   const costLine =
     cost ?? (goal.unpricedSteps > 0 ? `미정(비용을 모르는 단계 ${goal.unpricedSteps}개)` : null);
-  const path = simulatorPath(steps, gearType);
+  const path = simulatorPath(steps, gearType, useContext(KarmaSimEnabled), useContext(ArmorSimEnabled));
   // The simulator tab exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort, pathCostNote, pathFigures, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, pathCostNote, pathCpStopNote, pathFigures, pathScopeNote, pathSortsFor, pathTotal, scoredAsSupporter, stepFigures } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -229,17 +229,143 @@ test("the total line (api #993): known gold plus unknown steps; an older api's n
   assert.deepEqual(pathTotal({ ...base, knownCostTotal: 1, unknownCostSteps: 1 }), { gold: 2_600_000, unknownSteps: 0 });
 });
 
-test("the cost note follows the order's rule (api #993 paidCost, PM 총괄 11-20 P1)", () => {
-  // 효율 우선 and 점수 효율: a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its whole new
-  // price each step; only a tradeable one takes the step before off.
+test("the backend's #993 sample (SpecUpIntegrationTest, api develop 7f9aff63) passes the contract and reads as 260만G + 비용 모름 1단계", async () => {
+  const v6 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-v6.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(v6) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.ruleVersion, "spec-up-path-v6");
+  // EFFICIENCY takes the unknown-cost step at the end and sends no unpriced list (api #993).
+  assert.deepEqual(
+    path.steps.map((s) => [s.order, s.kind, s.cost.status, s.cumulativeCost, s.extraCost]),
+    [
+      [1, "GEM_LEVEL", "OK", 600_000, 600_000],
+      [2, "GEM_LEVEL", "OK", 2_600_000, 2_000_000],
+      [3, "EQUIPMENT_QUALITY", "UNKNOWN", null, null],
+    ],
+  );
+  assert.deepEqual(path.unpriced, []);
+  assert.equal(path.totalCost, null);
+  assert.deepEqual([path.knownCostTotal, path.unknownCostSteps], [2_600_000, 1]);
+  assert.deepEqual(pathTotal(path), { gold: 2_600_000, unknownSteps: 1 });
+  // The step costs the row shows: the api's extraCost, null for the unknown one ('비용 모름').
+  assert.deepEqual(extraCosts(path.steps), [600_000, 2_000_000, null]);
+});
+
+test("the cost note follows the order's rule on spec-up-path-v6 and v7 only (api #993 paidCost / marginal, #1019 jumps)", () => {
+  const gem = { kind: "GEM_LEVEL" } as GoalStep;
+  const polish = { kind: "POLISH" } as GoalStep;
+  const note = (sort: string, ruleVersion = "spec-up-path-v6", steps = [gem]) => pathCostNote({ sort, ruleVersion, steps });
+  // 효율 우선 and 점수 효율 (paidCost): a bound gem (and an empty slot's, an untradeable accessory, a stone) pays its
+  // whole new price each step; only a tradeable one takes the step before off.
   const perStep =
     "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
-  assert.equal(pathCostNote("EFFICIENCY"), perStep);
-  assert.equal(pathCostNote("KRAKEN"), perStep);
-  // 전투력 우선 is unchanged: the old sentence.
-  assert.equal(pathCostNote("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
-  // An answer without a sort reads as the api's default order (EFFICIENCY).
-  assert.equal(pathCostNote(undefined), perStep);
-  // The old sentence never shows under an order that pays per step.
-  assert.ok(!perStep.includes("보석은 같은 칸의 앞 단계 비용을 빼고"));
+  assert.equal(note("EFFICIENCY"), perStep);
+  assert.equal(note("KRAKEN"), perStep);
+  // 전투력 우선 (marginal): a gem, an ability stone and an accessory (polish) step take the same slot's step before
+  // off; accessories only when the answer has a polish step.
+  assert.equal(note("DELTA"), "비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 스톤은 같은 칸의 앞 단계 비용을 빼고 셌어요.");
+  assert.equal(
+    note("DELTA", undefined, [gem, polish]),
+    "비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 스톤·장신구는 같은 칸의 앞 단계 비용을 빼고 셌어요.",
+  );
+  // v7 (api #1019 level jumps): the same rules, and a 효율 우선 or 점수 효율 step may raise several levels at once,
+  // its cost the whole range; 전투력 우선 stays one level per step.
+  const jumps = `${perStep} 한 단계에 여러 레벨을 올리면 그 레벨까지 드는 비용을 한 번에 셌어요.`;
+  assert.equal(note("EFFICIENCY", "spec-up-path-v7"), jumps);
+  assert.equal(note("KRAKEN", "spec-up-path-v7"), jumps);
+  assert.equal(note("DELTA", "spec-up-path-v7"), note("DELTA"));
+  assert.equal(note("DELTA", "spec-up-path-v7", [gem, polish]), note("DELTA", undefined, [gem, polish]));
+  // Another rule version (before v6 the orders counted differently, after v7 nobody has checked) or an order the
+  // web does not know: only what a step cost means, no claim on how it was counted.
+  const plain = "비용은 그 단계에서 더 드는 골드예요.";
+  for (const [sort, version] of [
+    ["EFFICIENCY", "spec-up-path-v5"],
+    ["KRAKEN", "spec-up-path-v1"],
+    ["DELTA", "spec-up-path-v5"],
+    ["EFFICIENCY", "spec-up-path-v8"],
+    ["DELTA", "spec-up-path-v8"],
+    ["COST", "spec-up-path-v6"],
+    ["COST", "spec-up-path-v7"],
+  ])
+    assert.equal(note(sort, version, [gem, polish]), plain, `${sort} ${version}`);
+});
+
+test("the backend's #1029 sample (dealer KRAKEN, arm guard at step 2) passes the contract and stops combat power at step 2", async () => {
+  const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-kraken-armor.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("점수순서", "KRAKEN", origin, { fetcher: async () => json(sample) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.deepEqual([path.sort, path.combatPowerStopOrder, path.combatPowerStopReasonCode, path.finalCombatPower], ["KRAKEN", 2, "ARMOR_REFINE_CP_UNCONFIRMED", null]);
+  // Step 1 keeps its combat power; from step 2 on (the arm guard) it is left out, the score stays.
+  assert.deepEqual(
+    path.steps.slice(0, 3).map((s) => [s.order, s.kind, s.deltaCombatPower != null, s.deltaKrakenScore != null]),
+    [
+      [1, "GEM_LEVEL", true, true],
+      [2, "ARM_GUARD", false, true],
+      [3, "GEM_LEVEL", false, true],
+    ],
+  );
+  assert.equal(
+    pathCpStopNote(path),
+    "2단계부터는 전투력을 계산하지 않았어요. 방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.",
+  );
+});
+
+test("the combat-power stop note: where, why only for a known code, none without a stop (api #1029)", () => {
+  const steps = [{ order: 1 }, { order: 2 }, { order: 3 }] as GoalStep[];
+  const note = (combatPowerStopOrder: unknown, combatPowerStopReasonCode: unknown = "ARMOR_REFINE_CP_UNCONFIRMED") =>
+    pathCpStopNote({ steps, combatPowerStopOrder, combatPowerStopReasonCode } as Parameters<typeof pathCpStopNote>[0]);
+  const why = " 방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요.";
+  assert.equal(note(1), `이 순서는 첫 단계부터 전투력을 계산하지 않았어요.${why}`);
+  assert.equal(note(3), `3단계부터는 전투력을 계산하지 않았어요.${why}`);
+  // api #1036, armour gate on: official vs equipment-built CP (백엔드 11-21 wording check).
+  assert.equal(
+    note(2, "ARMOR_CP_RESIDUAL_HIGH"),
+    "2단계부터는 전투력을 계산하지 않았어요. 장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.",
+  );
+  // A code the web does not know: where only, no reason it cannot vouch for.
+  assert.equal(note(2, "SOMETHING_NEW"), "2단계부터는 전투력을 계산하지 않았어요.");
+  assert.equal(note(2, null), "2단계부터는 전투력을 계산하지 않았어요.");
+  // A code that names an Object.prototype member is not a reason (codex #1835 P3: it read '[object Object]').
+  for (const code of ["__proto__", "toString", "constructor", "hasOwnProperty"])
+    assert.equal(note(2, code), "2단계부터는 전투력을 계산하지 않았어요.", code);
+  // No stop (null, an api before #1029) or a step the path does not have: no note.
+  for (const order of [null, undefined, 0, 4, 1.5, "2"]) assert.equal(note(order), null, String(order));
+});
+test("pathScopeNote (PM 총괄 11-21 05:42): (c) on and present → covered, (b) on and absent → nothing, (a) off or missing → not yet", () => {
+  const steps = (...kinds: string[]) => kinds.map((kind, i) => ({ order: i + 1, kind })) as GoalStep[];
+  const note = (fields: Record<string, unknown>, ...kinds: string[]) =>
+    pathScopeNote({ steps: steps(...kinds), ...fields } as Parameters<typeof pathScopeNote>[0]);
+  const on = { polishStepsConsidered: true, karmaStepsConsidered: true };
+  // (c)
+  assert.equal(note(on, "POLISH", "GEM_LEVEL", "KARMA_LEVEL"), "이 순서는 장신구 연마·깨달음 카르마 단계도 다뤄요.");
+  // (c) + (b): karma on but none picked (already at 30) says nothing about karma.
+  assert.equal(note(on, "POLISH"), "이 순서는 장신구 연마 단계도 다뤄요.");
+  assert.equal(note(on, "KARMA_LEVEL"), "이 순서는 깨달음 카르마 단계도 다뤄요.");
+  // (b) alone: nothing to say, no element.
+  assert.equal(note(on, "GEM_LEVEL"), null);
+  assert.equal(note(on), null);
+  // (a): only the kinds that are off, 깨달음 카르마 first, no reason.
+  const both = "깨달음 카르마 · 장신구 연마 단계는 아직 추천 순서에 넣지 않아요.";
+  assert.equal(note({ polishStepsConsidered: false, karmaStepsConsidered: false }), both);
+  assert.equal(note({}, "GEM_LEVEL"), both);
+  // A missing field is off even where such a step shows (an api before the fields): production stays right.
+  assert.equal(note({}, "POLISH", "KARMA_LEVEL"), both);
+  assert.equal(note({ polishStepsConsidered: null, karmaStepsConsidered: "true" }), both);
+  assert.equal(note({ polishStepsConsidered: 1, karmaStepsConsidered: true }, "KARMA_LEVEL"), "이 순서는 깨달음 카르마 단계도 다뤄요. 장신구 연마 단계는 아직 추천 순서에 넣지 않아요.");
+  assert.equal(note({ polishStepsConsidered: true, karmaStepsConsidered: false }, "POLISH"), "이 순서는 장신구 연마 단계도 다뤄요. 깨달음 카르마 단계는 아직 추천 순서에 넣지 않아요.");
+  // (b) + (a): polish on but none picked, karma off.
+  assert.equal(note({ polishStepsConsidered: true }, "GEM_LEVEL"), "깨달음 카르마 단계는 아직 추천 순서에 넣지 않아요.");
+});
+test("api #1038's own answer (karma 30 dealer) passes the contract and keeps its switch fields; the note follows them", async () => {
+  const real = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path-karma-considered.json", import.meta.url), "utf8"));
+  const result = await requestSpecUpPath("범위카르마30", "EFFICIENCY", origin, { fetcher: async () => json(real) });
+  assert.ok(result.ok);
+  const path = result.envelope.data;
+  assert.equal(path.polishStepsConsidered, false);
+  assert.equal(path.karmaStepsConsidered, true);
+  assert.equal(path.steps.some((step) => step.kind === "KARMA_LEVEL"), false);
+  // Karma on but none picked (already 30): nothing about it; polish off: not yet.
+  assert.equal(pathScopeNote(path), "장신구 연마 단계는 아직 추천 순서에 넣지 않아요.");
 });

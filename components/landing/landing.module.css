@@ -91,7 +91,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .shortcut { display: flex; align-items: center; gap: 3px; white-space: nowrap; color: var(--muted-foreground); font: 11px var(--font-geist-mono), monospace; }
 .shortcut[data-fp-label] { display: grid; }
 .searchSubmit { min-height: 50px; min-width: 132px; padding: 0 18px; font-size: 13px; }
-.searchSubmit canvas { filter: brightness(0) invert(1); }
+.searchSubmit :is(canvas, :global(.orb-still)) { filter: brightness(0) invert(1); }
 .searchMessage { min-height: 45px; text-align: center; padding-top: 12px; color: var(--muted-foreground); font-size: 11px; }
 .error { color: var(--destructive) !important; }
 .exploreLink { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 25px auto 0; width: fit-content; color: var(--link); font-size: 15px; text-decoration: none; }
@@ -253,10 +253,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
    server-drawn still frame under it (#1632). Same size and place the bare canvas had. */
 .orbBox { position: relative; display: block; width: 64px; height: 64px; margin: auto; }
 .orbBox > canvas { position: relative; }
-.orbStill { position: absolute; inset: 0; display: block; }
-/* Each dot is a hair-long round-capped stroke (generated data, codex #1633 P3). */
-.orbStill path { fill: none; stroke: var(--orb-l); stroke-linecap: round; }
-:root:is([data-theme="dark"], [data-theme="dim"]) .orbStill path { stroke: var(--orb-d); }
 .routeState h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 600; letter-spacing: -1px; overflow-wrap: anywhere; }
 .routeState p { max-width: 500px; margin: auto; font-size: 16px; line-height: 1.8; word-break: keep-all; color: var(--muted-foreground); }
 .routeLinks { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; }

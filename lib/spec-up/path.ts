@@ -141,21 +141,16 @@ export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
 }
 
 /**
- * The fields api #993 adds beside totalCost: the gold of the steps whose cost is
- * known and how many steps have no cost. Optional here until the contract sync
- * after #993 merges; an api before it never sends them.
- */
-type KnownCostParts = { knownCostTotal?: number | null; unknownCostSteps?: number | null };
-
-/**
  * The path's total line (api #993, PM 총괄 11-19). KRAKEN and EFFICIENCY now add
  * the steps whose cost is unknown at the end, so totalCost is null on many paths.
- * Then the total is the known gold plus a count of the unknown steps; when every
- * step's cost is unknown there is no gold to show, only the count (never 0G,
- * PM 총괄 11-19). Without the new fields (an older api) it stays unknown, as before.
+ * Then the total is the known gold (knownCostTotal) plus a count of the unknown
+ * steps (unknownCostSteps); when every step's cost is unknown there is no gold to
+ * show, only the count (never 0G, PM 총괄 11-19). Both fields are optional in the
+ * contract (deploy order): without them (an older api) it stays unknown, as before,
+ * and a value that cannot be a count or an amount never makes a total up.
  * gold null = no total to show; unknownSteps 0 = no count to show.
  */
-export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | null; unknownSteps: number } {
+export function pathTotal(path: SpecUpPath): { gold: number | null; unknownSteps: number } {
   if (path.totalCost != null) return { gold: path.totalCost, unknownSteps: 0 };
   const known = path.knownCostTotal;
   const unknown = path.unknownCostSteps;
@@ -165,13 +160,96 @@ export function pathTotal(path: SpecUpPath & KnownCostParts): { gold: number | n
 }
 
 /**
+ * The path rules whose step costs pathCostNote describes (api SpecUpGoalService.PATH_RULE_VERSION). v7 (api #1019,
+ * level jumps) keeps v6's paidCost and marginal; a 효율 우선 or 점수 효율 step can raise several levels at once, its
+ * cost the whole range (rangeCost: refine and arm guard the sum of the stages, an engraving the book cost × levels,
+ * a gem its target level's price as before). Accepted before #1019 ships (PM-프론트 11-20 22:53).
+ */
+export const PATH_COST_RULES: ReadonlySet<string> = new Set(["spec-up-path-v6", "spec-up-path-v7"]);
+const JUMPS_RULE = "spec-up-path-v7";
+
+/**
  * The note under the path on how its step costs were counted, per order (PM 총괄 11-20 P1; api #993,
  * SpecUpGoalService.paidCost / marginal). 효율 우선 and 점수 효율 (KRAKEN) pay each step: a tradeable gem or accessory
  * costs its new price less the price paid in the same slot the step before (never below 0), while a bound gem, a gem
  * for an empty slot, an accessory that cannot be traded and an ability stone cost their whole new price every time.
- * 전투력 우선 (DELTA) keeps the earlier rule: a gem step adds its cost less the same slot's step before.
+ * 전투력 우선 (DELTA) adds each step's cost less the same slot's step before for a gem, an ability stone and an
+ * accessory (polish) step (marginal, slotCost); accessories are named only when the answer has a polish step.
+ * Only an answer on that rule and one of those orders gets the per-step sentence (PM-프론트 #1793 P3): an answer
+ * from another rule version or an order the web does not know says only what a step cost means.
  */
-export function pathCostNote(sort: string | null | undefined): string {
-  if (sort === "DELTA") return "비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞 단계 비용을 빼고 셌어요.";
-  return "비용은 그 단계에서 더 드는 골드예요. 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.";
+export function pathCostNote(path: Pick<SpecUpPath, "sort" | "ruleVersion" | "steps">): string {
+  const plain = "비용은 그 단계에서 더 드는 골드예요.";
+  if (!PATH_COST_RULES.has(path.ruleVersion)) return plain;
+  // 전투력 우선 raises one level per step on every rule (api #1019 leaves DELTA at +1).
+  if (path.sort === "DELTA") {
+    const polish = path.steps.some((step) => step.kind === "POLISH");
+    return `비용은 그 단계에서 더 드는 골드이고, 보석·어빌리티 ${polish ? "스톤·장신구는" : "스톤은"} 같은 칸의 앞 단계 비용을 빼고 셌어요.`;
+  }
+  if (path.sort === "EFFICIENCY" || path.sort === "KRAKEN") {
+    const jumps = path.ruleVersion === JUMPS_RULE ? " 한 단계에 여러 레벨을 올리면 그 레벨까지 드는 비용을 한 번에 셌어요." : "";
+    return `${plain} 거래할 수 있는 보석·장신구는 같은 칸의 앞 단계 값을 빼고, 귀속 보석·빈 칸 보석·거래할 수 없는 장신구·어빌리티 스톤은 단계마다 새 값을 다 셌어요.${jumps}`;
+  }
+  return plain;
+}
+
+/**
+ * Why combat power stops, by the api's code (api #1029): words the web vouches for; another code gets none. A Map, so a
+ * code that names an Object.prototype member ('__proto__', 'toString') is just an unknown code (codex #1835 P3).
+ */
+const CP_STOP_REASONS: ReadonlyMap<string, string> = new Map([
+  ["ARMOR_REFINE_CP_UNCONFIRMED", "방어구·팔 보호구 재련은 전투력 계산식을 아직 확인하고 있어요. 점수와 비용은 그대로 셌어요."],
+  // api #1036 with the armour gate on: the dealer's official and equipment-built CP differ by more than 0.10%; the path
+  // stops as for UNCONFIRMED (every step from the stop on, 백엔드 11-21), the simulator's facts in the path's words.
+  [
+    "ARMOR_CP_RESIDUAL_HIGH",
+    "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑의 전투력은 셀 수 없어요. 점수와 비용은 그대로 셌어요.",
+  ],
+]);
+
+/**
+ * The note on where a path stops giving combat power (api #1029, 백엔드 11-21): a dealer's 점수 효율 path takes armor
+ * refine and arm guard steps by score, and from the first of them on (combatPowerStopOrder) the api leaves the steps'
+ * combat power out (null; a step's detail and the simulator show '—') while score and cost stay. null when the answer
+ * has no stop (null, absent: an api before #1029) or names a step the path does not have.
+ */
+export function pathCpStopNote(
+  path: Pick<SpecUpPath, "steps" | "combatPowerStopOrder" | "combatPowerStopReasonCode">,
+): string | null {
+  const order = path.combatPowerStopOrder;
+  if (order == null || !Number.isInteger(order) || order < 1 || order > path.steps.length) return null;
+  const where = order === 1 ? "이 순서는 첫 단계부터 전투력을 계산하지 않았어요." : `${order}단계부터는 전투력을 계산하지 않았어요.`;
+  const why = CP_STOP_REASONS.get(path.combatPowerStopReasonCode ?? "");
+  return why ? `${where} ${why}` : where;
+}
+
+/** Kinds every path takes; the lead line above the answer names only these (it shows before any answer). */
+export const PATH_SCOPE_LEAD = "보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요.";
+
+/** The two switch-gated kinds: the answer's field, the step kind that shows one in the path, and its name. */
+const SCOPE_KINDS = [
+  { field: "polishStepsConsidered", step: "POLISH", name: "장신구 연마" },
+  { field: "karmaStepsConsidered", step: "KARMA_LEVEL", name: "깨달음 카르마" },
+] as const;
+
+/**
+ * What this answer says about 장신구 연마 and 깨달음 카르마 steps (PM 총괄 11-21 05:42). Each joins the path only behind its
+ * own api switch (spec-up.polish-path.enabled, api #951; spec-up.karma-cp.enabled, api #1004), both off on production,
+ * and the answer says whether it was on (polishStepsConsidered / karmaStepsConsidered, api #1038, optional in the
+ * contract until the api ships; for karma the role must take it).
+ * Per kind: (c) on and a step of it in the answer → covered; (b) on and none in the answer (karma already at 30, none
+ * worth it) → nothing; (a) off, which is anything but true, a missing field (an api before them) included → '… 단계는
+ * 아직 추천 순서에 넣지 않아요.' naming only the kinds that are off, with no reason (both are switch-gated now, so the old
+ * reasons no longer hold). null when there is nothing to say (no element on screen).
+ */
+export function pathScopeNote(path: Pick<SpecUpPath, "steps" | "polishStepsConsidered" | "karmaStepsConsidered">): string | null {
+  const on = (kind: (typeof SCOPE_KINDS)[number]) => path[kind.field] === true;
+  const covered = SCOPE_KINDS.filter((kind) => on(kind) && path.steps.some((step) => step.kind === kind.step));
+  // 깨달음 카르마 first in the 'not yet' sentence, as PM 총괄 worded it.
+  const off = SCOPE_KINDS.filter((kind) => !on(kind)).reverse();
+  const parts = [
+    covered.length > 0 ? `이 순서는 ${covered.map((kind) => kind.name).join("·")} 단계도 다뤄요.` : null,
+    off.length > 0 ? `${off.map((kind) => kind.name).join(" · ")} 단계는 아직 추천 순서에 넣지 않아요.` : null,
+  ].filter((part) => part !== null);
+  return parts.length > 0 ? parts.join(" ") : null;
 }

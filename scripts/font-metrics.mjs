@@ -66,8 +66,15 @@ const result = await page.evaluate(
     for (const [fam, row] of Object.entries(rows)) {
       if (fam === "kraken") continue;
       for (const s of ["latin", "hangul"])
-        for (const w of [400, 700])
-          row[`sizeAdjust_${s}${w}`] = row[`${s}${w}`] ? Math.round((k[`${s}${w}`] / row[`${s}${w}`]) * 10000) / 100 : null;
+        for (const w of [400, 700]) {
+          const adjust = row[`${s}${w}`] ? Math.round((k[`${s}${w}`] / row[`${s}${w}`]) * 10000) / 100 : null;
+          row[`sizeAdjust_${s}${w}`] = adjust;
+          // The @font-face overrides as globals.css takes them (PM-프론트 #1743 P3): the site font's ascent and
+          // descent (px at 100px = % of the size) divided by this face's size-adjust, which scales them too. E.g.
+          // Segoe UI 400: 95.0 / 1.0424 = 91.14% (globals.css "Kraken Fallback Win").
+          row[`ascentOverride_${s}${w}`] = adjust ? Math.round((k.ascent / (adjust / 100)) * 100) / 100 : null;
+          row[`descentOverride_${s}${w}`] = adjust ? Math.round((k.descent / (adjust / 100)) * 100) / 100 : null;
+        }
     }
     return { userAgent: navigator.userAgent, rows };
   },
@@ -80,5 +87,10 @@ for (const [fam, r] of Object.entries(result.rows))
   console.log(
     `FONT-METRICS ${fam.padEnd(26)} local=${r.local} latinOwn=${r.latinOwn} hangulOwn=${r.hangulOwn} ` +
       `latin=${r.latin400}/${r.latin700} hangul=${r.hangul400}/${r.hangul700} asc=${r.ascent} desc=${r.descent} ` +
-      `sizeAdjust latin=${r.sizeAdjust_latin400 ?? "-"}/${r.sizeAdjust_latin700 ?? "-"} hangul=${r.sizeAdjust_hangul400 ?? "-"}/${r.sizeAdjust_hangul700 ?? "-"}`,
+      `sizeAdjust latin=${r.sizeAdjust_latin400 ?? "-"}/${r.sizeAdjust_latin700 ?? "-"} hangul=${r.sizeAdjust_hangul400 ?? "-"}/${r.sizeAdjust_hangul700 ?? "-"}` +
+      // Ready to paste: ascent-override / descent-override (%) per script and weight (400/700).
+      (fam === "kraken"
+        ? ""
+        : ` overrides(asc/desc %) latin=${r.ascentOverride_latin400 ?? "-"}/${r.descentOverride_latin400 ?? "-"},${r.ascentOverride_latin700 ?? "-"}/${r.descentOverride_latin700 ?? "-"}` +
+          ` hangul=${r.ascentOverride_hangul400 ?? "-"}/${r.descentOverride_hangul400 ?? "-"},${r.ascentOverride_hangul700 ?? "-"}/${r.descentOverride_hangul700 ?? "-"}`),
   );

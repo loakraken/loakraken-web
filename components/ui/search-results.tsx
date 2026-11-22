@@ -21,12 +21,12 @@ import {
   subscribeFavorites,
   toggleStoredFavorite,
 } from "@/lib/character/favorites"
-import { menuMatches, splitPrefix, stepActive } from "@/lib/search/panel"
+import { MENU_ROWS, menuMatches, quickTools, splitPrefix, stepActive } from "@/lib/search/panel"
 import type { NavFlags } from "@/components/site/nav-data"
 import type { ResultGroup, ResultItem } from "@/components/ui/bencho/result-panel"
 import { applyThemeChoice, THEME_CHOICES, useThemeChoice } from "@/components/ui/theme-toggle"
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs"
-import { Bookmark, BookmarkBold, Copy, MessageQuestion, SearchNormal, Sun } from "@/components/ui/icons"
+import { Bookmark, BookmarkBold, Calculator, Copy, MessageQuestion, SearchNormal, Sun } from "@/components/ui/icons"
 import { clearHistoryMark } from "@/components/landing/history-mark"
 
 const number = (n: number | null | undefined) =>
@@ -100,6 +100,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   const [copied, setCopied] = React.useState(false)
   const [error, setError] = React.useState("")
   const [status, setStatus] = React.useState("")
+  // The typed text, as typed, whose whole menu list is open (메뉴 N개 더 보기, M53).
+  const [moreFor, setMoreFor] = React.useState<string | null>(null)
   // Client only: this hook runs in the dialog and the dropdown, both loaded
   // after a press or a focus, never in a server render.
   const [tab, setTabState] = React.useState<SearchTab>(readTab)
@@ -110,6 +112,12 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   }
   const query = text.trim()
   const settled = useSettled(query)
+  // Any edit folds the opened menu list, also a space or a way back to the same word (#1881 P3:
+  // compared as typed, not trimmed), and takes its '모두 보여요' note with it.
+  if (moreFor !== null && moreFor !== text) {
+    setMoreFor(null)
+    setStatus("")
+  }
   const flags = useNavFlags(open)
   const recent = readSnapshot(React.useSyncExternalStore(subscribeRecent, recentSnapshot, () => "|[]")).list
   const favorites = parseFavorites(React.useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]"))
@@ -205,6 +213,14 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     }
   }
 
+  /** A menu or tool row: close, clear and go — a forward navigation, so the page's hero enters as from any link. */
+  const goPage = (href: string) => {
+    onLeave()
+    reset()
+    clearHistoryMark()
+    router.push(href)
+  }
+
   const groups: (Omit<ResultGroup, "items"> & { items: SearchRow[] })[] = []
   if (!query) {
     // Favourites are names; what the recent list knows about them fills the
@@ -282,6 +298,19 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
         },
       ],
     })
+    // 도구 바로가기 (M53): the most used tools, from the menu's own names. Last
+    // in the panel, so the flagged row arriving with the flags moves nothing.
+    groups.push({
+      id: "tools",
+      title: "도구 바로가기",
+      items: quickTools(flags).map((t) => ({
+        id: t.id,
+        title: t.label,
+        sub: t.description,
+        avatar: { fallback: <Calculator size={16} aria-hidden /> },
+        run: () => goPage(t.href),
+      })),
+    })
   } else {
     const name = normalizeCharacterName(query)
     // Character first, its suggestions in five held rows, the menu under it:
@@ -329,23 +358,34 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
         }),
       ],
     })
-    const menus = menuMatches(query, flags)
+    // Eight menu rows, then one row that opens the rest in place (M53). The
+    // first revealed row takes the pressed row's place and becomes the active
+    // one, so ↓ goes on from there and nothing above moves.
+    const menus = menuMatches(query, flags, Infinity)
+    const shown = moreFor === text ? menus : menus.slice(0, MENU_ROWS)
+    const rest = menus.length - shown.length
     if (menus.length)
       groups.push({
         id: "menu",
         title: "메뉴",
-        items: menus.map((m) => ({
-          id: m.id,
-          title: m.label,
-          side: m.section,
-          run: () => {
-            onLeave()
-            reset()
-            // A forward navigation: the page's hero enters as from any link.
-            clearHistoryMark()
-            router.push(m.href)
-          },
-        })),
+        items: [
+          ...shown.map((m) => ({ id: m.id, title: m.label, side: m.section, run: () => goPage(m.href) })),
+          ...(rest > 0
+            ? [
+                {
+                  id: "menu-more",
+                  title: `메뉴 ${rest}개 더 보기`,
+                  side: "전체 메뉴",
+                  run: () => {
+                    setMoreFor(text)
+                    setActive(menus[MENU_ROWS].id)
+                    // Said every time, also over a favourite change still in the live region (#1881 P2).
+                    setStatus(`메뉴 ${menus.length}개 모두 보여요`)
+                  },
+                },
+              ]
+            : []),
+        ],
       })
   }
   const rows = groups.flatMap((g) => g.items)
@@ -379,7 +419,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     }
   }
 
-  /** The count read once the typed text settles, or the last favourite change. */
+  /** The count read once the typed text settles, or the last favourite change or menu expansion. */
   const announce =
     status ||
     (query && settled === query && !suggest.isFetching

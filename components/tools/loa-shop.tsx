@@ -2,7 +2,7 @@
 
 import { HubTabs } from "@/components/site/hub-tabs";
 
-import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Box } from "@/components/ui/icons";
@@ -20,7 +20,6 @@ import {
   shopEmptyCopy,
   splitBySale,
   packageValue,
-  parseRate,
   UNTRADEABLE,
   breakEvenRate,
   type BreakEven,
@@ -33,37 +32,9 @@ import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
+import { useCrystalRate } from "./crystal-rate-store";
+import { RATE_INVALID } from "@/lib/tools/crystal-rate";
 
-/** The typed rate stays in this browser only (never sent anywhere). */
-const RATE_KEY = "loakraken.loa-shop.rate";
-// A tiny store over localStorage: read on the client only (the server and the
-// first paint see ""), and kept in memory when storage is blocked.
-let memoryRate: string | null = null;
-const rateListeners = new Set<() => void>();
-function readRate() {
-  if (memoryRate !== null) return memoryRate;
-  try {
-    return window.localStorage.getItem(RATE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-function writeRate(value: string) {
-  memoryRate = value;
-  try {
-    if (value) window.localStorage.setItem(RATE_KEY, value);
-    else window.localStorage.removeItem(RATE_KEY);
-  } catch {
-    // Storage blocked: the value still works for this visit.
-  }
-  rateListeners.forEach((listener) => listener());
-}
-const subscribeRate = (listener: () => void) => {
-  rateListeners.add(listener);
-  return () => {
-    rateListeners.delete(listener);
-  };
-};
 // The only comparison basis for this tool rounds the absolute value half away
 // from zero (−1,087.5 → −1,088; PM 총괄 2026-10-14).
 const count = (value: number) => goldText(value, "awayFromZero");
@@ -301,11 +272,10 @@ function PackageCard({
 /** `renderedAt`: the server render time (epoch ms), the clock until the client one starts. */
 export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
   const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
-  const rateText = useSyncExternalStore(subscribeRate, readRate, () => "");
+  const { text: rateText, change: changeRate, rate, invalid: rateInvalid } = useCrystalRate();
   const rateId = useId();
   const hintId = useId();
-  const changeRate = (text: string) => writeRate(text.replace(/[^\d]/g, ""));
-  const rate = parseRate(rateText);
+  const errorId = useId();
 
   const requested = useMemo(() => marketNames(SHOP_DATA.packages), []);
   const prices = useQuery({
@@ -321,7 +291,7 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
   // Which packages are on sale is decided from the server's render time until
   // the client clock starts, so the first HTML already folds the ended ones
   // away and nothing moves after it (A6).
-  const { current, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
+  const { current, unconfirmed, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
   const card = (pkg: ShopPackage) => (
     <PackageCard
       key={pkg.id}
@@ -385,11 +355,17 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="비워 두면 이득을 계산하지 않아요"
-                  aria-describedby={hintId}
+                  maxLength={20}
+                  aria-invalid={rateInvalid || undefined}
+                  aria-describedby={rateInvalid ? `${errorId} ${hintId}` : hintId}
                   value={rateText}
                   onChange={(event) => changeRate(event.target.value)}
                 />
               </label>
+              {/* Always in the page (a polite live region), so the message is read when it appears. */}
+              <p id={errorId} className={styles.rateError} role="status">
+                {rateInvalid ? RATE_INVALID : ""}
+              </p>
               <p id={hintId} className={styles.small}>
                 게임 안 크리스탈 교환소에서 블루 크리스탈 100개를 살 때 드는 골드를 넣어 주세요. 이 브라우저에만 저장하고
                 서버로 보내지 않아요. 공식 상점에서 블루 크리스탈 100개는 로열 크리스탈 {count(SHOP_DATA.crystal.royalPer100)}
@@ -448,6 +424,17 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
               ) : (
                 // Nothing on sale by the official notices: said plainly, the ended ones stay folded below.
                 <p className={styles.empty}>{shopEmptyCopy(past.length)}</p>
+              )}
+              {/* Not ended by any notice, but not on the official shop screen either: its own group under the
+                  list, never counted as on sale (11-19 recheck). From the data alone, so the first HTML has it. */}
+              {unconfirmed.length > 0 && (
+                <section className={styles.unconfirmed} aria-labelledby="unconfirmed-heading">
+                  <h3 id="unconfirmed-heading" className={styles.groupTitle}>
+                    판매 여부를 확인하지 못한 패키지
+                  </h3>
+                  <p className={styles.small}>공식 상점 화면에서 찾지 못했고, 판매가 끝났다는 공지도 없어요.</p>
+                  <div className={styles.cards}>{unconfirmed.map(card)}</div>
+                </section>
               )}
               {/* Ended sales, folded by default below the list: opening it only adds below (A7). */}
               {past.length > 0 && (
