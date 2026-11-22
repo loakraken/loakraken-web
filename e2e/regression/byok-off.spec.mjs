@@ -9,7 +9,8 @@ test("플래그가 꺼지면 /settings/api-key·/api/byok가 404, 바닥글·한
   expect((await page.request.delete("/api/byok")).status()).toBe(404);
 
   await gotoReady(page, characterPath("제한"));
-  await expect(page.getByRole("alert").first()).toBeVisible();
+  // The limit notice itself: .first() could take Next's empty route announcer (role="alert") and check nothing (#1953).
+  await expect(page.getByRole("alert").filter({ hasText: "쉬어 가요" })).toBeVisible();
   await expect(page.getByRole("link", { name: "내 API 키로 조회하기" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "사이트 정책" }).getByRole("link")).toHaveCount(3);
   await expect(page.getByRole("link", { name: "내 API 키" })).toHaveCount(0);

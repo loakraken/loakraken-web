@@ -10,6 +10,10 @@ const NAME = "전투력코어도약";
 const path = (name) => `/tools/combat-power?character=${encodeURIComponent(name)}`;
 const NOTE = "방어구 품질은 생명 활성력";
 const searches = async (request, name) => ((await (await request.get(`${MOCK}/__counts`)).json())[name] ?? 0);
+// The mock counts lookups per name for the whole run: a leg that counts asks for a name of its own, so a parallel
+// worker (another spec, or a --repeat-each copy) never adds to it (#1953). The mock answers any name with its default
+// character, which draws the simulator and its note.
+const ownName = (prefix) => `${prefix}${Math.floor(Math.random() * 1e9)}`;
 
 test("이름이 있으면 시뮬레이터가 첫 HTML에 있고 화면은 캐릭터 · 선택지를 다시 받지 않는다 @regression", async ({ page, request }) => {
   const html = await (await request.get(path(NAME))).text();
@@ -33,31 +37,33 @@ test("이름이 있으면 시뮬레이터가 첫 HTML에 있고 화면은 캐릭
 // Searching on the page changes the address only: one backend lookup for the new name (the page's server read
 // would add a second through a server round trip).
 test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, 주소도 그 이름 @regression", async ({ page, request }) => {
-  const other = "전투력젬바꿈";
+  const other = ownName("시뮬찾기");
   await page.goto(path(NAME));
   await expect(page.getByText(NOTE)).toBeVisible();
-  const before = await searches(request, other);
+  const answered = page.waitForResponse((r) => r.url().includes("/api/characters?") && r.url().includes(encodeURIComponent(other)));
   await page.getByRole("textbox", { name: "캐릭터 이름" }).fill(other);
   await page.getByRole("button", { name: "불러오기" }).click();
-  // Its gem card (the first name has none): the new character is on screen.
-  await expect(page.getByRole("region", { name: "아크 그리드 젬", exact: true }).locator("summary").first()).toBeVisible();
+  expect((await answered).ok(), "새 이름의 답").toBe(true);
+  // The new character is on screen (its own simulator, keyed by name, with the note).
+  await expect(page.getByText(NOTE)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`character=${encodeURIComponent(other)}`));
   await page.waitForTimeout(1500);
-  expect((await searches(request, other)) - before, "새 이름의 백엔드 조회").toBe(1);
+  expect(await searches(request, other), "새 이름의 백엔드 조회").toBe(1);
 });
 
 test("서버가 못 받은 캐릭터는 화면이 지금처럼 받아 알린다 @regression", async ({ page }) => {
   await page.goto(path("미존재"));
-  await expect(page.getByRole("alert")).toBeVisible();
+  // The page's own alert: Next's route announcer is role="alert" too, there or not by timing (#1953).
+  await expect(page.getByRole("alert").filter({ hasText: "캐릭터를 찾지 못했어요" })).toBeVisible();
 });
 
 test.describe("검색봇", () => {
   test.use({ userAgent: GOOGLEBOT });
 
   test("검색봇에게는 서버가 캐릭터를 부르지 않는다 @regression", async ({ request }) => {
-    const before = await searches(request, NAME);
-    const html = await (await request.get(path(NAME), { headers: { "user-agent": GOOGLEBOT } })).text();
+    const name = ownName("봇조회");
+    const html = await (await request.get(path(name), { headers: { "user-agent": GOOGLEBOT } })).text();
     expect(html, "봇의 첫 HTML").not.toContain(NOTE);
-    expect(await searches(request, NAME), "백엔드 캐릭터 조회").toBe(before);
+    expect(await searches(request, name), "백엔드 캐릭터 조회").toBe(0);
   });
 });
