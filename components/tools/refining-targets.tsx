@@ -4,7 +4,7 @@
 // spread evenly over the six item-level parts in the plan) and '고른 부위 +1'. Our own model and the page's own 일반
 // 재련 plan only (lib/refining/targets.ts). The slider shows its level while it moves and sets the targets once, when
 // it is let go (the native change event): a drag never sends a plan request per step.
-import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { formatLevel, PARTS, type PartId, type PartState } from "@/lib/refining/model";
 import {
   bumpPicked,
@@ -63,7 +63,8 @@ export function RefiningTargets({
   // so an outside change that lands back on the same parts (a chip +20 then +19) still starts afresh (codex P3).
   const anchor = useRef<SlideAnchor | null>(null);
   const latest = useRef(parts);
-  useEffect(() => {
+  // Before paint (a layout effect, #1937): a change event right after a render reads these parts, never the last ones.
+  useLayoutEffect(() => {
     latest.current = parts;
     if (anchor.current && !sameParts(parts, anchor.current.made)) anchor.current = null;
   }, [parts]);
@@ -100,7 +101,8 @@ export function RefiningTargets({
     const keyDown = (event: KeyboardEvent) => {
       if (held && RANGE_KEYS.has(event.key)) event.preventDefault();
     };
-    const releases = ["pointerup", "pointercancel", "blur"] as const;
+    // A lost pointer capture ends the drag too (the browser took the pointer away), as a release does (#1937).
+    const releases = ["pointerup", "pointercancel", "lostpointercapture", "blur"] as const;
     input.addEventListener("change", commit);
     input.addEventListener("pointerdown", press);
     input.addEventListener("keydown", keyDown);

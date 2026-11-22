@@ -346,6 +346,10 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+/* Empty: out of the flow (no extra wrapped line or gap in the editor), still in the accessibility tree (#1937). */
+.gemError:empty {
+  position: absolute;
+}
 .gemReset {
   min-height: 32px;
   padding: 0 12px;

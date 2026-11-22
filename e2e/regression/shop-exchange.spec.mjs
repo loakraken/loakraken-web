@@ -129,3 +129,31 @@ test("320: 같은 품목의 두 가격 줄을 담으면 담은 교환에서 서�
   }
   await expectNoHorizontalOverflow(page);
 });
+
+// #1937 (P3 on #1928): a value saved in another tab shows here at once, and the invalid-value line is a status region
+// that is there before it has anything to say (only its text changes).
+test("1280: 다른 탭에서 넣은 내 값이 바로 반영되고, 안내 줄은 처음부터 상태 영역이다 @regression", async ({ page, context }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/shop-exchange?shop=guild");
+  const other = await context.newPage();
+  await other.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(other, "/tools/shop-exchange?shop=guild");
+
+  const field = (p) => guildList(p).getByRole("textbox", { name: "요즈의 입장권 상자 1개(상자) 값(골드)" }).first();
+  const row = (p) => guildList(p).getByRole("listitem").filter({ has: field(p) });
+  // The status line is there, empty, before any entry.
+  await expect(row(page).getByRole("status")).toHaveCount(1);
+  await expect(row(page).getByRole("status")).toHaveText("");
+
+  await field(other).fill("2000");
+  await field(other).press("Enter");
+  await expect(firstRow(other)).toContainText("요즈의 입장권 상자");
+  // No reload here: the other tab's save arrives through the storage event.
+  await expect(field(page)).toHaveValue("2000");
+  await expect(firstRow(page)).toContainText("2,000G");
+
+  await field(page).fill("-100");
+  await field(page).press("Enter");
+  await expect(row(page).getByRole("status")).toHaveText("0보다 큰 숫자로 넣어 주세요. 넣은 값은 저장하지 않았어요.");
+  await other.close();
+});
