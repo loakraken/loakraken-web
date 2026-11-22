@@ -2,7 +2,7 @@
 // 0~3)을 돌려준다. 단추를 눌러야 계산하고, 젬마다 가장 좋은 방법 한 줄 + 다른 방법은 접힘. 페온 1개 골드를 넣으면 비용 ·
 // 1%당 골드가, 초기화권 가격을 넣으면 초기화 줄이 생긴다(기본값 없음: 넣지 않으면 요청에 가격이 없다). 429는 다시 시도
 // 시간과 함께 알린다. 320에서 가로 넘침 없음.
-import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
 
 const path = `/tools/combat-power?character=${encodeURIComponent("전투력젬바꿈")}`;
 const ROUTE = "/api/combat-power/gem-ranking";
@@ -75,11 +75,13 @@ for (const width of [320, 1280])
       (url) => url.pathname === ROUTE,
       async (route) => {
         await held;
-        await route.continue();
+        await route.continue().catch(() => {});
       },
     );
-    await page.goto(path);
+    // Nothing is held before the press, so the page can settle first (fonts too): only the answer may move it.
+    await gotoReady(page, path);
     await expect(card(page)).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
     const measure = () =>
       card(page).evaluate((el) => {
         const r = el.getBoundingClientRect();

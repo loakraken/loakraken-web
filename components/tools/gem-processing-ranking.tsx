@@ -131,6 +131,8 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         <label className={styles.field}>
           <span>초기화권 가격(골드)</span>
           <input
+            name="resetTicketGold"
+            autoComplete="off"
             inputMode="numeric"
             placeholder="넣으면 초기화도 계산"
             value={resetText}
@@ -141,6 +143,8 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         <label className={styles.field}>
           <span>페온 1개 골드</span>
           <input
+            name="pheonGold"
+            autoComplete="off"
             inputMode="decimal"
             placeholder="넣으면 비용 계산"
             value={pheonText}

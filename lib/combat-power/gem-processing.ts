@@ -41,7 +41,7 @@ export function goldField(text: string, max: number, decimals = false): { value:
 export const resetTicketField = (text: string) => goldField(text, RESET_TICKET_MAX);
 export const pheonField = (text: string) => goldField(text, PHEON_MAX, true);
 /** What the line under the prices says when one is invalid. */
-export const PRICE_INVALID = "초기화권은 1,000만 골드까지 정수, 페온은 10만 골드까지 소수 둘째 자리까지 넣어 주세요.";
+export const PRICE_INVALID = "초기화권은 1,000만 이하 정수, 페온은 10만 이하(소수 둘째 자리까지)로 넣어 주세요.";
 
 /** The request the page sends: all four policies, both 초기화 ways (on only with a ticket price), every row. */
 export function rankingRequest(name: string, grade: GemGrade, resetTicket: number | null, pheon: number | null): GemRankingRequest {
