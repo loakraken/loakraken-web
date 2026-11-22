@@ -56,16 +56,47 @@ test("a breath worth less than its price: skip it; the mode's attempts scale the
   assert.equal(worst.with.breaths, 50);
 });
 
-test("no breath price: no verdict; unpriced other materials are left out of both sides and named", () => {
-  const without = plan(10_000, [["운명의 파편", 50_000], ["재봉술 : 업화 [19-20]", 10]]);
-  const withBreath = plan(9_000, [["운명의 파편", 45_000], ["용암의 숨결", 20], ["재봉술 : 업화 [19-20]", 8]]);
+test("no breath price: the 숨결 최대 total is short by the breaths, so no 'cheaper' and no verdict (the value still shown)", () => {
+  // PM-프론트 #1932 P2: 13,500 (breath left out) looked cheaper than 15,000 while the verdict could not judge.
+  const without = plan(10_000, [["운명의 파편", 50_000]]);
+  const withBreath = plan(9_000, [["운명의 파편", 45_000], ["용암의 숨결", 20]]);
   const c = breathCompare(without, withBreath, "expected", prices)!;
   assert.equal(c.without.total, 15_000);
   assert.equal(c.with.total, 13_500);
+  assert.equal(c.without.incomplete, false);
+  assert.equal(c.with.incomplete, true);
+  assert.equal(c.cheaper, null);
   assert.equal(c.breathPrice, null);
   assert.equal(c.verdict, null);
   assert.equal(c.breathValue, 75);
-  assert.deepEqual(c.unpriced, ["재봉술 : 업화 [19-20]", "용암의 숨결"]);
+  assert.deepEqual(c.unpriced, ["용암의 숨결"]);
   // Prices not loaded yet: nothing to compare.
   assert.equal(breathCompare(without, withBreath, "expected", null), null);
+});
+
+test("an unpriced material used in different amounts: both totals incomplete, no 'cheaper', no breath value, named", () => {
+  // PM-프론트 #1932 ruling: 10 books vs 8 books, unpriced — leaving them out biases both totals and the saving.
+  const without = plan(10_000, [["운명의 파편", 50_000], ["재봉술 : 업화 [19-20]", 10]]);
+  const withBreath = plan(9_000, [["운명의 파편", 45_000], ["빙하의 숨결", 20], ["재봉술 : 업화 [19-20]", 8]]);
+  const c = breathCompare(without, withBreath, "expected", prices)!;
+  assert.equal(c.without.incomplete, true);
+  assert.equal(c.with.incomplete, true);
+  assert.equal(c.cheaper, null);
+  assert.equal(c.breathValue, null);
+  assert.equal(c.verdict, null);
+  assert.deepEqual(c.uneven, ["재봉술 : 업화 [19-20]"]);
+  assert.deepEqual(c.unpriced, ["재봉술 : 업화 [19-20]"]);
+});
+
+test("an unpriced material used in the same amount on both sides cancels out: the verdict stands", () => {
+  const without = plan(10_000, [["운명의 파편", 50_000], ["실링", 1_000]]);
+  const withBreath = plan(9_000, [["운명의 파편", 45_000], ["빙하의 숨결", 20], ["실링", 1_000]]);
+  const c = breathCompare(without, withBreath, "expected", prices)!;
+  assert.equal(c.without.incomplete, false);
+  assert.equal(c.with.incomplete, false);
+  assert.deepEqual(c.uneven, []);
+  assert.deepEqual(c.unpriced, ["실링"]);
+  assert.equal(c.cheaper, "without"); // 15,000 vs 13,500 + 8,000
+  assert.equal(c.breathValue, 75);
+  assert.equal(c.verdict, "SKIP");
 });
