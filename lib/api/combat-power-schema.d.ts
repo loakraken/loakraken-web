@@ -80,7 +80,7 @@ export interface components {
         /** @description 바꾼 항목 하나. kind마다 쓰는 필드가 다르다 */
         ChangeRequest: {
             /** @enum {string} */
-            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD";
+            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD" | "ARK_GRID_GEM";
             /**
              * Format: int32
              * @description 보석 slot(GEM_LEVEL, 0~10). 보석이 없는 빈 칸이면 그 칸에 4티어 보석을 새로 끼우는 변화로 계산한다(before = 0)
@@ -126,12 +126,12 @@ export interface components {
             points?: number;
             /**
              * Format: int32
-             * @description 아크 그리드 slot index
+             * @description 아크 그리드 slot index(ARK_GRID_CORE·ARK_GRID_GEM, 공식 ArkGrid.Slots Index)
              */
             slotIndex?: number;
             /**
              * Format: int32
-             * @description 아크 그리드 코어 포인트
+             * @description 아크 그리드 코어 포인트(ARK_GRID_CORE 0~20), 새 젬 포인트(ARK_GRID_GEM 1~5)
              */
             point?: number;
             /**
@@ -139,6 +139,25 @@ export interface components {
              * @description 깨달음 카르마 레벨(0~30, ARK_PASSIVE_POINT tree 깨달음만, points·level과 함께 쓰지 않음). 딜러만 계산한다(무기 공격력 레벨당 +0.1%)
              */
             karmaLevel?: number;
+            /** @description 새 젬 종류(ARK_GRID_GEM): 질서 코어는 안정·견고·불변, 혼돈 코어는 침식·왜곡·붕괴. 바꿀 젬은 index(공식 Gems Index). 종류별 옵션 4종(effects[].name, 공식 확률 정보·공지 13204): 안정·침식 = 공격력·추가 피해·아군 피해 강화·낙인력, 견고·왜곡 = 공격력·보스 피해·아군 피해 강화·아군 공격 강화, 불변·붕괴 = 추가 피해·보스 피해·낙인력·아군 공격 강화. 필요 의지력 기본값 안정·침식 8, 견고·왜곡 9, 불변·붕괴 10. 바꾼 뒤 그 코어의 의지력이 모자라면 그 줄은 UNSUPPORTED, reasonCode ARK_GRID_WILL_SHORT(basis에 한국어 문장) */
+            gemType?: string;
+            /**
+             * Format: int32
+             * @description 새 젬 의지력 효율(ARK_GRID_GEM 1~5). 필요 의지력 = 종류 기본값(8·9·10) − 효율
+             */
+            willEfficiency?: number;
+            /** @description 새 젬 옵션 두 줄(ARK_GRID_GEM): 그 종류의 옵션 4종 중 서로 다른 둘, 레벨 1~5 */
+            effects?: components["schemas"]["GemOptionRequest"][];
+        };
+        /** @description 젬 옵션 한 줄(ARK_GRID_GEM) */
+        GemOptionRequest: {
+            /** @description 옵션 이름(공격력·추가 피해·보스 피해·아군 피해 강화·아군 공격 강화·낙인력) */
+            name?: string;
+            /**
+             * Format: int32
+             * @description 옵션 레벨 1~5
+             */
+            level?: number;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseCombatPowerSimulationResponse: {
