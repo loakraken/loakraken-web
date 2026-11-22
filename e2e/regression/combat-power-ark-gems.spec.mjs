@@ -19,7 +19,8 @@ const pick = async (page, combobox, option) => {
   await chooseOption(page, combobox, option);
 };
 const openGem = async (page, name) => {
-  await tap(gemCard(page).getByText(name, { exact: true }));
+  // The summary itself: at 320 its hit-44 area lies over its text, so a tap lands on the summary (as a finger does).
+  await tap(gemCard(page).locator("summary").filter({ has: page.getByText(name, { exact: true }) }));
   await expect(gemCard(page).getByRole("combobox", { name: `${name} 종류`, exact: true })).toBeVisible();
 };
 
