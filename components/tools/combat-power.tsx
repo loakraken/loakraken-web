@@ -349,9 +349,13 @@ function GemRow({
     effects[i] = { ...effects[i], ...next };
     onChange({ ...swap, effects });
   };
+  // The editor (seven selects) only while the row is open (#1947): a closed <details> still renders its children, so
+  // every gem's editor re-rendered on each edit and mounted on load (24 gems at CPU 4×: type change max INP
+  // 176 → 136ms, load long tasks 315 → 273ms).
+  const [open, setOpen] = useState(false);
   return (
     <li className={styles.gemRow}>
-      <details className={styles.gemDetails}>
+      <details className={styles.gemDetails} onToggle={(event) => setOpen(event.currentTarget.open)}>
         <summary className={`${styles.gemSummary} hit-44`} data-changed={changed || undefined}>
           <span className={styles.rowName}>{name}</span>
           <span className={styles.gemText}>
@@ -359,64 +363,66 @@ function GemRow({
             {!gem.active && " · 꺼진 젬"}
           </span>
         </summary>
-        <div className={styles.gemEditor}>
-          <Choice
-            label={`${name} 종류`}
-            caption="종류"
-            value={swap.gemType}
-            original={gem.edit.gemType}
-            values={GEM_SERIES[gem.series].map((type) => ({ value: type, label: type }))}
-            onChange={(type) => onChange(withGemType(swap, type))}
-          />
-          <Select
-            label={`${name} 의지력 효율`}
-            caption="의지력 효율"
-            value={swap.willEfficiency}
-            original={gem.edit.willEfficiency}
-            values={levels}
-            onChange={(willEfficiency) => onChange({ ...swap, willEfficiency })}
-          />
-          <Select
-            label={`${name} 포인트`}
-            caption="포인트"
-            value={swap.point}
-            original={gem.edit.point}
-            values={levels}
-            onChange={(point) => onChange({ ...swap, point })}
-          />
-          {([0, 1] as const).map((i) => (
-            <span key={i} className={styles.gemOption}>
-              <Choice
-                label={`${name} 옵션 ${i + 1}`}
-                caption={`옵션 ${i + 1}`}
-                value={swap.effects[i].name}
-                original={gem.edit.effects[i].name}
-                // The other line's option is not offered: one gem rolls two different options.
-                values={pool
-                  .filter((option) => option === swap.effects[i].name || option !== swap.effects[1 - i].name)
-                  .map((option) => ({ value: option, label: option }))}
-                onChange={(option) => effect(i, { name: option })}
-              />
-              <Select
-                label={`${name} 옵션 ${i + 1} 레벨`}
-                caption="레벨"
-                value={swap.effects[i].level}
-                original={gem.edit.effects[i].level}
-                values={levels}
-                onChange={(level) => effect(i, { level })}
-              />
-            </span>
-          ))}
-          {changed && (
-            <button type="button" className={`${styles.gemReset} hit-44`} onClick={onReset}>
-              지금 젬으로 되돌리기
-            </button>
-          )}
-          {/* Always there, its text changing: a status region mounted with its text may go unread (#1928 P3). */}
-          <p className={styles.gemError} role="status">
-            {error ?? ""}
-          </p>
-        </div>
+        {open && (
+          <div className={styles.gemEditor}>
+            <Choice
+              label={`${name} 종류`}
+              caption="종류"
+              value={swap.gemType}
+              original={gem.edit.gemType}
+              values={GEM_SERIES[gem.series].map((type) => ({ value: type, label: type }))}
+              onChange={(type) => onChange(withGemType(swap, type))}
+            />
+            <Select
+              label={`${name} 의지력 효율`}
+              caption="의지력 효율"
+              value={swap.willEfficiency}
+              original={gem.edit.willEfficiency}
+              values={levels}
+              onChange={(willEfficiency) => onChange({ ...swap, willEfficiency })}
+            />
+            <Select
+              label={`${name} 포인트`}
+              caption="포인트"
+              value={swap.point}
+              original={gem.edit.point}
+              values={levels}
+              onChange={(point) => onChange({ ...swap, point })}
+            />
+            {([0, 1] as const).map((i) => (
+              <span key={i} className={styles.gemOption}>
+                <Choice
+                  label={`${name} 옵션 ${i + 1}`}
+                  caption={`옵션 ${i + 1}`}
+                  value={swap.effects[i].name}
+                  original={gem.edit.effects[i].name}
+                  // The other line's option is not offered: one gem rolls two different options.
+                  values={pool
+                    .filter((option) => option === swap.effects[i].name || option !== swap.effects[1 - i].name)
+                    .map((option) => ({ value: option, label: option }))}
+                  onChange={(option) => effect(i, { name: option })}
+                />
+                <Select
+                  label={`${name} 옵션 ${i + 1} 레벨`}
+                  caption="레벨"
+                  value={swap.effects[i].level}
+                  original={gem.edit.effects[i].level}
+                  values={levels}
+                  onChange={(level) => effect(i, { level })}
+                />
+              </span>
+            ))}
+            {changed && (
+              <button type="button" className={`${styles.gemReset} hit-44`} onClick={onReset}>
+                지금 젬으로 되돌리기
+              </button>
+            )}
+            {/* Always there, its text changing: a status region mounted with its text may go unread (#1928 P3). */}
+            <p className={styles.gemError} role="status">
+              {error ?? ""}
+            </p>
+          </div>
+        )}
       </details>
     </li>
   );
