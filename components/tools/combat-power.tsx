@@ -14,7 +14,6 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FlashCircle, RotateLeft, UndoArrow } from "@/components/ui/icons";
 import { Select as ChoiceSelect } from "@/components/ui/select";
@@ -1391,7 +1390,6 @@ function CombatPowerContent({
   armor?: boolean;
   gem?: boolean;
 }) {
-  const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
   const [name, setName] = useState(
@@ -1418,7 +1416,9 @@ function CombatPowerContent({
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(input);
-    router.replace(`?${new URLSearchParams({ character: target })}`, { scroll: false });
+    // The address only (no server round trip): the page reads the character on the server for a name in the
+    // address (#1949), so router.replace would ask the backend again beside this query's own request.
+    window.history.replaceState(null, "", `?${new URLSearchParams({ character: target })}`);
     setName(target);
   }
 

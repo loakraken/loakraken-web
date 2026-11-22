@@ -30,6 +30,22 @@ test("이름이 있으면 시뮬레이터가 첫 HTML에 있고 화면은 캐릭
   expect(asked, "화면에서 다시 보낸 요청").toEqual([]);
 });
 
+// Searching on the page changes the address only: one backend lookup for the new name (the page's server read
+// would add a second through a server round trip).
+test("페이지에서 다른 이름을 찾으면 백엔드 조회는 한 번, 주소도 그 이름 @regression", async ({ page, request }) => {
+  const other = "전투력젬많음";
+  await page.goto(path(NAME));
+  await expect(page.getByText(NOTE)).toBeVisible();
+  const before = await searches(request, other);
+  await page.getByRole("textbox", { name: "캐릭터 이름" }).fill(other);
+  await page.getByRole("button", { name: "불러오기" }).click();
+  // Its 24 gems (the first name has fewer): the new character is on screen.
+  await expect(page.getByRole("region", { name: "아크 그리드 젬", exact: true }).locator("summary")).toHaveCount(24);
+  await expect(page).toHaveURL(new RegExp(`character=${encodeURIComponent(other)}`));
+  await page.waitForTimeout(1500);
+  expect((await searches(request, other)) - before, "새 이름의 백엔드 조회").toBe(1);
+});
+
 test("서버가 못 받은 캐릭터는 화면이 지금처럼 받아 알린다 @regression", async ({ page }) => {
   await page.goto(path("미존재"));
   await expect(page.getByRole("alert")).toBeVisible();
