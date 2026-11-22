@@ -64,7 +64,7 @@ export type SlideAnchor = { base: Parts; made: Parts };
 
 /**
  * Every field of every part equal (the page keeps the parts in the address, so they come back as a new object with
- * the same fields: equality, not identity). Codex P2 on #1930: comparing the targets alone took a grade or 장인의 기운
+ * the same fields: equality, not identity). codex P2 on #1930: comparing the targets alone took a grade or 장인의 기운
  * edited in a row for "still the last step" and the next step put the old one back.
  */
 export const sameParts = (a: Parts, b: Parts) =>
