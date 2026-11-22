@@ -1,5 +1,6 @@
 import type { BackendFailure, BackendResult } from "../api/backend";
 import type { OptionsEnvelope, SimulateEnvelope, SimulateRequest } from "./model";
+import type { GemRankingEnvelope, GemRankingRequest } from "./gem-processing";
 
 export class CombatPowerQueryError extends Error {
   info: BackendFailure;
@@ -35,3 +36,11 @@ export const postSimulation = (body: SimulateRequest, signal?: AbortSignal) =>
 
 export const fetchOptions = (signal?: AbortSignal) =>
   call<OptionsEnvelope>("/api/combat-power/options", {}, signal);
+
+/** 젬 가공 순위 (web #1969). */
+export const postGemRanking = (body: GemRankingRequest, signal?: AbortSignal) =>
+  call<GemRankingEnvelope>(
+    "/api/combat-power/gem-ranking",
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+    signal,
+  );
