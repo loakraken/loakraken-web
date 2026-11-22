@@ -30,7 +30,7 @@ const cases = [
   { width: 320, title: "가장 긴 이름 · 서버를 불러와도(맞춘 대체 글꼴)", long: true, face: "matched" },
 ];
 
-for (const { width, title, long, face } of cases)
+const leg = ({ width, title, long, face }) =>
   test(`${width}: ${title} 캐릭터 장비 카드 높이와 아래 카드 자리가 그대로다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
@@ -75,3 +75,10 @@ for (const { width, title, long, face } of cases)
     expect(all, `흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
+
+for (const c of cases.filter((c) => c.face !== "matched")) leg(c);
+test.describe(() => {
+  // The blocked font file logs its failed load: only this leg lets console errors through.
+  test.use({ allowConsoleErrors: true });
+  for (const c of cases.filter((c) => c.face === "matched")) leg(c);
+});
