@@ -150,8 +150,11 @@ export function RefiningBreathCompare({
               <p className={styles.verdict}>{verdictText(c)}</p>
               {/* Same line every time (empty when all are priced), so a refresh never moves the next row. */}
               {/* Short on screen (two names + '외 N개'), every name read out and on hover (PM-프론트 #1943). */}
-              <p className={styles.unpriced} title={left.full || undefined}>
-                <span aria-hidden="true">{left.visible}</span>
+              {/* The title sits on the hidden visible span: on the paragraph it became its description, read twice. */}
+              <p className={styles.unpriced}>
+                <span aria-hidden="true" title={left.full || undefined}>
+                  {left.visible}
+                </span>
                 <span className={styles.sr}>{left.full}</span>
               </p>
             </li>

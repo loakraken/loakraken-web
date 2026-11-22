@@ -529,7 +529,10 @@ function TopSummary({
   const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
   return (
     <>
-      <p className={styles.topTotal}>
+      {/* Keyed by whether the prices are in (PM-프론트 #1943 P2): before, the 재련 골드 alone; once they land, the longer
+          total. Rewritten in place, the wider number moved '골드' (a shift past the input window); a new line is drawn
+          instead, the same height. Later minute refreshes keep the line (tabular-nums: same digits, same width). */}
+      <p className={styles.topTotal} key={priceList ? "priced" : "pending"}>
         {formatCount(total)}
         <span>골드</span>
       </p>
@@ -592,7 +595,8 @@ function Result({
   ];
   return (
     <>
-      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
+      {/* Keyed like the total above (PM-프론트 #1943 P2): the first prices make the number longer, a new line instead. */}
+      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined} key={priceList ? "priced" : "pending"}>
         {formatCount(total)}
         <span>골드</span>
       </p>
