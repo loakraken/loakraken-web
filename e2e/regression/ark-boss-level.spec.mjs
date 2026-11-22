@@ -5,7 +5,7 @@ import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } fr
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const NOTE =
-  "아크 그리드 효율(젬 옵션과 코어 포인트가 딜을 올리는 %)을 젬의 보스 피해 옵션 레벨로 환산한 값이에요. 보스 피해 1레벨을 1/12%로 보고 효율 × 12로 셈해요.";
+  "아크 그리드 효율을 젬 옵션 ‘보스 피해’ 레벨로 바꿔 나타낸 값이에요. 보스 피해 1레벨을 1/12%로 보고 효율에 12를 곱해 셈해요.";
 const head = (page) => page.getByRole("button", { name: /^아크 그리드 효율/ }).locator("xpath=ancestor::p[1]");
 
 for (const width of [320, 1280])

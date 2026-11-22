@@ -42,7 +42,7 @@ export const bossLevel = (percent: number) =>
   });
 /** What the level is, in our words (the tooltip and its accessible name). */
 export const BOSS_LEVEL_NOTE =
-  "아크 그리드 효율(젬 옵션과 코어 포인트가 딜을 올리는 %)을 젬의 보스 피해 옵션 레벨로 환산한 값이에요. 보스 피해 1레벨을 1/12%로 보고 효율 × 12로 셈해요.";
+  "아크 그리드 효율을 젬 옵션 ‘보스 피해’ 레벨로 바꿔 나타낸 값이에요. 보스 피해 1레벨을 1/12%로 보고 효율에 12를 곱해 셈해요.";
 
 export function arkGridRealView(real: ArkGridReal | null | undefined, hasGrid: boolean): ArkGridRealView {
   if (!real) return { state: "hidden" };
