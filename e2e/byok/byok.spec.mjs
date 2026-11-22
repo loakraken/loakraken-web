@@ -116,6 +116,7 @@ test("공용 한도 안내와 바닥글에서 내 API 키로 간다, 내 몫 한
     "/settings/api-key",
   );
   await gotoReady(page, characterPath("과다"));
-  await expect(page.getByRole("alert").first()).toBeVisible();
+  // The limit notice itself: .first() could take Next's empty route announcer (role="alert") and check nothing (#1953).
+  await expect(page.getByRole("alert").filter({ hasText: "쉬어 가요" })).toBeVisible();
   await expect(page.getByRole("link", { name: "내 API 키로 조회하기" })).toHaveCount(0);
 });
