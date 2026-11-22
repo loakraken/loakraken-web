@@ -43,6 +43,8 @@ import {
   type CurrentGem,
   type GemEdit,
 } from "@/lib/combat-power/ark-gems";
+import { BOSS_LEVEL_NOTE, arkGridRealView } from "@/lib/character/efficiency-real";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArkGemRanking } from "./ark-gem-ranking";
 import type { GemSwap } from "@/lib/combat-power/gem-ranking";
 import {
@@ -971,12 +973,15 @@ function PointField({
 function ResultBand({
   base,
   itemLevel,
+  ark,
   data,
   changed,
   stale,
 }: {
   base: number | null;
   itemLevel: number | null;
+  /** Today's 아크 그리드 효율 and its 보스 피해 환산 Lv (X2), when worked out and shown on this deployment. */
+  ark: { total: string; bossLevel: string } | null;
   data: Simulation | null;
   changed: number;
   stale: boolean;
@@ -1027,6 +1032,20 @@ function ResultBand({
       {itemLevel != null && (
         <p className={styles.bandSub}>
           지금 아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
+        </p>
+      )}
+      {/* X2: today's value too (a gem swap's own share is in 바꿔 본 젬 순위); drawn with the band, so it never moves it. */}
+      {ark && (
+        <p className={styles.bandSub}>
+          지금 아크 그리드 효율 <b>{ark.total}</b> ·{" "}
+          {/* What the level is on its term, reachable by keyboard and touch (a title attribute is not). */}
+          <Tooltip>
+            <TooltipTrigger className={styles.bandTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
+              보스 피해 환산
+            </TooltipTrigger>
+            <TooltipContent>{BOSS_LEVEL_NOTE}</TooltipContent>
+          </Tooltip>{" "}
+          <b>Lv {ark.bossLevel}</b>
         </p>
       )}
     </section>
@@ -1098,6 +1117,7 @@ export function CombatPowerSimulator({
   karma = false,
   armor = false,
   gem = false,
+  efficiency = false,
 }: {
   name: string;
   initial?: Character;
@@ -1107,6 +1127,8 @@ export function CombatPowerSimulator({
   armor?: boolean;
   /** ARK_GEM_SIM on this deployment (server flag): 아크 그리드 젬 바꾸기 and 바꿔 본 젬 순위 (api #1079). */
   gem?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): today's 아크 그리드 효율 and 보스 피해 환산 Lv (X2). */
+  efficiency?: boolean;
   /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
   start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
@@ -1174,6 +1196,12 @@ export function CombatPowerSimulator({
     [current, edits.arkGem],
   );
   const gemSwaps = useDebounced(swaps);
+  // 아크 그리드 효율 and its 보스 피해 환산 Lv (X2), as the character page shows them (CHARACTER_EFFICIENCY on).
+  const arkView = arkGridRealView(
+    efficiency ? data?.arkGridEfficiency?.real : null,
+    !!data?.loadout.arkGrid && data.loadout.arkGrid.slots.length > 0,
+  );
+  const ark = arkView.state === "ready" ? { total: arkView.total, bossLevel: arkView.bossLevel } : null;
   // Same changes → same key → no new request (PM-프론트 18:49).
   const simulation = useQuery({
     queryKey: ["combat-power", name, data?.fetchedAt, debounced],
@@ -1272,6 +1300,7 @@ export function CombatPowerSimulator({
           <ResultBand
             base={data.combatPower}
             itemLevel={data.itemLevel ?? null}
+            ark={ark}
             data={result}
             changed={changes.length}
             stale={simulation.isFetching || changes !== debounced}
@@ -1391,11 +1420,13 @@ function CombatPowerContent({
   karma = false,
   armor = false,
   gem = false,
+  efficiency = false,
 }: {
   initialName: string;
   karma?: boolean;
   armor?: boolean;
   gem?: boolean;
+  efficiency?: boolean;
 }) {
   const router = useRouter();
   const [input, setInput] = useState(initialName);
@@ -1477,7 +1508,7 @@ function CombatPowerContent({
             </form>
 
             {/* A new character starts from its own values (keyed). */}
-            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} gem={gem} />
+            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />
           </div>
         </div>
       </main>
@@ -1493,12 +1524,15 @@ export function CombatPowerTool({
   karma = false,
   armor = false,
   gem = false,
+  efficiency = false,
 }: {
   initialName: string;
   karma?: boolean;
   armor?: boolean;
   /** ARK_GEM_SIM on this deployment (server flag): 아크 그리드 젬 바꾸기 (api #1079). */
   gem?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): today's 아크 그리드 효율 and 보스 피해 환산 Lv (X2). */
+  efficiency?: boolean;
 }) {
-  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} gem={gem} />;
+  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />;
 }
