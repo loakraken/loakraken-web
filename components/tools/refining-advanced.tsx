@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { RefiningQueryError, postAdvancedPlan } from "@/lib/refining/client";
 import {
   ADVANCED_MAX,
+  ADVANCED_NOT_READ,
   ADVANCED_PARTS,
   NO_ADVANCED_JEONYUL,
   advancedFailureCopy,
@@ -45,9 +46,11 @@ const advancedCodec: UrlCodec<AdvancedStages> = {
       for (const part of ADVANCED_PARTS) {
         const p = v[part.id];
         if (!isRecord(p)) continue;
-        const current = stage(p.current);
+        // null: not read from the tooltip (kept as such, never 0).
+        const current = p.current === null ? null : stage(p.current);
         const target = stage(p.target);
-        if (current != null && target != null) out[part.id] = { current, target: Math.max(current, target) };
+        if ((current != null || p.current === null) && target != null)
+          out[part.id] = { current, target: current == null ? target : Math.max(current, target) };
       }
       return out;
     } catch {
@@ -89,14 +92,17 @@ export function useAdvanced(parts: Parts, enabled: boolean) {
     complete,
     failed,
     failure,
-    /** After a character load: each part's current from its tooltip, the target kept only when it is still above. */
+    /**
+     * After a character load: each part's current from its tooltip, the target kept only when it is still above. A
+     * tooltip without the stage stays null ('읽지 못했어요'), never 0 (프론트 P2 on #1952).
+     */
     load(levels: Record<AdvancedPartId, number | null>, keepTargets: boolean) {
       setStages((prev) =>
         Object.fromEntries(
           ADVANCED_PARTS.map((part) => {
-            const current = levels[part.id] ?? 0;
+            const current = levels[part.id];
             const kept = keepTargets ? prev[part.id].target : 0;
-            return [part.id, { current, target: Math.max(current, kept) }];
+            return [part.id, { current, target: current == null ? 0 : Math.max(current, kept) }];
           }),
         ) as AdvancedStages,
       );
@@ -109,7 +115,7 @@ export type Advanced = ReturnType<typeof useAdvanced>;
 export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; parts: Parts }) {
   const headingId = useId();
   const { stages, setStages } = advanced;
-  const set = (id: AdvancedPartId, next: { current: number; target: number }) =>
+  const set = (id: AdvancedPartId, next: { current: number | null; target: number }) =>
     setStages((prev) => ({ ...prev, [id]: next }));
   const jeonyul = ADVANCED_PARTS.filter((part) => parts[part.id].enabled && parts[part.id].grade === "JEONYUL");
   return (
@@ -121,17 +127,21 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
         {ADVANCED_PARTS.map((part) => {
           const open = hasAdvanced(parts[part.id]);
           const { current, target } = stages[part.id];
-          const up = open ? target - current : 0;
+          // Not read from the tooltip: no stage shown or counted until the user picks one.
+          const unread = open && current == null;
+          const up = open && current != null ? target - current : 0;
           return (
             <li key={part.id} className={styles.row} data-off={!open || undefined}>
               <strong className={styles.part}>{part.label}</strong>
-              <span className={styles.up}>{!open ? "없음" : up > 0 ? `+${up}` : "유지"}</span>
+              <span className={styles.up}>{!open ? "없음" : unread ? "모름" : up > 0 ? `+${up}` : "유지"}</span>
               <label className={styles.mini}>
                 <span>현재</span>
                 <Select
-                  value={current}
+                  // -1: no item, so the field shows nothing (not 0) until one is picked.
+                  value={current ?? -1}
                   disabled={!open}
                   aria-label={`${part.label} 상급 재련 현재 단계`}
+                  aria-describedby={unread ? `${headingId}-${part.id}-unread` : undefined}
                   onValueChange={(value) => set(part.id, { current: value, target: Math.max(value, target) })}
                   items={range(0, ADVANCED_MAX - 1).map((n) => ({ value: n, label: String(n) }))}
                 />
@@ -140,12 +150,17 @@ export function RefiningAdvanced({ advanced, parts }: { advanced: Advanced; part
                 <span>목표</span>
                 <Select
                   value={target}
-                  disabled={!open}
+                  disabled={!open || unread}
                   aria-label={`${part.label} 상급 재련 목표 단계`}
                   onValueChange={(value) => set(part.id, { current, target: value })}
-                  items={range(current, ADVANCED_MAX).map((n) => ({ value: n, label: String(n) }))}
+                  items={range(current ?? 0, ADVANCED_MAX).map((n) => ({ value: n, label: String(n) }))}
                 />
               </label>
+              {unread && (
+                <small id={`${headingId}-${part.id}-unread`} className={styles.unread}>
+                  {ADVANCED_NOT_READ}. 현재 단계를 고르면 계산해요.
+                </small>
+              )}
             </li>
           );
         })}

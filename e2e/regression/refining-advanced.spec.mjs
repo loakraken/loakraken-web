@@ -2,7 +2,7 @@
 // 부위마다 api advanced-plans(목: api CI 표본으로 만든 구간 줄)를 한 번 묻는다. 구간의 재료 · 재련 골드는 페이지 합계에
 // 들어가고(상급만 골라도 결과가 나옴), 재료 시세 요청은 결과 · 숨결 비교가 함께 한 번. 50% · 90% · 장인의 기운에서는
 // '상급은 기대값' 줄이 처음부터 잡아 둔 자리에 나온다. 캐릭터의 상급 단계는 툴팁에서 읽고, 전율 부위는 상급이 없다.
-import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady, chooseOption } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const ADVANCED = "/api/refining/advanced-plans";
@@ -81,6 +81,27 @@ test("캐릭터의 상급 단계는 툴팁에서, 전율 부위는 상급 없음
   await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
   await expect(stageBox(page, "머리", "목표")).toHaveText("20");
   await expect(page.locator("details", { hasText: "상급 재련 구간별" }).getByRole("rowheader")).toHaveText(["머리 13→20"]);
+});
+
+test("툴팁에서 읽지 못한 상급 단계는 0으로 치지 않는다: '모름', +10 · 요청 없음, 고르면 계산 @regression", async ({ page }) => {
+  const asked = [];
+  page.on("request", (r) => r.url().includes(ADVANCED) && asked.push(r.postDataJSON()));
+  await gotoReady(page, `/tools/refining?character=${encodeURIComponent("재련상급")}`);
+  const gloves = card(page).getByRole("listitem").filter({ hasText: "장갑" });
+  await expect(gloves).toContainText("모름");
+  await expect(gloves).toContainText("현재 단계를 읽지 못했어요");
+  await expect(stageBox(page, "장갑", "현재")).toHaveText("");
+  await expect(stageBox(page, "장갑", "목표")).toBeDisabled();
+  await picks(page).getByRole("button", { name: "장갑", exact: true }).click();
+  await expect(page.getByRole("button", { name: "고른 부위 상급 +10" })).toHaveAttribute("aria-disabled", "true");
+  await page.waitForTimeout(400);
+  expect(asked, "읽지 못한 부위 요청 없음").toEqual([]);
+  // The user picks 7: from there, +10 goes to 10.
+  await chooseOption(page, stageBox(page, "장갑", "현재"), "7");
+  await expect(gloves).not.toContainText("현재 단계를 읽지 못했어요");
+  await page.getByRole("button", { name: "고른 부위 상급 +10" }).click();
+  await expect(stageBox(page, "장갑", "목표")).toHaveText("10");
+  await expect.poll(() => asked.map((r) => [r.equipmentType, r.fromStage, r.toStage])).toEqual([["ARMOR", 7, 10]]);
 });
 
 test("시세를 모으는 중(409)은 상급 재련의 말로 알린다 @regression", async ({ page }) => {

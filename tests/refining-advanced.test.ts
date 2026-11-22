@@ -84,6 +84,18 @@ test("'상급 +10' moves each picked 업화 part to the next band boundary (0→
   assert.equal(advancedRaisable(stages, p, ["helmet"]), true);
 });
 
+test("a current stage not read from the tooltip stays unknown: no '+10', no request until one is picked (프론트 P2)", () => {
+  const stages = { ...initialAdvanced(), gloves: { current: null, target: 0 }, helmet: { current: 0, target: 0 } };
+  const p = parts();
+  assert.equal(advancedRaisable(stages, p, ["gloves"]), false);
+  assert.deepEqual(bumpAdvanced(stages, p, ["gloves", "helmet"]).gloves, { current: null, target: 0 });
+  assert.deepEqual(bumpAdvanced(stages, p, ["gloves", "helmet"]).helmet, { current: 0, target: 10 });
+  assert.deepEqual(advancedRequests({ ...stages, gloves: { current: null, target: 20 } }, p), []);
+  // Picked by the user: counted from there.
+  const picked = { ...stages, gloves: { current: 5, target: 5 } };
+  assert.deepEqual(bumpAdvanced(picked, p, ["gloves"]).gloves, { current: 5, target: 10 });
+});
+
 test("requests: one per 업화 part in the plan whose target is above its current", () => {
   const stages = { ...initialAdvanced(), weapon: { current: 5, target: 10 }, helmet: { current: 0, target: 20 }, chest: { current: 0, target: 10 } };
   const keys = advancedRequests(stages, parts({ chest: { enabled: false } })).map(({ part, request }) => [part.id, request]);

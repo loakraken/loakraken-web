@@ -109,7 +109,7 @@ function withSimulatorGear(data) {
  */
 /**
  * '재련상급' (web #1951, X3 part 2): 운명의 업화 gear the 재련 계산기 reads (its grade from the name), with 상급 재련 read
- * from the tooltips: 무기 21, 머리 13, the other armour 0; 하의 is 전율 (no 상급 재련).
+ * from the tooltips: 무기 21, 머리 13, 상의 · 어깨 0, 장갑 not read (null); 하의 is 전율 (no 상급 재련).
  */
 function withAdvancedGear(data) {
   const [weapon, helmet] = data.loadout.equipment;
@@ -124,7 +124,7 @@ function withAdvancedGear(data) {
     piece("투구", "+18 운명의 업화 투구", 18, 13),
     piece("상의", "+18 운명의 업화 상의", 18, 0),
     piece("하의", "+18 운명의 전율 하의", 18, 0),
-    piece("장갑", "+18 운명의 업화 장갑", 18, 0),
+    piece("장갑", "+18 운명의 업화 장갑", 18, null),
     piece("어깨", "+18 운명의 업화 어깨", 18, 0),
   ];
   return data;

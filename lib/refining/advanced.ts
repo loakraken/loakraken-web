@@ -19,7 +19,11 @@ export const ADVANCED_BAND = 10;
 /** The parts with 상급 재련: weapon and armour (완갑 has none). */
 export const ADVANCED_PARTS = PARTS.filter((part) => part.type !== "ARM_GUARD");
 export type AdvancedPartId = Exclude<PartId, "armGuard">;
-export type AdvancedStage = { current: number; target: number };
+/**
+ * `current` null: a loaded 업화 piece whose 상급 재련 the tooltip did not give (프론트 P2 on #1952). Never taken as 0:
+ * '+10' and the requests leave the part out until the user picks its current stage.
+ */
+export type AdvancedStage = { current: number | null; target: number };
 export type AdvancedStages = Record<AdvancedPartId, AdvancedStage>;
 
 export const initialAdvanced = (): AdvancedStages =>
@@ -31,6 +35,7 @@ export const initialAdvanced = (): AdvancedStages =>
  */
 export const hasAdvanced = (state: PartState) => state.enabled && state.grade === "UPHWA";
 export const NO_ADVANCED_JEONYUL = "전율 장비에는 상급 재련이 없어요.";
+export const ADVANCED_NOT_READ = "현재 단계를 읽지 못했어요";
 
 /** Current 상급 재련 per part from the equipment tooltips (search advancedRefineLevel); null when not read. */
 export function advancedFromCharacter(data: Character): Record<AdvancedPartId, number | null> {
@@ -53,28 +58,27 @@ export function bumpAdvanced(
   picked: readonly PartId[],
 ): AdvancedStages {
   const next = { ...stages };
-  for (const part of ADVANCED_PARTS)
-    if (picked.includes(part.id) && hasAdvanced(parts[part.id])) {
-      const stage = stages[part.id];
-      next[part.id] = { ...stage, target: nextBand(Math.max(stage.current, stage.target)) };
-    }
+  for (const part of ADVANCED_PARTS) {
+    const { current, target } = stages[part.id];
+    // Not read: no band to add until the user picks the current stage.
+    if (picked.includes(part.id) && hasAdvanced(parts[part.id]) && current != null)
+      next[part.id] = { current, target: nextBand(Math.max(current, target)) };
+  }
   return next;
 }
 
 export const advancedRaisable = (stages: AdvancedStages, parts: Record<PartId, PartState>, picked: readonly PartId[]) =>
-  ADVANCED_PARTS.some(
-    (part) =>
-      picked.includes(part.id) &&
-      hasAdvanced(parts[part.id]) &&
-      Math.max(stages[part.id].current, stages[part.id].target) < ADVANCED_MAX,
-  );
+  ADVANCED_PARTS.some((part) => {
+    const { current, target } = stages[part.id];
+    return picked.includes(part.id) && hasAdvanced(parts[part.id]) && current != null && Math.max(current, target) < ADVANCED_MAX;
+  });
 
 /** One request per part that goes past its current stage. */
 export function advancedRequests(stages: AdvancedStages, parts: Record<PartId, PartState>) {
   return ADVANCED_PARTS.flatMap((part) => {
     const state = parts[part.id];
     const { current, target } = stages[part.id];
-    if (!hasAdvanced(state) || target <= current) return [];
+    if (!hasAdvanced(state) || current == null || target <= current) return [];
     const request: AdvancedRequest = {
       grade: state.grade as Grade,
       equipmentType: part.type as AdvancedRequest["equipmentType"],
