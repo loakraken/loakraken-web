@@ -1,0 +1,101 @@
+/* M41 숨결 쓰기 비교 (refining-breath.tsx): one row per part, the two ways side by side; wraps at 320. */
+.compare {
+  margin-top: 24px;
+}
+.title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.caption {
+  margin: 0 0 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.rows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.part {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.sides > div {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--muted);
+}
+.sides > div[data-cheaper] {
+  outline: 1px solid var(--ring);
+}
+.sides dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.sides dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.sides small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
+}
+.verdict {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+/* Always one line high (empty when every material is priced). */
+.unpriced {
+  min-height: 1.5em;
+  margin: 2px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.5;
+}
+/* Read only (the cheaper side, said in words as well as by its outline). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Kept rows while new prices come (A8): dimmed like the result above. */
+.rows[data-stale] {
+  opacity: 0.55;
+}
+/* Reserved before anything is known (PM-프론트 #1932 P3): the error line one line high, the verdict and the unpriced
+   line two lines each (they wrap at 320), so nothing under them moves when the plans and prices come. */
+.notice {
+  min-height: 1.5em;
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.verdict,
+.unpriced {
+  min-height: 3em;
+}
