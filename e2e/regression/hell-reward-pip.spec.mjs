@@ -17,10 +17,19 @@ const withPip = (page, { refuse = false } = {}) =>
     Object.defineProperty(window, "documentPictureInPicture", {
       configurable: true,
       value: {
-        requestWindow: ({ width, height }) =>
-          !refuseAll && navigator.userActivation.isActive
-            ? Promise.resolve(window.open("", "_blank", `popup,width=${width},height=${height}`))
-            : Promise.reject(new DOMException("no user activation", "NotAllowedError")),
+        requestWindow: ({ width, height }) => {
+          if (refuseAll || !navigator.userActivation.isActive)
+            return Promise.reject(new DOMException("no user activation", "NotAllowedError"));
+          const win = window.open("", "_blank", `popup,width=${width},height=${height}`);
+          // The window's pagehide listeners, as the page adds and removes them (window.__pipHide.size).
+          const hide = new Set();
+          const add = win.addEventListener.bind(win);
+          const remove = win.removeEventListener.bind(win);
+          win.addEventListener = (type, fn, ...rest) => (type === "pagehide" && hide.add(fn), add(type, fn, ...rest));
+          win.removeEventListener = (type, fn, ...rest) => (type === "pagehide" && hide.delete(fn), remove(type, fn, ...rest));
+          window.__pipHide = hide;
+          return Promise.resolve(win);
+        },
       },
     });
   }, refuse);
@@ -28,10 +37,14 @@ const withPip = (page, { refuse = false } = {}) =>
 /** Holds the JS chunk that carries the small window's view (its own style text marks it) for `ms`. */
 const delayPipChunk = (page, ms) =>
   page.route(/\/_next\/static\/chunks\/.+\.js$/, async (route) => {
-    const response = await route.fetch();
-    const body = await response.text();
-    if (body.includes("lk-pip-amount")) await new Promise((done) => setTimeout(done, ms));
-    await route.fulfill({ response, body });
+    try {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes("lk-pip-amount")) await new Promise((done) => setTimeout(done, ms));
+      await route.fulfill({ response, body });
+    } catch {
+      // The page left while a chunk was in flight (its response is gone): nothing to answer.
+    }
   });
 
 /** No Document PiP (Firefox, Safari today). */
@@ -214,4 +227,34 @@ test("1280: 시세 기준을 바꾸는 동안 작은 창도 '불러오는 중'�
   release();
   await expect(page.locator("[data-stale]")).toHaveCount(0);
   await expect(pipMain).not.toHaveAttribute("aria-busy");
+});
+
+// codex P3 on #1903: the listener held on the window while its code loads is removed once the window is shown (only the
+// view's own stays), and every listener is gone when it closes — opened normally, and closed while still loading.
+test("1280: 작은 창의 pagehide 듣기는 보일 때 하나, 닫히면 0 @regression", async ({ page }) => {
+  await withPip(page);
+  await delayPipChunk(page, 1500);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/tools/hell-reward");
+  const button = page.getByRole("button", { name: "작은 창" });
+  const listeners = () => page.evaluate(() => window.__pipHide?.size ?? -1);
+
+  const opened = page.waitForEvent("popup");
+  await button.click();
+  const pip = await opened;
+  await expect(pip.getByRole("heading", { level: 1 })).toHaveText(/단계$/);
+  await expect.poll(listeners).toBe(1);
+  const closed = pip.waitForEvent("close");
+  await button.click();
+  await closed;
+  await expect(button).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(listeners).toBe(0);
+
+  // Closed by the user at once (shown already or still held, the code is cached now): either way nothing is left listening.
+  const again = page.waitForEvent("popup");
+  await button.click();
+  const blank = await again;
+  await blank.close();
+  await expect(button).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(listeners).toBe(0);
 });

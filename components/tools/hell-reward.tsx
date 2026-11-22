@@ -274,15 +274,26 @@ export function HellRewardTool() {
   const [pipFailed, setPipFailed] = useState(false);
   const opening = useRef(false);
   const mounted = useRef(false);
-  // The window from the moment the browser gives it until it is shown in state (its code may still be loading).
-  const pending = useRef<Window | null>(null);
+  // The window from the moment the browser gives it until it is shown in state (its code may still be loading), with
+  // the remover of its own pagehide listener: dropped — listener and all — when shown and on every discard (codex P3
+  // on #1903).
+  const pending = useRef<{ win: Window; off: () => void } | null>(null);
+  const dropPending = (close: boolean) => {
+    const held = pending.current;
+    if (!held) return;
+    pending.current = null;
+    held.off();
+    if (close && !held.win.closed) held.win.close();
+  };
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
       // Leaving while it opens: close the (still blank) window now, not when its code lands (codex P3 on #1903).
-      pending.current?.close();
+      const held = pending.current;
       pending.current = null;
+      held?.off();
+      held?.win.close();
     };
   }, []);
   const closedPip = useCallback(() => setPip(null), []);
@@ -309,27 +320,29 @@ export function HellRewardTool() {
         win.close();
         return win;
       }
-      pending.current = win;
-      win.addEventListener("pagehide", () => {
-        if (pending.current === win) pending.current = null;
-      });
+      const onHide = () => {
+        if (pending.current?.win === win) dropPending(false);
+      };
+      win.addEventListener("pagehide", onHide);
+      pending.current = { win, off: () => win.removeEventListener("pagehide", onHide) };
       return win;
     });
     Promise.all([held, import("./hell-reward-pip")])
       .then(([win, mod]) => {
         // Closed while its code loaded (by the user, or by leaving the page): nothing to show, the button is free.
-        if (pending.current !== win || win.closed || !mounted.current) {
-          if (!win.closed) win.close();
+        if (pending.current?.win !== win || win.closed || !mounted.current) {
+          if (pending.current?.win === win) dropPending(true);
+          else if (!win.closed) win.close();
           return;
         }
-        pending.current = null;
+        dropPending(false);
         mod.prepareWindow(win);
         setPip({ win, View: mod.HellPip });
       })
       .catch(() => {
         // The window may have opened while its code failed to load: close it rather than leave it empty.
+        dropPending(true);
         asked.then((win) => win.close()).catch(() => {});
-        pending.current = null;
         if (mounted.current) setPipFailed(true);
       })
       .finally(() => {

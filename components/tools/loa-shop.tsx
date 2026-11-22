@@ -367,10 +367,17 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                     onChange={(event) => changeRate(event.target.value)}
                   />
                 </label>
-                {/* Always in the page (a polite live region), so the message is read when it appears. */}
-                <p id={errorId} className={styles.rateError} role="status">
-                  {rateInvalid ? RATE_INVALID : ""}
-                </p>
+                {/* The slot is as tall as the message would be here, wrapped or not (an unseen copy sizes it, codex P3
+                    on #1899: at 320 with 200% text the message took two lines and pushed the hint down). The live
+                    line sits over the copy; it is always in the page, so the message is read when it appears. */}
+                <div className={styles.rateErrorSlot}>
+                  <span className={styles.rateErrorSizer} aria-hidden="true">
+                    {RATE_INVALID}
+                  </span>
+                  <p id={errorId} className={styles.rateError} role="status">
+                    {rateInvalid ? RATE_INVALID : ""}
+                  </p>
+                </div>
               </div>
               <p id={hintId} className={styles.small}>
                 게임 안 크리스탈 교환소에서 블루 크리스탈 100개를 살 때 드는 골드를 넣어 주세요. 이 브라우저에만 저장하고

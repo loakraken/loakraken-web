@@ -143,13 +143,28 @@ test("320: 교환소 시세가 잘못되면 다른 숫자로 읽지 않고, 오�
   await shopField.fill("27300");
   await expect(shopField).not.toHaveAttribute("aria-invalid");
   expect((await layout()).hintTop, "고쳐도 설명 자리 그대로").toBeCloseTo(valid.hintTop, 0);
+  // The message wrapped (as at 320 with 200% text, codex P3 on #1899): the field group squeezed to 110px makes it
+  // several lines. The slot is that tall already, so the message coming and going still moves nothing below.
+  const squeeze = (width) => shopField.evaluate((input, w) => (input.closest("label").parentElement.style.width = w), width);
+  await squeeze("110px");
+  const narrow = await layout();
+  await shopField.fill("1.5");
+  await expect(shopField).toHaveAttribute("aria-invalid", "true");
+  const wrapped = await page.getByRole("status").filter({ hasText: message }).evaluate((el) => el.getBoundingClientRect().height);
+  expect(wrapped, "문구가 여러 줄").toBeGreaterThan(30);
+  expect((await layout()).hintTop, "여러 줄 오류에도 설명 자리 그대로").toBeCloseTo(narrow.hintTop, 0);
+  await shopField.fill("27300");
+  await expect(shopField).not.toHaveAttribute("aria-invalid");
+  expect((await layout()).hintTop, "여러 줄 오류가 사라져도 설명 자리 그대로").toBeCloseTo(narrow.hintTop, 0);
+  await squeeze("");
   await shopField.fill("1.5");
   await expect(shopField).toHaveAttribute("aria-invalid", "true");
   await page.reload();
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).toHaveValue("27300");
   await expect(page.getByRole("textbox", { name: SHOP_RATE })).not.toHaveAttribute("aria-invalid");
   await expect(gain).toBeVisible();
-  await expect(page.getByText(message)).toHaveCount(0);
+  // The status line is empty (the slot's unseen sizing copy, aria-hidden, always holds the text).
+  await expect(page.getByRole("status").filter({ hasText: message })).toHaveCount(0);
 });
 
 // codex P3 on #1889: a rate saved in another tab reaches this tab's card at once (the storage event), with no reload;
@@ -169,4 +184,25 @@ test("1280: 다른 탭에서 바꾼 교환소 시세가 이 탭의 카드에 바
   await expect(field).toHaveValue("");
   await expect(royal).toContainText("—");
   await other.close();
+});
+
+// codex P3 on #1899: a rate changed in another tab while no card or shop tool was on screen here (nothing listening
+// for its storage event) is read again when one comes back.
+test("1280: 이 탭에 시세 화면이 없는 동안 다른 탭에서 바꾼 값도 돌아오면 보인다 @regression", async ({ page, context }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market");
+  const field = () => page.getByRole("region", { name: "블루 크리스탈" }).getByRole("textbox", { name: /게임 안 교환소 시세/ });
+  await field().fill("27300");
+  // Away from the card, in the app (the store stays in memory, no one listening).
+  await page.getByRole("link", { name: "LOAKraken 홈" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  const other = await context.newPage();
+  await gotoReady(other, "/tools/loa-shop");
+  await other.getByRole("textbox", { name: SHOP_RATE }).fill("28050");
+  await other.close();
+  // Back to the card without a reload: the new value, not the one this tab last saw.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/market/);
+  await expect(field()).toHaveValue("28050");
+  await expect(page.getByRole("region", { name: "블루 크리스탈" }).getByRole("definition").nth(1)).toContainText("약 10.2골드");
 });
