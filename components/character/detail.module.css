@@ -2596,14 +2596,17 @@
   .specUpTable thead {
     display: none;
   }
+  /* Four columns so '적용해 보기' and the cost do not share one: the cost (7.5em plus its label) set that column, and
+     the target name beside the link was left a sliver (four lines at 320, QA v0.3.15 RC P3-2). The target spans up to
+     the link; the cost spans the last two. */
   .specUpTable tr {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-columns: 24px minmax(0, 1fr) auto auto;
     grid-template-areas:
-      "rank target try"
-      "rank change change"
-      "rank gain cost"
-      "rank eff eff";
+      "rank target target try"
+      "rank change change change"
+      "rank gain cost cost"
+      "rank eff eff eff";
     gap: 4px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--secondary);
