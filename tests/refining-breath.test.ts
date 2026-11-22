@@ -3,7 +3,7 @@
 // total with breath at 0G) ÷ expected breaths, against the breath's market price.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { breathCompare, priceNames } from "../lib/refining/breath";
+import { breathCompare, leftOutText, priceNames } from "../lib/refining/breath";
 import type { PartPlan, Plan } from "../lib/refining/model";
 import type { MaterialPrice } from "../lib/market/model";
 
@@ -92,13 +92,25 @@ test("an unpriced material used in the same amount on both sides cancels out: th
   const without = plan(10_000, [["운명의 파편", 50_000], ["실링", 1_000]]);
   const withBreath = plan(9_000, [["운명의 파편", 45_000], ["빙하의 숨결", 20], ["실링", 1_000]]);
   const c = breathCompare(without, withBreath, "expected", prices)!;
-  assert.equal(c.without.incomplete, false);
-  assert.equal(c.with.incomplete, false);
+  // Each total still leaves the 실링 out, so each reads '이상' (PM-프론트 #1932 follow-up P3) — but the gap is the same,
+  // so which way costs less and the verdict stand.
+  assert.equal(c.without.incomplete, true);
+  assert.equal(c.with.incomplete, true);
   assert.deepEqual(c.uneven, []);
   assert.deepEqual(c.unpriced, ["실링"]);
   assert.equal(c.cheaper, "without"); // 15,000 vs 13,500 + 8,000
   assert.equal(c.breathValue, 75);
   assert.equal(c.verdict, "SKIP");
+});
+
+test("the left-out line names two materials at most, then how many more (it fits two lines at 320)", () => {
+  assert.equal(leftOutText([]), "");
+  assert.equal(leftOutText(["실링"]), "시세가 없어 뺀 재료: 실링");
+  assert.equal(leftOutText(["재봉술 : 업화 [19-20]", "용암의 숨결"]), "시세가 없어 뺀 재료: 재봉술 : 업화 [19-20], 용암의 숨결");
+  assert.equal(
+    leftOutText(["재봉술 : 업화 [15-18]", "재봉술 : 업화 [19-20]", "용암의 숨결", "실링", "골드"]),
+    "시세가 없어 뺀 재료: 재봉술 : 업화 [15-18], 재봉술 : 업화 [19-20] 외 3개",
+  );
 });
 
 // PM-프론트 #1932 (performance first): one price request a minute for the result and the compare together.
