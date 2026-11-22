@@ -159,6 +159,16 @@
   font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
+.valueInput[aria-invalid] {
+  border-color: var(--destructive);
+}
+/* Its own line under the field (shown only after an invalid entry is applied, so it moves nothing on load). */
+.error {
+  flex-basis: 100%;
+  color: var(--destructive);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
 .cart {
   display: grid;
   gap: 10px;
@@ -184,6 +194,11 @@
   font-size: var(--text-caption);
   line-height: 18px;
   overflow-wrap: anywhere;
+}
+.cartMeta {
+  display: block;
+  color: var(--slate);
+  font-variant-numeric: tabular-nums;
 }
 .count {
   display: inline-flex;

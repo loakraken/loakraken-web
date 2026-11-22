@@ -5,7 +5,9 @@ import {
   cartMax,
   cartSummary,
   checkShopData,
+  parseUserGold,
   rankShop,
+  rowName,
   rowDate,
   rowValue,
   shopMarketNames,
@@ -104,4 +106,24 @@ test("cart: spend per currency, gold of valued lines, unvalued lines counted, ne
   assert.equal(by["베히모스의 비늘"].perCurrency, 1600 / 30);
   assert.equal(cartMax(row("raid-01")), 99);
   assert.equal(cartMax(row("single-17")), 30);
+});
+
+test("parseUserGold: values over 0 with or without thousands commas; empty clears; anything else is invalid (codex P2 on #1928)", () => {
+  assert.deepEqual(parseUserGold("2000"), { ok: true, value: 2000 });
+  assert.deepEqual(parseUserGold(" 2,000 "), { ok: true, value: 2000 });
+  assert.deepEqual(parseUserGold("1,234,567.5"), { ok: true, value: 1234567.5 });
+  assert.deepEqual(parseUserGold("0.25"), { ok: true, value: 0.25 });
+  assert.deepEqual(parseUserGold(""), { ok: true, value: null });
+  assert.deepEqual(parseUserGold("   "), { ok: true, value: null });
+  // The paste that was saved as 100, and the text that deleted the saved value.
+  for (const bad of ["-100", "1..2", "1,0,0", "12abc", "0", "0.0", ".5", "1.", "1e3", "Infinity", "2,00"])
+    assert.deepEqual(parseUserGold(bad), { ok: false }, bad);
+});
+
+test("rowName tells every row apart: the same item at two price steps differs by cost (codex P2 on #1928)", () => {
+  const rows = SHOP_DATA.shops.flatMap((shop) => shop.rows);
+  const names = rows.map(rowName);
+  assert.equal(new Set(names).size, rows.length);
+  const steps = rows.filter((row) => row.item === "운명의 파괴석 결정" && row.currency === "실마엘 혈석").map(rowName);
+  assert.deepEqual(steps, ["운명의 파괴석 결정 690 실마엘 혈석", "운명의 파괴석 결정 770 실마엘 혈석"]);
 });

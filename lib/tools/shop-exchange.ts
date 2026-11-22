@@ -116,6 +116,12 @@ export function rankShop(shop: Shop, price: UnitPrice, values: UserValues): Rank
   return [...valued, ...waiting, ...checking];
 }
 
+/**
+ * A row's name for its buttons and fields: item, cost and currency. One item can sit in a shop at two price steps
+ * (길드 690 / 770 혈석), so the item alone does not tell rows apart (codex P2 on #1928); unique over the data (test).
+ */
+export const rowName = (row: ShopRow) => `${row.item} ${row.cost.toLocaleString("ko-KR")} ${row.currency}`;
+
 /** How many times a row can go in the cart: its weekly limit, or 99 when there is none. */
 export const cartMax = (row: ShopRow) => row.limit?.count ?? 99;
 
@@ -184,4 +190,19 @@ export function cartSummary(
     unpricedCurrencies,
     net: gold - currencyGold,
   };
+}
+
+/** What the value field says when its text is not a value (kept as typed, not saved; codex P2 on #1928, as #1889). */
+export const VALUE_INVALID = "0보다 큰 숫자로 넣어 주세요. 넣은 값은 저장하지 않았어요.";
+
+/**
+ * A typed value in gold: empty clears it (null); digits with optional thousands commas and decimals, above 0, are a
+ * value; anything else ('-100', '1..2', '1,0,0', '12abc') is invalid and changes nothing saved.
+ */
+export function parseUserGold(text: string): { ok: true; value: number | null } | { ok: false } {
+  const t = text.trim();
+  if (t === "") return { ok: true, value: null };
+  if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/.test(t)) return { ok: false };
+  const value = Number(t.replace(/,/g, ""));
+  return Number.isFinite(value) && value > 0 ? { ok: true, value } : { ok: false };
 }

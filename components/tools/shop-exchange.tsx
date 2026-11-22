@@ -20,7 +20,6 @@ import { retryLabel } from "@/lib/api/rate-limit";
 import { oneOfCodec, useUrlState, type UrlCodec } from "@/lib/tools/url-state";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
-import { goldText } from "@/lib/tools/format";
 import {
   SHOP_DATA,
   cartMax,
@@ -31,12 +30,19 @@ import {
   type RowValue,
   type ShopRow,
   type UserValues,
+  parseUserGold,
+  rowName,
+  VALUE_INVALID,
 } from "@/lib/tools/shop-exchange";
 import quote from "./material-quote.module.css";
 import styles from "./shop-exchange.module.css";
 
 const SHOP_IDS = SHOP_DATA.shops.map((shop) => shop.id);
 const ALL_ROWS = new Map(SHOP_DATA.shops.flatMap((shop) => shop.rows.map((row) => [row.id, row] as const)));
+/** Row id → its shop's short name (as on the shop tabs), for the cart line. */
+const ROW_SHOP = new Map(
+  SHOP_DATA.shops.flatMap((shop) => shop.rows.map((row) => [row.id, shop.name.replace(" 교환", "")] as const)),
+);
 const per = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 
 /** The cart in the address: 'raid-03:2,single-02:1' (unknown rows and bad counts dropped, counts clamped). */
@@ -118,29 +124,52 @@ function limitText(row: ShopRow, shopId: string) {
   return shopId === "raid" ? "제한 없음" : "";
 }
 
-/** The user's value for one item: typed freely, applied on blur or Enter (the list re-ranks then, not per key). */
+/**
+ * The user's value for one item: typed freely, applied on blur or Enter (the list re-ranks then, not per key). Text
+ * that is not a value stays as typed, marked invalid with a line saying so, and the saved value is left alone (codex
+ * P2 on #1928: a pasted '-100' was saved as 100, and '1..2' deleted the saved value).
+ */
 function ValueField({ label, value, onCommit }: { label: string; value: number | undefined; onCommit: (v: number | null) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState(false);
+  const errorId = useId();
   const text = draft ?? (value != null ? String(value) : "");
   const commit = () => {
     if (draft === null) return;
-    const n = Number(draft.replace(/,/g, ""));
-    onCommit(draft.trim() === "" || !(n > 0) ? null : n);
+    const parsed = parseUserGold(draft);
+    if (!parsed.ok) {
+      setInvalid(true);
+      return;
+    }
+    onCommit(parsed.value);
     setDraft(null);
+    setInvalid(false);
   };
   return (
-    <input
-      className={styles.valueInput}
-      type="text"
-      inputMode="decimal"
-      autoComplete="off"
-      placeholder="내 값(골드)"
-      aria-label={label}
-      value={text}
-      onChange={(event) => setDraft(event.target.value.replace(/[^\d.,]/g, "").slice(0, 12))}
-      onBlur={commit}
-      onKeyDown={(event) => event.key === "Enter" && commit()}
-    />
+    <>
+      <input
+        className={styles.valueInput}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="내 값(골드)"
+        aria-label={label}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        value={text}
+        onChange={(event) => {
+          setDraft(event.target.value.slice(0, 16));
+          setInvalid(false);
+        }}
+        onBlur={commit}
+        onKeyDown={(event) => event.key === "Enter" && commit()}
+      />
+      {invalid && (
+        <span id={errorId} className={styles.error} role="status">
+          {VALUE_INVALID}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -181,7 +210,7 @@ function RowValueLine({
     );
   return (
     <p className={styles.valueLine}>
-      <b className={styles.gold}>{goldText(value.gold)}G</b>
+      <b className={styles.gold}>{per(value.gold)}G</b>
       <span className={styles.per}>재화 1개당 {per(value.perCurrency)}G</span>
       {field}
     </p>
@@ -233,9 +262,12 @@ export function ShopExchangeTool() {
 
   const ranked = rankShop(shop, price, values);
   // The order follows the user's own choices (shop, basis, typed values, the first prices, a re-sort), not every
-  // price refresh: values update in place; adjusted during render (derived state).
+  // price refresh: values update in place; adjusted during render (derived state). The held order is per basis: on a
+  // switch to a basis not fetched yet, the previous basis's prices stand in (placeholder) until its own arrive, and
+  // their arrival orders the list again (codex P2 on #1928: the old basis's ranks stayed over the new values).
   const [resort, setResort] = useState(0);
-  const orderKey = `${shop.id}|${basis}|${loaded}|${JSON.stringify(values)}|${resort}`;
+  const ownPrices = loaded && !prices.isPlaceholderData;
+  const orderKey = `${shop.id}|${basis}|${ownPrices}|${JSON.stringify(values)}|${resort}`;
   const [order, setOrder] = useState({ key: "", ids: [] as string[] });
   if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((r) => r.row.id) });
   const byId = new Map(ranked.map((r) => [r.row.id, r]));
@@ -305,7 +337,7 @@ export function ShopExchangeTool() {
                 </div>
                 <button
                   type="button"
-                  className={quote.outlinePill}
+                  className={`${quote.outlinePill} hit-44`}
                   aria-disabled={prices.isFetching || limit.seconds > 0 || undefined}
                   onClick={() => !prices.isFetching && limit.seconds === 0 && prices.refetch()}
                 >
@@ -324,7 +356,7 @@ export function ShopExchangeTool() {
               {/* Always drawn (a button appearing would move the list). */}
               <p className={styles.order}>
                 <span aria-live="polite">{stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "재화 1개당 가치가 높은 순서예요."}</span>
-                <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
+                <button type="button" className={`${quote.outlinePill} hit-44`} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>
               </p>
@@ -345,7 +377,7 @@ export function ShopExchangeTool() {
                           type="button"
                           className={`${styles.add} hit-44`}
                           aria-pressed={inCart}
-                          aria-label={`${row.item} ${row.cost.toLocaleString("ko-KR")} ${row.currency} 담기`}
+                          aria-label={`${rowName(row)} 담기`}
                           onClick={() => toggle(row)}
                         >
                           {/* One label: the pressed state (and its look) says it is in the cart. */}
@@ -375,11 +407,16 @@ export function ShopExchangeTool() {
                   <ul className={styles.cartLines} aria-label="담은 품목">
                     {cartRows.map((row) => (
                       <li key={row.id}>
+                        {/* Shop · cost · currency on the line and in both names: the same item at two price steps
+                            (길드 690 / 770 혈석) reads apart (codex P2 on #1928). */}
                         <span className={styles.cartItem}>
                           {row.item} ×{row.qty.toLocaleString("ko-KR")}
+                          <span className={styles.cartMeta}>
+                            {ROW_SHOP.get(row.id)} · {row.cost.toLocaleString("ko-KR")} {row.currency}
+                          </span>
                         </span>
                         <label className={styles.count}>
-                          <span className={styles.sr}>{row.item} 교환 횟수</span>
+                          <span className={styles.sr}>{rowName(row)} 교환 횟수</span>
                           <input
                             type="number"
                             min={1}
@@ -389,7 +426,7 @@ export function ShopExchangeTool() {
                           />
                           회
                         </label>
-                        <button type="button" className={`${styles.remove} hit-44`} aria-label={`${row.item} 빼기`} onClick={() => toggle(row)}>
+                        <button type="button" className={`${styles.remove} hit-44`} aria-label={`${rowName(row)} 빼기`} onClick={() => toggle(row)}>
                           빼기
                         </button>
                       </li>
@@ -407,11 +444,11 @@ export function ShopExchangeTool() {
                     ))}
                     <div>
                       <dt>골드 가치</dt>
-                      <dd className={styles.gold}>{goldText(summary.gold)}G</dd>
+                      <dd className={styles.gold}>{per(summary.gold)}G</dd>
                     </div>
                     <div>
                       <dt>순이익</dt>
-                      <dd className={styles.gold}>{goldText(summary.net)}G</dd>
+                      <dd className={styles.gold}>{per(summary.net)}G</dd>
                     </div>
                   </dl>
                   <p className={styles.small}>
@@ -419,7 +456,7 @@ export function ShopExchangeTool() {
                     {summary.unpricedCurrencies.length > 0 && `. 시세가 없는 재화(${summary.unpricedCurrencies.join(" · ")})는 0으로 셌어요`}.
                     {summary.unvalued > 0 && ` 값이 없는 ${summary.unvalued}개는 가치에 넣지 않았어요.`}
                   </p>
-                  <button type="button" className={quote.outlinePill} onClick={() => setCart(EMPTY_CART)}>
+                  <button type="button" className={`${quote.outlinePill} hit-44`} onClick={() => setCart(EMPTY_CART)}>
                     모두 빼기
                   </button>
                 </>

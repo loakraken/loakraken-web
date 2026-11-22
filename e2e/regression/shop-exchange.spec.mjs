@@ -46,7 +46,7 @@ for (const width of [320, 1280])
     // Cart: 파괴석 결정 (690 혈석) twice → 1,380 혈석, 720 G; 혈석 has no market price, so the net is the same.
     await guildList(page).getByRole("button", { name: "운명의 파괴석 결정 690 실마엘 혈석 담기" }).click();
     const cart = page.getByRole("region", { name: "담은 교환" });
-    await cart.getByRole("spinbutton", { name: "운명의 파괴석 결정 교환 횟수" }).fill("2");
+    await cart.getByRole("spinbutton", { name: "운명의 파괴석 결정 690 실마엘 혈석 교환 횟수" }).fill("2");
     await expect(page).toHaveURL(/[?&]cart=guild-11(%3A|:)2/);
     await expect(cart).toContainText("1,380개");
     await expect(cart.getByRole("definition").filter({ hasText: "G" }).first()).toBeVisible();
@@ -59,3 +59,66 @@ for (const width of [320, 1280])
     await expect(page.getByRole("region", { name: "담은 교환" })).toContainText("720G");
     await expectNoHorizontalOverflow(page);
   });
+
+// codex P2 on #1928: on a switch to a basis not fetched yet, the previous basis's prices stand in until its own arrive;
+// their arrival orders the list again, so the ranks never contradict the values on screen. Gold shows up to 2
+// decimals, as on the market page.
+test("1280: 시세 기준을 바꾸면 그 기준의 시세가 온 뒤 순서가 그 값을 따른다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // 최근 거래가: late, and 수호석 결정 at 50.1234 G (×40 = 2,004.94 G for 240 혈석 → 8.35 per 혈석, the top).
+  await page.route("**/api/markets/material-prices", async (route) => {
+    const body = route.request().postDataJSON();
+    if (body?.priceBasis !== "RECENT_PRICE") return route.continue();
+    const response = await route.fetch();
+    const json = await response.json();
+    for (const item of json.data.items) if (item.name === "운명의 수호석 결정") item.unitPriceGold = 50.1234;
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await route.fulfill({ response, json });
+  });
+  await gotoReady(page, "/tools/shop-exchange?shop=guild");
+  await expect(firstRow(page)).toContainText("운명의 파괴석 결정");
+  await page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+  await expect(firstRow(page)).toContainText("운명의 수호석 결정");
+  await expect(firstRow(page)).toContainText("2,004.94G");
+  await expect(firstRow(page).getByLabel("1위")).toBeVisible();
+  await expect(page.getByText("재화 1개당 가치가 높은 순서예요.")).toBeVisible();
+});
+
+// codex P2 on #1928 (as #1889): text that is not a value stays as typed, marked invalid, and the saved value is kept.
+test("320: 내 값에 '-100' · '1..2'를 넣으면 저장하지 않고 알려 준다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await gotoReady(page, "/tools/shop-exchange?shop=guild");
+  const yoz = guildList(page).getByRole("textbox", { name: "요즈의 입장권 상자 1개(상자) 값(골드)" }).first();
+  await yoz.fill("2000");
+  await yoz.press("Enter");
+  await expect(firstRow(page)).toContainText("2,000G");
+  for (const bad of ["-100", "1..2"]) {
+    await yoz.fill(bad);
+    await yoz.press("Enter");
+    await expect(yoz).toHaveAttribute("aria-invalid", "true");
+    await expect(yoz).toHaveValue(bad);
+    await expect(guildList(page).getByText("0보다 큰 숫자로 넣어 주세요. 넣은 값은 저장하지 않았어요.")).toBeVisible();
+    await expect(firstRow(page)).toContainText("2,000G");
+  }
+  // Blur with the invalid text still there, then reload: the saved 2,000 stands.
+  await yoz.blur();
+  await page.reload();
+  await expect(firstRow(page)).toContainText("요즈의 입장권 상자");
+  await expect(firstRow(page)).toContainText("2,000G");
+  await expectNoHorizontalOverflow(page);
+});
+
+// codex P2 on #1928: one item at two price steps (690 / 770 혈석) reads apart in the cart, by line and by name.
+test("320: 같은 품목의 두 가격 줄을 담으면 담은 교환에서 서로 다르게 보인다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await gotoReady(page, "/tools/shop-exchange?shop=guild");
+  for (const cost of ["690", "770"])
+    await guildList(page).getByRole("button", { name: `운명의 파괴석 결정 ${cost} 실마엘 혈석 담기` }).click();
+  const cart = page.getByRole("region", { name: "담은 교환" });
+  for (const cost of ["690", "770"]) {
+    await expect(cart.getByRole("spinbutton", { name: `운명의 파괴석 결정 ${cost} 실마엘 혈석 교환 횟수` })).toBeVisible();
+    await expect(cart.getByRole("button", { name: `운명의 파괴석 결정 ${cost} 실마엘 혈석 빼기` })).toBeVisible();
+    await expect(cart.getByText(`길드 혈석 · ${cost} 실마엘 혈석`)).toBeVisible();
+  }
+  await expectNoHorizontalOverflow(page);
+});
