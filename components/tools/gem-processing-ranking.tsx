@@ -166,7 +166,7 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
       )}
       {data && data.status !== "OK" && <p className={styles.note}>{data.basis ?? "이 캐릭터는 젬 가공 순위를 계산하지 않아요."}</p>}
       {data?.status === "OK" && (
-        <div data-stale={busy || undefined}>
+        <div className={styles.results} data-stale={busy || undefined}>
           {groups.length === 0 ? (
             <p className={styles.note}>전투력이 오를 가공 방법을 찾지 못했어요.</p>
           ) : (

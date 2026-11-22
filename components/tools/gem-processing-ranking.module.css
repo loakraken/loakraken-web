@@ -88,7 +88,11 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
-[data-stale] {
+.results {
+  display: grid;
+  gap: 12px;
+}
+.results[data-stale] {
   opacity: 0.55;
 }
 .groups {
