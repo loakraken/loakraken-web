@@ -86,3 +86,16 @@
 .rows[data-stale] {
   opacity: 0.55;
 }
+/* Reserved before anything is known (PM-프론트 #1932 P3): the error line one line high, the verdict and the unpriced
+   line two lines each (they wrap at 320), so nothing under them moves when the plans and prices come. */
+.notice {
+  min-height: 1.5em;
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.verdict,
+.unpriced {
+  min-height: 3em;
+}

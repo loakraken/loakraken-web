@@ -28,8 +28,14 @@ const PRICE_REFRESH_MS = 60_000;
 const NBSP = "\u00a0";
 const gold = (value: number | null | undefined) => (value == null ? DASH : `${formatCount(value)}${NBSP}G`);
 
+/** A side's total; '이상' when it leaves out something the other side does not (its real total is higher). */
+const total = (side: { total: number; incomplete: boolean } | undefined) =>
+  side ? `${gold(side.total)}${side.incomplete ? " 이상" : ""}` : DASH;
+
 function verdictText(c: BreathCompare | null) {
   if (!c) return "숨결 1개 가치를 계산하고 있어요…";
+  // PM-프론트 #1932: unpriced materials the two ways use in different amounts — neither the totals nor the saving hold.
+  if (c.uneven.length > 0) return "시세가 없는 재료를 두 방식이 다르게 써서 비교하지 않았어요.";
   if (c.breathValue == null) return "숨결을 쓰지 않는 단계예요.";
   const value = `숨결 1개 가치 ${gold(c.breathValue)}`;
   if (c.verdict === "BUY") return `${value} · 시세 ${gold(c.breathPrice)} → 사서 써도 이득이에요.`;
@@ -70,9 +76,10 @@ export function RefiningBreathCompare({
         ),
       ].sort()
     : [];
-  // Same key shape and refresh as the result's own prices (useRefiningCost): the same list is one request, and the
-  // compare's totals follow the minute's prices like the total above them. A new basis or mode keeps the last rows
-  // until the new prices come (no '—' flash).
+  // The result's own price query (useRefiningCost) asks for its plans' materials; this list adds the other way's (the
+  // breaths at least), so it is a second request each minute, refreshed on the same minute so the compare's totals
+  // follow the prices like the total above them (a shared request would mean widening the result's own list). A new
+  // basis or mode keeps the last rows, dimmed, until the new prices come (no '—' flash).
   const tooMany = names.length > MAX_PRICE_NAMES;
   const prices = useQuery({
     queryKey: ["material-prices", basis, names.join("|")],
@@ -97,11 +104,14 @@ export function RefiningBreathCompare({
         부위마다 같은 목표를 숨결 없이 · 숨결 최대로 했을 때예요. 가진 재료도 시세로 쳐서 비교하고, 누골은 재련할 때 바로
         내는 골드예요.
       </p>
-      {(failed || noPrices) && (
-        <p className={styles.caption}>
-          {failed ? "비교 계산을 불러오지 못했어요." : "재료 시세를 불러오지 못해 비교하지 않았어요."} 위 결과는 그대로예요.
-        </p>
-      )}
+      {/* Always there, one line high: appearing above the rows after the load moved them (PM-프론트 #1932 P3). */}
+      <p className={styles.notice} role="status">
+        {failed
+          ? "비교 계산을 불러오지 못했어요. 위 결과는 그대로예요."
+          : noPrices
+            ? "재료 시세를 불러오지 못해 비교하지 않았어요. 위 결과는 그대로예요."
+            : ""}
+      </p>
       {/* Rows kept from the last basis or mode while the new prices come are dimmed (A8, as the result above). */}
       <ul
         className={styles.rows}
@@ -124,7 +134,7 @@ export function RefiningBreathCompare({
                     {c?.cheaper === "without" && <span className={styles.sr}> · 더 적게 들어요</span>}
                   </dt>
                   <dd>
-                    {gold(c?.without.total)}
+                    {total(c?.without)}
                     <small>누골 {gold(c?.without.nugol)}</small>
                   </dd>
                 </div>
@@ -134,7 +144,7 @@ export function RefiningBreathCompare({
                     {c?.cheaper === "with" && <span className={styles.sr}> · 더 적게 들어요</span>}
                   </dt>
                   <dd>
-                    {gold(c?.with.total)}
+                    {total(c?.with)}
                     <small>
                       누골 {gold(c?.with.nugol)} · 숨결 {c ? `${formatCount(c.with.breaths)}개` : DASH}
                     </small>

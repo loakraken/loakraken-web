@@ -16,13 +16,16 @@ export type BreathSide = {
   total: number;
   /** Expected (or the mode's) breaths used. */
   breaths: number;
+  /** The total leaves out something the other side does not (an unpriced breath, or an unpriced material in another amount). */
+  incomplete: boolean;
 };
 
 export type BreathCompare = {
   without: BreathSide;
   with: BreathSide;
-  cheaper: "with" | "without" | "same";
-  /** Saving per breath with breath at 0G; null without breaths. */
+  /** null when either total is incomplete (the gap is not known, PM-프론트 #1932). */
+  cheaper: "with" | "without" | "same" | null;
+  /** Saving per breath with breath at 0G; null without breaths or when an unpriced material differs between the sides. */
   breathValue: number | null;
   /** The breaths' market unit price (weighted by use when 완갑 takes both); null when one is unpriced. */
   breathPrice: number | null;
@@ -30,6 +33,9 @@ export type BreathCompare = {
   verdict: "BUY" | "SKIP" | null;
   /** Materials without a unit price, left out of both sides (first-seen order). */
   unpriced: string[];
+  /** Unpriced materials other than breath used in different amounts on the two sides: they bias both the totals and the
+   * saving, so nothing is compared (PM-프론트 ruling on #1932). The same amount on both sides cancels out. */
+  uneven: string[];
 };
 
 const unitOf = (prices: readonly MaterialPrice[], name: string) => {
@@ -43,17 +49,30 @@ function side(plan: Plan, mode: Mode, prices: readonly MaterialPrice[], unpriced
   let value = 0;
   let breathCost = 0;
   let breaths = 0;
+  let breathUnpriced = false;
+  /** Unpriced amounts by name, to see whether the two sides leave out the same thing. */
+  const missing = new Map<string, number>();
   for (const item of materials) {
     const unit = unitOf(prices, item.name);
     if (isBreath(item.name)) breaths += item.amount;
     if (unit == null) {
       unpriced.add(item.name);
+      if (item.amount > 0) {
+        if (isBreath(item.name)) breathUnpriced = true;
+        else missing.set(item.name, item.amount);
+      }
       continue;
     }
     value += item.amount * unit;
     if (isBreath(item.name)) breathCost += item.amount * unit;
   }
-  return { gold, value, breathCost, breaths, materials };
+  return { gold, value, breathCost, breaths, breathUnpriced, missing, materials };
+}
+
+/** Unpriced non-breath materials whose amounts differ between the sides (a rounding hair is the same amount). */
+function unevenOf(a: Map<string, number>, b: Map<string, number>) {
+  const names = [...new Set([...a.keys(), ...b.keys()])];
+  return names.filter((name) => Math.abs((a.get(name) ?? 0) - (b.get(name) ?? 0)) > 1e-6);
 }
 
 /** null until prices are there (nothing to value the sides with). */
@@ -70,7 +89,10 @@ export function breathCompare(
   const aTotal = a.gold + a.value;
   const bTotal = b.gold + b.value;
   const bFree = bTotal - b.breathCost;
-  const breathValue = b.breaths > 0 ? Math.round((aTotal - bFree) / b.breaths) : null;
+  // An unpriced material the two sides use in different amounts biases both totals and the saving: compare nothing.
+  // The same amount on both sides cancels out (each total is short by the same gold).
+  const uneven = unevenOf(a.missing, b.missing);
+  const breathValue = b.breaths > 0 && uneven.length === 0 ? Math.round((aTotal - bFree) / b.breaths) : null;
   const breathItems = b.materials.filter((item) => isBreath(item.name) && item.amount > 0);
   const units = breathItems.map((item) => unitOf(prices, item.name));
   const breathPrice =
@@ -79,13 +101,19 @@ export function breathCompare(
       : null;
   const totalA = Math.round(aTotal);
   const totalB = Math.round(bTotal);
+  // A side is short of something the other is not: an unpriced breath (숨결 최대 only, PM-프론트 #1932 P2), or the
+  // uneven materials (both sides). Then which one costs less is not known.
+  const withIncomplete = b.breathUnpriced || uneven.length > 0;
+  const withoutIncomplete = a.breathUnpriced || uneven.length > 0;
+  const comparable = !withIncomplete && !withoutIncomplete;
   return {
-    without: { nugol: Math.round(a.gold), total: totalA, breaths: Math.round(a.breaths) },
-    with: { nugol: Math.round(b.gold), total: totalB, breaths: Math.round(b.breaths) },
-    cheaper: totalA === totalB ? "same" : totalB < totalA ? "with" : "without",
+    without: { nugol: Math.round(a.gold), total: totalA, breaths: Math.round(a.breaths), incomplete: withoutIncomplete },
+    with: { nugol: Math.round(b.gold), total: totalB, breaths: Math.round(b.breaths), incomplete: withIncomplete },
+    cheaper: !comparable ? null : totalA === totalB ? "same" : totalB < totalA ? "with" : "without",
     breathValue,
     breathPrice,
     verdict: breathValue == null || breathPrice == null ? null : breathValue >= breathPrice ? "BUY" : "SKIP",
     unpriced: [...unpriced],
+    uneven,
   };
 }
