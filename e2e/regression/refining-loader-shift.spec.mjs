@@ -2,18 +2,34 @@
 // When the answer arrived, the 캐릭터 장비 card grew by its 'loaded' line (and the note on parts it could not read) and
 // pushed the 목표 단계 card 40px down. The answer is held here until the page is measured; the card keeps its height and
 // nothing below it moves. Mock '재련': 어깨 is not 업화·전율, so the case with a part left out is the one measured.
+// The longest line (PM-프론트 #1957 P3): a 12-letter name on the longest server name, at 320, still fits the lines held.
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
-for (const width of [320, 1280])
-  test(`${width}: 주소로 캐릭터를 불러와도 캐릭터 장비 카드 높이와 아래 카드 자리가 그대로다 @regression`, async ({ page }) => {
+/** A made-up 12-letter name (PM-프론트 #1957 P3) and the longest server name. */
+const LONG_NAME = "가나다라마바사아자차카타";
+const LONG_SERVER = "아브렐슈드";
+
+const cases = [
+  { width: 320, title: "주소로 캐릭터를 불러와도", long: false },
+  { width: 1280, title: "주소로 캐릭터를 불러와도", long: false },
+  { width: 320, title: "가장 긴 이름 · 서버를 불러와도", long: true },
+];
+
+for (const { width, title, long } of cases)
+  test(`${width}: ${title} 캐릭터 장비 카드 높이와 아래 카드 자리가 그대로다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     let release;
     const held = new Promise((resolve) => (release = resolve));
     await page.route("**/api/characters?*", async (route) => {
       await held;
-      await route.continue();
+      if (!long) return route.continue();
+      const response = await route.fetch();
+      const body = await response.json();
+      const envelope = body.envelope ?? body;
+      Object.assign(envelope.data, { characterName: LONG_NAME, serverName: LONG_SERVER });
+      await route.fulfill({ response, json: body });
     });
     await page.goto(`/tools/refining?character=${encodeURIComponent("재련")}`);
     const loader = page.locator("section", { has: page.getByRole("heading", { name: "캐릭터 장비" }) });
@@ -29,7 +45,10 @@ for (const width of [320, 1280])
     const mark = await shiftMark(page);
 
     release();
-    await expect(page.getByText(/재련 · 루페온 · 아이템 레벨 1,738\.33/)).toBeVisible();
+    const line = long
+      ? `${LONG_NAME} · ${LONG_SERVER} · 아이템 레벨 1,738.33`
+      : "재련 · 루페온 · 아이템 레벨 1,738.33";
+    await expect(page.getByRole("status").filter({ hasText: line })).toBeVisible();
     await expect(page.getByRole("group", { name: "무기" }).getByRole("combobox", { name: "현재" })).toHaveText("+21");
     await page.waitForTimeout(400);
     const after = await box();
