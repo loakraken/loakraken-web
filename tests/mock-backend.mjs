@@ -28,6 +28,14 @@ const specUpDelta = (change) =>
       ? 90.33
       : null;
 
+/**
+ * The api's sentence for a 상급 재련 step cost (api #1081 SpecUpCost ADVANCED_REFINE_EXPECTED, develop), with its last
+ * clause as asked of 백엔드 (11-22: the screen's A13 rule bans the word the api's version uses); the web's test reads its
+ * fixed start only.
+ */
+const ADVANCED_REFINE_BASIS =
+  "10단계 구간마다 일반·무료·선조 턴의 기대 횟수에 턴마다 재료 1개 즉시 구매 최저가와 골드를 곱해 더한 상급 재련 기대 비용입니다(턴 종류마다 숨결·책 사용을 골라 기대 비용이 가장 작은 조합, 시세가 없는 숨결·책은 쓰지 않음). 지금 단계의 상급 경험치·선조 구슬은 0으로 가정했습니다. 실링, 장비 성장(경험치) 비용과 10·20·30단계를 넘는 담금질 재료(귀속)는 넣지 않았습니다. 일부 값(10~40단계 1회 재료, 나베르 뒤 선조 확률)은 아직 한 곳에서만 확인한 값입니다.";
+
 /** The synthetic glove: an armour quality change the backend scores as ±0. */
 const armourQuality = (search, change) =>
   change.kind === "EQUIPMENT_QUALITY" && search.loadout.equipment[change.index]?.type === "장갑";
@@ -1544,6 +1552,25 @@ createServer(async (req, res) => {
             krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT",
             krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.",
           });
+      return send(answer);
+    }
+    // '실목록2상급' (api #1081, web #1965): 실목록2's answer with its 상급 재련 rows priced as the api now prices them —
+    // status OK, code ADVANCED_REFINE_EXPECTED and the api's own sentence (SpecUpCost). Amounts are synthetic.
+    // KRAKEN serves the limit-200 answer ('실목록2전체'), whose 상급 rows are ranked (a Δ점수 each; weapon OK).
+    if (who === "실목록2상급") {
+      const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
+      const answer = specUp(`v0315-list/${sort === "KRAKEN" ? "실목록2전체" : "실목록2"}-${sort}.json`);
+      for (const c of answer.data.candidates)
+        if (c.change?.kind === "EQUIPMENT_ADVANCED_REFINE")
+          c.cost = {
+            unit: "GOLD",
+            amount: 1_200_000 + c.change.index * 10_000,
+            status: "OK",
+            code: "ADVANCED_REFINE_EXPECTED",
+            basis: ADVANCED_REFINE_BASIS,
+            priceObservedAt: null,
+            stale: null,
+          };
       return send(answer);
     }
     if (who?.startsWith("실목록")) {
