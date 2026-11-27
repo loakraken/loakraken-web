@@ -1249,7 +1249,8 @@ createServer(async (req, res) => {
       return send(withCostParts(envelope));
     }
     if (who === GUARDED) {
-      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: null, totalCost: null, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
+      // knownCostTotal / unknownCostSteps stay 0 / 0 (gold sums of zero steps; the contract types them non-null).
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: null, totalCost: null, knownCostTotal: 0, unknownCostSteps: 0, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
       return send(withCostParts(envelope));
     }
     if (who === "상세서포터") {
@@ -1532,6 +1533,8 @@ createServer(async (req, res) => {
     const id = decodeURIComponent(detailPath[1]);
     const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
     const list = fixture("character-spec-up.json");
+    // The 2부 guard (api B2): a guarded character's detail is the existing 404 (only a stale link reaches it).
+    if (url.searchParams.get("characterName") === GUARDED) return send(fixture("character-spec-up-detail-not-found.json"), 404);
     if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
@@ -1552,13 +1555,11 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
-    // The 2부 guard (web #1977), any sort: every candidate held with the code, the 크라켄 sort reason the same.
+    // The 2부 guard (api B2 after #1127, PM 총괄 02:57), any sort: no candidate at all (rows built from today's tables
+    // would carry numbers), the one top-level reason in krakenSortUnavailableReason.
     if (who === GUARDED) {
       const guarded = specUp("character-spec-up.json");
-      guarded.data.characterName = who;
-      for (const c of guarded.data.candidates)
-        Object.assign(c, { status: "UNSUPPORTED", reasonCode: GUARD_CODE, reason: GUARD_TEXT, deltaCombatPower: null, deltaKrakenScore: null });
-      guarded.data.krakenSortUnavailableReason = GUARD_CODE;
+      Object.assign(guarded.data, { characterName: who, candidates: [], total: 0, krakenSortUnavailableReason: GUARD_CODE });
       return send(guarded);
     }
     // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
@@ -1865,6 +1866,8 @@ createServer(async (req, res) => {
     d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
     d.unsupportedCount = computed ? held : d.contributions.length;
     d.partial = held > 0 && d.contributions.length > 0;
+    // The 2부 guard (api B2): no number of ours — after / delta null; the official before stays.
+    if (request.characterName === GUARDED) Object.assign(d, { after: null, delta: null, deltaPercent: null });
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {

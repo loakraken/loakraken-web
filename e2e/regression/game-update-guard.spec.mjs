@@ -20,6 +20,8 @@ for (const width of [320, 1280])
     const band = page.getByRole("region", { name: "예상 전투력" });
     await expect(band).toContainText("바꾼 1개 항목은 게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요.");
     await expect(band).not.toContainText("계산식을 확인하고 있어");
+    // after / delta are null (api B2): the official value stays, no change figure, never a 0.
+    await expect(band).not.toContainText(/[▲▼]|[+−-]0\.00|\(\+0/);
     // The row keeps the api's own sentence, and its badge says 계산하지 않음 like the band, never 'coming soon'
     // (PM-프론트 #1978 P2).
     const row = page.getByRole("region", { name: "바꾼 것" }).getByRole("listitem").first();
@@ -39,19 +41,20 @@ for (const width of [320, 1280])
   });
 
 for (const width of [320, 1280])
-  test(`${width}: 스펙업 — 점수 정렬 줄과 빈 목록이 게임 업데이트 때문이라고 @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await gotoReady(page, `${characterPath(NAME, "specup")}&sort=KRAKEN`);
-    // The bar's note (its room-holding copies are hidden): the status line that says it.
-    const note = page.getByRole("status").filter({ hasText: "업데이트로 아직 계산 안 함" });
-    await expect(note).toBeVisible();
-    // The empty list's own line (the same sentence is read out with the note).
-    await expect(page.locator("p", { hasText: "게임 업데이트로 바뀐 장비 정보라 아직 스펙업 후보를 계산하지 않아요." })).toBeVisible();
-    // Not the generic note (its hidden room-holding copy is always in the bar, so the status line is what counts).
-    await expect(page.getByRole("status").filter({ hasText: /지금은 점수 정렬 불가|효율 순/ })).toHaveCount(0);
-    await expect(page.getByText("지금 계산할 수 있는 후보가 없어요.")).toHaveCount(0);
-    await expectNoHorizontalOverflow(page);
-  });
+  for (const sort of ["KRAKEN", "DELTA"])
+    test(`${width} ${sort}: 스펙업 — 후보 없이 한 줄, 게임 업데이트 때문이라고 @regression`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoReady(page, `${characterPath(NAME, "specup")}&sort=${sort}`);
+      // api B2: no candidate at all (rows would carry numbers from today's tables), one empty-state line.
+      await expect(page.locator("p", { hasText: "게임 업데이트로 바뀐 장비 정보라 아직 스펙업 후보를 계산하지 않아요." })).toBeVisible();
+      await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(0);
+      await expect(page.getByRole("region", { name: "아직 계산하지 않은 후보" })).toHaveCount(0);
+      await expect(page.getByText("지금 계산할 수 있는 후보가 없어요.")).toHaveCount(0);
+      // The 크라켄 sort bar says it too (its hidden room-holding copies are always there, so the status line counts).
+      if (sort === "KRAKEN") await expect(page.getByRole("status").filter({ hasText: "업데이트로 아직 계산 안 함" })).toBeVisible();
+      await expect(page.getByRole("status").filter({ hasText: /지금은 점수 정렬 불가|효율 순/ })).toHaveCount(0);
+      await expectNoHorizontalOverflow(page);
+    });
 
 test("스펙업 추천 순서 · 목표 경로는 api 문장을 그대로 @regression", async ({ page }) => {
   await gotoReady(page, characterPath(NAME, "specup"));
