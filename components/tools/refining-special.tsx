@@ -197,21 +197,25 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                 ? state.current >= 25
                   ? "최고 단계"
                   : DASH
-                : row
-                  ? row.status === "OK"
-                    ? stoneGold(row.valuePerStoneGold)
-                    : DASH
-                  : values
-                    ? "1회 소모량 확인 중"
-                    : DASH;
+                : row?.status === "OK"
+                  ? stoneGold(row.valuePerStoneGold)
+                  : // Unsourced (업화 · 완갑 · 10) stays '—': the caption under the list says why, and a longer word
+                    // arriving with the answer would widen the cell (A7).
+                    DASH;
             return (
               <li key={part.id} className={styles.row} data-best={isBest || undefined}>
                 <p className={styles.name}>
                   <b>{part.label}</b> {gradeLabel(state.grade)} +{state.current}
                   {target && ` → +${target.fromStage + 1}`}
-                  {isBest && <span className={styles.badge}> 가장 이득</span>}
+                  {/* Always there, shown only on the best: appearing with the answer re-wrapped the name at 320. */}
+                  <span className={styles.badge} data-on={isBest || undefined}>
+                    {" "}
+                    가장 이득
+                  </span>
                 </p>
-                <p className={styles.value}>{value}</p>
+                <p className={styles.value}>
+                  <span className={styles.slot}>{value}</span>
+                </p>
               </li>
             );
           })}
@@ -232,7 +236,9 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                 <p className={styles.name}>
                   <span className={styles.place}>{i + 1}</span> {row ? stageLabel(row) : DASH}
                 </p>
-                <p className={styles.value}>{row?.status === "OK" ? stoneGold(row.valuePerStoneGold) : DASH}</p>
+                <p className={styles.value}>
+                  <span className={styles.slot}>{row?.status === "OK" ? stoneGold(row.valuePerStoneGold) : DASH}</span>
+                </p>
                 <p className={styles.detail}>{detailLine(row)}</p>
               </li>
             );

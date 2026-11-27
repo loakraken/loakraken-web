@@ -69,6 +69,13 @@
   text-align: right;
   white-space: nowrap;
 }
+/* The number's own slot, left-aligned at the right edge: '—' → '1,035.9 G' grows rightward inside a box that does
+   not change, so neither the box nor its text moves (right-aligned text growing leftward is logged as a shift). */
+.slot {
+  display: inline-block;
+  min-width: 10ch;
+  text-align: left;
+}
 /* Two caption lines held at 320 (the longest: 평균 12,000개 … 일반 재련 기대 7자리 G). */
 .detail {
   grid-column: 1 / -1;
@@ -91,6 +98,9 @@
 .badge {
   color: var(--action);
   font-weight: 700;
+}
+.badge:not([data-on]) {
+  visibility: hidden;
 }
 
 .pick {
