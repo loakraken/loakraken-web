@@ -6,6 +6,7 @@
 // The same tiny store over localStorage as hell-reward-values.ts: the server and the first paint see no roster.
 
 import { useSyncExternalStore } from "react";
+import { characterNameError, normalizeCharacterName } from "../character/model";
 import type { SiblingsEnvelope } from "../character/validate";
 
 /** The highest key level (entry item level) at or below the item level; null below the lowest. */
@@ -20,36 +21,57 @@ export type RosterMember = { characterName: string; className: string; itemLevel
 export type HellRoster = { name: string; fetchedAt: string; members: RosterMember[]; picked: string | null };
 
 const MAX_MEMBERS = 30;
+const CLASS_MAX = 30;
 
-/** The answer as kept: highest item level first (ties by name), at most 30. */
-export function rosterOf(envelope: SiblingsEnvelope): HellRoster {
-  const members = envelope.data.siblings
-    .map((s) => ({ characterName: s.characterName, className: s.className, itemLevel: s.itemLevel }))
-    .sort((a, b) => b.itemLevel - a.itemLevel || a.characterName.localeCompare(b.characterName, "ko"))
-    .slice(0, MAX_MEMBERS);
-  return { name: envelope.data.characterName, fetchedAt: envelope.data.fetchedAt, members, picked: null };
+/**
+ * One member as kept, or null when it breaks a rule: only that member is dropped, never the roster (PM-프론트 #1976
+ * P3). Names follow the site's own rule (letters and digits, as every character lookup checks them), so a real name
+ * of 12 Hangul, digits or mixed-case letters is kept.
+ */
+export function memberOf(raw: unknown): RosterMember | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const { characterName, className, itemLevel } = raw as Record<string, unknown>;
+  if (typeof characterName !== "string" || characterNameError(characterName)) return null;
+  if (typeof className !== "string" || className.length > CLASS_MAX) return null;
+  if (typeof itemLevel !== "number" || !Number.isFinite(itemLevel) || itemLevel < 0 || itemLevel > 3000) return null;
+  return { characterName: normalizeCharacterName(characterName), className, itemLevel };
 }
 
-const NAME = /^[^\s<>"'`]{1,16}$/u;
+/** The members that pass, each name once, highest item level first (ties by name), at most 30. */
+function keptMembers(list: readonly unknown[]): RosterMember[] {
+  const seen = new Set<string>();
+  const members: RosterMember[] = [];
+  for (const raw of list) {
+    const m = memberOf(raw);
+    if (m && !seen.has(m.characterName)) {
+      seen.add(m.characterName);
+      members.push(m);
+    }
+  }
+  return members
+    .sort((a, b) => b.itemLevel - a.itemLevel || a.characterName.localeCompare(b.characterName, "ko"))
+    .slice(0, MAX_MEMBERS);
+}
 
-/** Only a well-formed stored roster survives (a tampered or older value reads as none). */
+const validTime = (v: unknown): v is string => typeof v === "string" && !Number.isNaN(Date.parse(v));
+
+/** The answer as kept, checked by the same rules as a stored one; null when no member is left (said as a failure). */
+export function rosterOf(envelope: SiblingsEnvelope): HellRoster | null {
+  const members = keptMembers(envelope.data.siblings);
+  if (!members.length || !validTime(envelope.data.fetchedAt)) return null;
+  const asked = normalizeCharacterName(envelope.data.characterName);
+  return { name: characterNameError(asked) ? members[0].characterName : asked, fetchedAt: envelope.data.fetchedAt, members, picked: null };
+}
+
+/** A stored roster as read back: a tampered or older value reads as none; a bad member is dropped, the rest kept. */
 export function cleanRoster(raw: unknown): HellRoster | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
-  if (typeof r.name !== "string" || !NAME.test(r.name)) return null;
-  if (typeof r.fetchedAt !== "string" || Number.isNaN(Date.parse(r.fetchedAt))) return null;
-  if (!Array.isArray(r.members)) return null;
-  const members: RosterMember[] = [];
-  for (const m of r.members.slice(0, MAX_MEMBERS)) {
-    if (!m || typeof m !== "object") return null;
-    const { characterName, className, itemLevel } = m as Record<string, unknown>;
-    if (typeof characterName !== "string" || !NAME.test(characterName)) return null;
-    if (typeof className !== "string" || className.length > 20) return null;
-    if (typeof itemLevel !== "number" || !Number.isFinite(itemLevel) || itemLevel < 0 || itemLevel > 3000) return null;
-    members.push({ characterName, className, itemLevel });
-  }
+  if (typeof r.name !== "string" || characterNameError(r.name) || !validTime(r.fetchedAt) || !Array.isArray(r.members)) return null;
+  const members = keptMembers(r.members);
+  if (!members.length) return null;
   const picked = typeof r.picked === "string" && members.some((m) => m.characterName === r.picked) ? r.picked : null;
-  return { name: r.name, fetchedAt: r.fetchedAt, members, picked };
+  return { name: normalizeCharacterName(r.name), fetchedAt: r.fetchedAt, members, picked };
 }
 
 // Versioned: a later shape takes a new key and never reads old data.

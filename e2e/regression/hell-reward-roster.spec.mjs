@@ -99,3 +99,25 @@ test("원정대를 불러오지 못하면 그 줄에 알린다 @regression", asy
   await expect(roster(page).getByRole("status")).toHaveText("원정대를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.");
   await expect(cards(page)).toHaveCount(0);
 });
+
+// PM-프론트 #1976 P3: one member breaking a rule is dropped alone; real names (12 Hangul, digits, mixed case) stay.
+test("원정대 한 명이 규칙에 맞지 않으면 그 한 명만 빼고 나머지를 보인다 @regression", async ({ page }) => {
+  await gotoReady(page, "/tools/hell-reward");
+  await roster(page).getByRole("textbox", { name: "원정대 캐릭터 이름" }).fill("지옥섞임");
+  await roster(page).getByRole("button", { name: "불러오기" }).click();
+  await expect(cards(page)).toHaveCount(4);
+  for (const name of ["가나다라마바사아자차카타", "지옥섞임", "Ab12Cd", "지옥99"]) await expect(card(page, name)).toBeVisible();
+  await expect(roster(page)).not.toContainText("나쁜 이름");
+  await expect(roster(page).getByRole("status")).toContainText("기준 아이템 레벨이에요.");
+  await card(page, "가나다라마바사아자차카타").click();
+  await expect(levelRadio(page, 1730)).toBeChecked();
+});
+
+test("원정대 모두가 규칙에 맞지 않으면 빈 줄 대신 실패 문장 @regression", async ({ page }) => {
+  await gotoReady(page, "/tools/hell-reward");
+  await roster(page).getByRole("textbox", { name: "원정대 캐릭터 이름" }).fill("지옥모두나쁨");
+  await roster(page).getByRole("button", { name: "불러오기" }).click();
+  await expect(roster(page).getByRole("status")).toHaveText("원정대를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+  await expect(cards(page)).toHaveCount(0);
+  await expect(roster(page)).toContainText("누른 캐릭터가 들어갈 수 있는 열쇠 단계로");
+});

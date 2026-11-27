@@ -37,9 +37,14 @@ export function HellRoster({
   const [roster, setRoster] = useHellRoster();
   const [name, setName] = useState("");
   const load = useMutation({
-    mutationFn: (target: string) => fetchSiblings(target, new AbortController().signal),
-    onSuccess: (envelope) => {
-      setRoster(rosterOf(envelope));
+    // An answer with no member left after the checks is a failure (its line says so), never an empty row.
+    mutationFn: async (target: string) => {
+      const roster = rosterOf(await fetchSiblings(target, new AbortController().signal));
+      if (!roster) throw new CharacterQueryError({ code: "LOST_ARK_API_ERROR", status: 502 });
+      return roster;
+    },
+    onSuccess: (next) => {
+      setRoster(next);
       setName("");
     },
   });
