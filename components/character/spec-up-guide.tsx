@@ -7,6 +7,7 @@ import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useOptimi
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
+import { GAME_UPDATE_COPY } from "@/lib/api/game-update";
 import { failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
@@ -21,6 +22,7 @@ import {
   noCombatPower,
   krakenRanked,
   KRAKEN_NOTE_ALL,
+  guardedGuide,
   krakenUnavailableCopy,
   krakenUnavailableNote,
   isFreeCost,
@@ -654,7 +656,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
             {/* Drawn with the list, in the same render (CLS 0): armour rows the api held fold under the list. */}
             {heldNotice && <p className={styles.muted}>{heldNotice}</p>}
             {ok.length === 0 ? (
-              <p className={styles.muted}>지금 계산할 수 있는 후보가 없어요.</p>
+              // The 2부 guard holds every candidate (web #1977): say why, not that none qualifies.
+              <p className={styles.muted}>{guardedGuide(guide) ? GAME_UPDATE_COPY.specUp : "지금 계산할 수 있는 후보가 없어요."}</p>
             ) : (
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>

@@ -71,6 +71,18 @@
 .press[aria-disabled="true"] {
   opacity: 0.45;
 }
+/* Both labels in one cell (web #1977): the button keeps the wider one's width, and the seen one never moves. */
+.pressLabels {
+  display: inline-grid;
+  justify-items: center;
+}
+.pressLabels > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+.pressLabels > span[data-on] {
+  visibility: visible;
+}
 @media (max-width: 699px), (pointer: coarse) {
   .field input,
   .press {
