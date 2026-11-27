@@ -258,7 +258,7 @@ export interface components {
             /** @description 경로 끝 전투력이 목표 이상인가 */
             reached: boolean;
             /**
-             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): REACHED·ALREADY_REACHED·NO_CANDIDATE·STEP_LIMIT·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등)
+             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): REACHED·ALREADY_REACHED·NO_CANDIDATE·STEP_LIMIT·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등). GAME_UPDATE_UNSUPPORTED(2부 대비 막기·끄기 스위치가 켜졌을 때만)면 steps 빈 목록, finalCombatPower·totalCost null
              * @example REACHED
              */
             stopReasonCode: string;
@@ -484,7 +484,7 @@ export interface components {
              */
             limit: number;
             /**
-             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): STEP_LIMIT(limit까지)·NO_CANDIDATE(시세가 있고 전투력이 오르는 단계를 모두 고름)·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등)
+             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): STEP_LIMIT(limit까지)·NO_CANDIDATE(시세가 있고 전투력이 오르는 단계를 모두 고름)·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등). GAME_UPDATE_UNSUPPORTED(2부 대비 막기·끄기 스위치가 켜졌을 때만)면 steps·unpriced 빈 목록, finalCombatPower·점수 null
              * @example STEP_LIMIT
              */
             stopReasonCode: string;
