@@ -58,7 +58,8 @@ for (const width of [320, 1280])
     await expect(card(page, "지옥셋")).toHaveAttribute("aria-pressed", "true");
     // Below the lowest level: no change.
     await expect(card(page, "지옥다섯")).toHaveAttribute("aria-disabled", "true");
-    await card(page, "지옥다섯").click();
+    // An aria-disabled button: Playwright waits for it to be enabled, so the click is sent as the event itself.
+    await card(page, "지옥다섯").dispatchEvent("click");
     await expect(levelRadio(page, 1730)).toBeChecked();
     // Picking a level by hand: the card no longer says it is the one in use.
     await levelRadio(page, 1750).click();

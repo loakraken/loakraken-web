@@ -10,6 +10,7 @@ import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { keyLevelFor, rosterOf, useHellRoster } from "@/lib/tools/hell-roster";
+import { FpEnd } from "@/components/ui/fp-end";
 import styles from "./hell-roster.module.css";
 
 const TIME = new Intl.DateTimeFormat("ko-KR", {
@@ -66,7 +67,8 @@ export function HellRoster({
 
   return (
     <section className={styles.roster} aria-labelledby={`${id}-title`}>
-      <div className={styles.head}>
+      {/* Drawn once whole (data-fp-whole): in a cut first HTML the title sat alone and dropped when the form came. */}
+      <div className={styles.head} data-fp-whole="">
         <h2 id={`${id}-title`} className={styles.title}>
           원정대에서 고르기
         </h2>
@@ -91,9 +93,10 @@ export function HellRoster({
             aria-disabled={blocked || undefined}
             aria-busy={load.isPending || undefined}
           >
-            {load.isPending ? "불러오는 중…" : retryLabel(limit.seconds, roster && !name.trim() ? "다시 불러오기" : "불러오기")}
+            {load.isPending ? "불러오는 중…" : limit.seconds > 0 ? retryLabel(limit.seconds, "불러오기") : roster && !name.trim() ? "다시 불러오기" : "불러오기"}
           </button>
         </form>
+        <FpEnd />
       </div>
       <div className={styles.cards}>
         {roster && roster.members.length > 0 ? (

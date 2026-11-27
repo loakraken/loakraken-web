@@ -41,10 +41,15 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+/* A fixed width: its label changes (불러오기 · 다시 불러오기 · 불러오는 중… · N초 뒤 불러오기) and, at the row's end, a
+   wider label moved it left (A7, web #1975). */
 .load {
   flex: none;
+  width: 9.5rem;
   height: 36px;
-  padding: 0 14px;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--background);
