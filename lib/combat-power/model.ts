@@ -5,6 +5,7 @@
 import type { components } from "../api/combat-power-schema";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
+import { isGameUpdate } from "../api/game-update";
 import {
   GEM_BASE_WILL,
   GEM_MAX,
@@ -517,12 +518,12 @@ export const ARMOR_CP_RESIDUAL = "ARMOR_CP_RESIDUAL_HIGH";
 
 /**
  * A change the api does not compute for this character (the armour CP gate), or a gem swap that leaves its core
- * short of 의지력 (ARK_GRID_WILL_SHORT, api #1079: which gem the game turns off is not known): '계산하지 않음', never
- * 'coming soon'.
+ * short of 의지력 (ARK_GRID_WILL_SHORT, api #1079: which gem the game turns off is not known), or a character the 2부
+ * guard holds (GAME_UPDATE_UNSUPPORTED, web #1978): '계산하지 않음', never 'coming soon'.
  * One test for the 바꾼 것 row and the 예상 전투력 note, so the two never say different things (v0.3.15 RC P1-1).
  */
 export const notComputedHere = (item: { reasonCode?: string | null }) =>
-  item.reasonCode === ARMOR_CP_RESIDUAL || item.reasonCode === WILL_SHORT;
+  item.reasonCode === ARMOR_CP_RESIDUAL || item.reasonCode === WILL_SHORT || isGameUpdate(item.reasonCode);
 
 /** 팔 보호구 grades the simulator takes (backend #342). */
 export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
