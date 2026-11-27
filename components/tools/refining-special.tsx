@@ -21,6 +21,7 @@ import {
   overridesFrom,
   parsePriceInput,
   priceEditsCodec,
+  PRICE_TEXT_MAX,
   pieceTargets,
   priceFields,
   rankingTargets,
@@ -323,6 +324,7 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                   <input
                     type="text"
                     inputMode="decimal"
+                    maxLength={PRICE_TEXT_MAX}
                     name={`stone-price-${i}`}
                     autoComplete="off"
                     spellCheck={false}

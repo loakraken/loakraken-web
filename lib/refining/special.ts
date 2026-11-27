@@ -154,33 +154,40 @@ export function parsePriceInput(text: string): number | null | undefined {
   return isPriceValue(value) ? value : null;
 }
 
+/** The longest price text a field takes (the input's maxLength): '1,000,000,000.00' is 16. */
+export const PRICE_TEXT_MAX = 16;
+
+/** One typed price the address keeps: a name in the request's bounds and a text that is a valid price. */
+const keptEntry = (name: string, text: unknown): text is string =>
+  name.length >= 1 &&
+  name.length <= NAME_MAX &&
+  typeof text === "string" &&
+  text.length <= PRICE_TEXT_MAX &&
+  typeof parsePriceInput(text) === "number";
+
 /**
  * The typed prices in the address ('stone' on /tools/refining; every input lives there, #889): name → the text as
- * typed. Bounded like the request (≤ 32 names of ≤ 32 characters), each text ≤ 16 characters of digits, commas, a
- * dot or spaces; anything else drops the whole field. No typed price: no parameter.
+ * typed. Only valid prices are written, and reading drops a bad entry on its own (PM-프론트 #1974, flag-on blocker 1):
+ * a half-typed or wrong text in one field never costs the others on a reload. At most 32 (the request's bound).
+ * No valid typed price: no parameter.
  */
 export const priceEditsCodec = {
   parse(raw: string): Record<string, string> | null {
     try {
       const value: unknown = JSON.parse(raw);
       if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-      const entries = Object.entries(value as Record<string, unknown>);
-      if (entries.length > SPECIAL_MAX_PRICES) return null;
-      const ok = entries.every(
-        ([name, text]) =>
-          name.length >= 1 &&
-          name.length <= NAME_MAX &&
-          typeof text === "string" &&
-          text.length <= 16 &&
-          /^[\d,.\s]*$/.test(text),
-      );
-      return ok ? (Object.fromEntries(entries) as Record<string, string>) : null;
+      const kept = Object.entries(value as Record<string, unknown>)
+        .filter(([name, text]) => keptEntry(name, text))
+        .slice(0, SPECIAL_MAX_PRICES);
+      return Object.fromEntries(kept) as Record<string, string>;
     } catch {
       return null;
     }
   },
   format(value: Record<string, string>): string {
-    const kept = Object.entries(value).filter(([, text]) => text.trim() !== "");
+    const kept = Object.entries(value)
+      .filter(([name, text]) => keptEntry(name, text))
+      .slice(0, SPECIAL_MAX_PRICES);
     return kept.length ? JSON.stringify(Object.fromEntries(kept)) : "";
   },
 };

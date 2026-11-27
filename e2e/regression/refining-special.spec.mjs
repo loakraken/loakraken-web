@@ -91,3 +91,31 @@ test("바꾼 재료 값은 멈춘 뒤 한 번만 묻고, 시세로 되돌리면 
   // The market answer comes from the cache: no third request.
   expect(bodies).toHaveLength(2);
 });
+
+test("다시 불러와도 올바른 재료 값은 남고, 잘못 넣은 칸 하나만 빠진다 @regression", async ({ page }) => {
+  // PM-프론트 #1974 flag-on blocker 1: one bad field used to cost every typed price on a reload.
+  await page.goto("/tools/refining");
+  const section = page.locator("section", { has: page.getByText("특수 재련 돌파석 가치", { exact: true }) });
+  await section.scrollIntoViewIfNeeded();
+  await expect(section.locator("ol > li").first()).toContainText(/\d[\d,]*\.\d\sG/);
+  await section.getByText("재료 값 바꾸기").click();
+  const good = section.getByRole("textbox", { name: "운명의 파괴석 결정" });
+  const bad = section.getByRole("textbox", { name: "용암의 숨결" });
+  await good.fill("20");
+  await bad.fill("4.567");
+  await expect(bad).toHaveAttribute("aria-invalid", "true");
+  // Only the valid price reaches the address.
+  await expect.poll(() => new URL(page.url()).searchParams.get("stone")).toBe(JSON.stringify({ "운명의 파괴석 결정": "20" }));
+  await expect(bad).toHaveAttribute("maxlength", "16");
+
+  // A link with a bad entry beside a good one (hand-edited or from an older build): the good one stays.
+  const url = new URL(page.url());
+  url.searchParams.set("stone", JSON.stringify({ "운명의 파괴석 결정": "20", "용암의 숨결": "4oo", "운명의 파편": "1".repeat(17) }));
+  await page.goto(url.pathname + url.search);
+  await section.scrollIntoViewIfNeeded();
+  await expect(section.getByRole("status")).toContainText("바꾼 재료 값 1개");
+  await section.getByText("재료 값 바꾸기").click();
+  await expect(good).toHaveValue("20");
+  await expect(bad).toHaveValue("");
+  await expect.poll(() => new URL(page.url()).searchParams.get("stone")).toBe(JSON.stringify({ "운명의 파괴석 결정": "20" }));
+});

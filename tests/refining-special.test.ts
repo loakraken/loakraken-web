@@ -269,16 +269,31 @@ test("SPECIAL_STONE is off unless set on", () => {
   assert.equal(isSpecialStoneEnabled({ SPECIAL_STONE: " ON " }), true);
 });
 
-test("typed prices in the address: bounded text only, empty means no parameter", () => {
+test("typed prices in the address: only valid prices are written, a bad entry drops alone (PM-프론트 #1974 blocker 1)", () => {
   assert.deepEqual(priceEditsCodec.parse('{"용암의 숨결":"400","운명의 파편":"0.1"}'), { "용암의 숨결": "400", "운명의 파편": "0.1" });
   assert.equal(priceEditsCodec.parse("not json"), null);
   assert.equal(priceEditsCodec.parse("[]"), null);
-  assert.equal(priceEditsCodec.parse('{"용암의 숨결":400}'), null);
-  assert.equal(priceEditsCodec.parse('{"용암의 숨결":"<b>"}'), null);
-  assert.equal(priceEditsCodec.parse(`{"${"가".repeat(33)}":"1"}`), null);
-  assert.equal(priceEditsCodec.parse(JSON.stringify({ x: "1".repeat(17) })), null);
-  assert.equal(priceEditsCodec.parse(JSON.stringify(Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`n${i}`, "1"])))), null);
+  // Each bad entry goes on its own; the good ones stay.
+  const good = { "용암의 숨결": "400" };
+  for (const bad of [
+    { "운명의 파편": 400 },
+    { "운명의 파편": "4oo" },
+    { "운명의 파편": "1.234" },
+    { "운명의 파편": "1".repeat(17) },
+    { "운명의 파편": "" },
+    { ["가".repeat(33)]: "1" },
+  ])
+    assert.deepEqual(priceEditsCodec.parse(JSON.stringify({ ...good, ...bad })), good, JSON.stringify(bad));
+  // The longest valid text (16, the input's maxLength) is kept.
+  assert.deepEqual(priceEditsCodec.parse(JSON.stringify({ x: "1,000,000,000.00" })), { x: "1,000,000,000.00" });
+  // At most 32 (the request's bound): the first 32.
+  const many = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`n${i}`, "1"]));
+  assert.equal(Object.keys(priceEditsCodec.parse(JSON.stringify(many))!).length, 32);
+  // Writing: empty, blank and invalid text never reach the address.
   assert.equal(priceEditsCodec.format({}), "");
   assert.equal(priceEditsCodec.format({ "용암의 숨결": "  " }), "");
-  assert.equal(priceEditsCodec.format({ "용암의 숨결": "400", "운명의 파편": "" }), '{"용암의 숨결":"400"}');
+  assert.equal(priceEditsCodec.format({ "용암의 숨결": "400", "운명의 파편": "", "빙하의 숨결": "4oo", x: "1.234" }), '{"용암의 숨결":"400"}');
+  // What is written reads back the same.
+  const written = priceEditsCodec.format({ "용암의 숨결": "1,234.5", "운명의 파편": "0.08" });
+  assert.deepEqual(priceEditsCodec.parse(written), { "용암의 숨결": "1,234.5", "운명의 파편": "0.08" });
 });
