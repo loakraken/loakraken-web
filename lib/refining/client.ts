@@ -1,6 +1,7 @@
 import type { BackendFailure, BackendResult } from "../api/backend";
 import type { PlanEnvelope, PlanRequest } from "./model";
 import type { AdvancedEnvelope, AdvancedRequest } from "./advanced";
+import type { SpecialEnvelope, SpecialRequest } from "./special";
 
 export class RefiningQueryError extends Error {
   info: BackendFailure;
@@ -16,6 +17,10 @@ export const postRefiningPlan = (body: PlanRequest, signal?: AbortSignal) =>
 /** 상급 재련 (web #1951). */
 export const postAdvancedPlan = (body: AdvancedRequest, signal?: AbortSignal) =>
   post<AdvancedEnvelope>("/api/refining/advanced-plans", body, signal);
+
+/** M42 특수 재련 돌파석 가치 (api #1099); callers go through special.ts fetchSpecialStoneValues (one busy retry). */
+export const postSpecialStoneValues = (body: SpecialRequest, signal?: AbortSignal) =>
+  post<SpecialEnvelope>("/api/refining/special-stone-values", body, signal);
 
 async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   try {

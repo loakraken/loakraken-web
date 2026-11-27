@@ -66,6 +66,7 @@ import amount from "./refining-total.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
 import { RefiningBreathCompare } from "./refining-breath";
+import { RefiningSpecial } from "./refining-special";
 import { priceNames } from "@/lib/refining/breath";
 import { RefiningTargets } from "./refining-targets";
 import {
@@ -918,7 +919,15 @@ const ownedCodec = json<Owned>((v) => {
 });
 const NO_OWNED: Owned = {};
 
-function RefiningContent({ initialName, advancedOn }: { initialName: string; advancedOn: boolean }) {
+function RefiningContent({
+  initialName,
+  advancedOn,
+  specialOn,
+}: {
+  initialName: string;
+  advancedOn: boolean;
+  specialOn: boolean;
+}) {
   // Every input lives in the address: back and reload keep it (#889).
   const [parts, setParts] = useUrlState("parts", INITIAL_PARTS, partsCodec);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -1259,6 +1268,9 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
             </>
           )}
         </section>
+        {/* M42 특수 재련 돌파석 가치 (components/tools/refining-special.tsx), SPECIAL_STONE only: its own request, from
+            the 목표 단계 card's current stages and the page's price basis; the result above is untouched. */}
+        {specialOn && <RefiningSpecial parts={parts} basis={basis} />}
       </main>
       <footer className={quote.footer}>
         LOAKraken · 공개 확률 데이터 기반 계산
@@ -1267,8 +1279,16 @@ function RefiningContent({ initialName, advancedOn }: { initialName: string; adv
   );
 }
 
-export function RefiningPlanTool({ initialName, advanced = false }: { initialName: string; advanced?: boolean }) {
+export function RefiningPlanTool({
+  initialName,
+  advanced = false,
+  special = false,
+}: {
+  initialName: string;
+  advanced?: boolean;
+  special?: boolean;
+}) {
   return (
-    <RefiningContent initialName={initialName} advancedOn={advanced} />
+    <RefiningContent initialName={initialName} advancedOn={advanced} specialOn={special} />
   );
 }

@@ -314,6 +314,15 @@ export function isRefiningAdvancedEnabled(env: Env = process.env) {
 }
 
 /**
+ * 특수 재련 돌파석 가치 on the 재련 계산기 (M42, api #1099 special-stone-values). Off unless `SPECIAL_STONE=on` — every
+ * deployment — paired with the api's own switch (refining.special-stone.enabled / REFINING_SPECIAL_STONE_ENABLED,
+ * default off → 404; switch-on order api → web). Off: no section, no requests, no route.
+ */
+export function isSpecialStoneEnabled(env: Env = process.env) {
+  return env.SPECIAL_STONE?.trim().toLowerCase() === "on";
+}
+
+/**
  * 젬 가공 순위 in the simulator (M49 phase 2, web #1969; api gem-ranking #1095). Off unless `GEM_RANKING=on` — every
  * deployment — paired with the api's own switch (combat-power-sim.gem-ranking.enabled; switch-on order api → web), and
  * only with the simulator itself. Off: no card, no requests, no route.

@@ -1,0 +1,168 @@
+/* M42 특수 재련 돌파석 가치 (refining-special.tsx). Every line holds its height from the first frame (A7). */
+.state {
+  margin-top: 12px;
+  font-size: var(--text-body);
+  line-height: 20px;
+}
+.state p {
+  min-height: 40px;
+  margin: 0;
+}
+.state .source {
+  min-height: 20px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+@media (min-width: 700px) {
+  .state p {
+    min-height: 20px;
+  }
+}
+
+.block {
+  margin-top: 24px;
+  transition: opacity 120ms ease;
+}
+.block[data-stale] {
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .block {
+    transition: none;
+  }
+}
+.title {
+  margin: 0 0 8px;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.rows {
+  display: grid;
+  gap: 0;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: baseline;
+  min-height: 40px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+}
+.row[data-best] .value {
+  font-weight: 700;
+}
+.name {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.value {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+/* Two caption lines held at 320 (the longest: 평균 12,000개 … 일반 재련 기대 7자리 G). */
+.detail {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  margin: 2px 0 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+@media (min-width: 700px) {
+  .detail {
+    min-height: 18px;
+  }
+}
+.place {
+  display: inline-block;
+  min-width: 2ch;
+  color: var(--muted-foreground);
+}
+.badge {
+  color: var(--action);
+  font-weight: 700;
+}
+
+.pick {
+  display: grid;
+  gap: 4px;
+  max-width: 280px;
+  font-size: var(--text-caption);
+}
+.breakdown {
+  display: grid;
+  margin: 12px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.breakdown div {
+  display: grid;
+  grid-template-columns: minmax(0, 9em) minmax(0, 1fr);
+  column-gap: 12px;
+  min-height: 40px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hairline);
+}
+.breakdown dt {
+  min-width: 0;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.breakdown dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.prices {
+  margin-top: 24px;
+}
+.prices summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.fields {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.fields label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9em;
+  align-items: center;
+  column-gap: 12px;
+}
+.fields label span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fields input {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.fields input[aria-invalid] {
+  border-color: var(--destructive);
+}
+.fieldError {
+  min-height: 18px;
+  margin: 2px 0 0;
+  color: var(--destructive);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}

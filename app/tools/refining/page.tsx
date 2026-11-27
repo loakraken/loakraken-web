@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { RefiningPlanTool } from "@/components/tools/refining-plan";
-import { isRefiningAdvancedEnabled } from "@/lib/tools/flags";
+import { isRefiningAdvancedEnabled, isSpecialStoneEnabled } from "@/lib/tools/flags";
 
 export const metadata: Metadata = {
   title: "재련 기대 비용",
@@ -16,6 +16,6 @@ export default async function RefiningPage({
 }) {
   const { character } = await searchParams;
   const name = typeof character === "string" ? character.slice(0, 64) : "";
-  // 상급 재련 +10 (X3 part 2, web #1951): REFINING_ADVANCED, off unless set on.
-  return <RefiningPlanTool initialName={name} advanced={isRefiningAdvancedEnabled()} />;
+  // 상급 재련 +10 (X3 part 2, web #1951): REFINING_ADVANCED; 특수 재련 돌파석 가치 (M42): SPECIAL_STONE. Off unless set on.
+  return <RefiningPlanTool initialName={name} advanced={isRefiningAdvancedEnabled()} special={isSpecialStoneEnabled()} />;
 }
