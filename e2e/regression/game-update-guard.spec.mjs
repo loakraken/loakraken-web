@@ -61,6 +61,8 @@ test("스펙업 추천 순서 · 목표 경로는 api 문장을 그대로 @regre
   // 추천 순서 (path): no steps, the api's sentence (never '시세를 몰라' — unpriced is empty).
   await expect(page.getByText(API_TEXT).first()).toBeVisible();
   await expect(page.getByText(/시세를 몰라 순서를 만들 수 없어요/)).toHaveCount(0);
+  // knownCostTotal stays 0 under the guard (PM 총괄 02:58): the guard copy, never '0G'.
+  await expect(page.getByText(/(^|[^\d,])0G/)).toHaveCount(0);
   // 목표 경로 lives on the list view.
   await gotoReady(page, specUpListPath(NAME));
   const goal = page.getByRole("region", { name: "목표 전투력" });
