@@ -131,15 +131,23 @@ export function breathCompare(
   // An unpriced material the two sides use in different amounts biases both totals and the saving: compare nothing.
   // The same amount on both sides cancels out (each total is short by the same gold).
   const uneven = unevenOf(a.missing, b.missing);
-  const breathValue = b.breaths > 0 && uneven.length === 0 ? Math.round((aTotal - bFree) / b.breaths) : null;
+  // Both decisions below use the unrounded gold; only what is returned for the screen is rounded (web #1985: rounded
+  // first, a price just above break-even read BUY at 1,155 vs 1,155 while the same row's totals said 'without' was
+  // cheaper). With each breath at its price, BUY ⇔ the with-breath total ≤ the without-breath total, so the two agree.
+  const value = b.breaths > 0 && uneven.length === 0 ? (aTotal - bFree) / b.breaths : null;
   const breathItems = b.materials.filter((item) => isBreath(item.name) && item.amount > 0);
   const units = breathItems.map((item) => unitOf(prices, item.name));
-  const breathPrice =
+  const unitPrice =
     breathItems.length > 0 && units.every((u) => u != null)
-      ? Math.round(breathItems.reduce((sum, item, i) => sum + item.amount * units[i]!, 0) / b.breaths)
+      ? breathItems.reduce((sum, item, i) => sum + item.amount * units[i]!, 0) / b.breaths
       : null;
+  const breathValue = value == null ? null : Math.round(value);
+  const breathPrice = unitPrice == null ? null : Math.round(unitPrice);
   const totalA = Math.round(aTotal);
   const totalB = Math.round(bTotal);
+  // Float noise (sums of many products) is not a difference: within a thousandth of a gold the two ways cost the same.
+  const SAME = 1e-3;
+  const gap = bTotal - aTotal;
   // Which one costs less is known only when no side is short of something the other is not: an unpriced breath
   // (숨결 최대 only, PM-프론트 #1932 P2) or the uneven materials (both sides). The same gap on both sides cancels out.
   const comparable = !a.breathUnpriced && !b.breathUnpriced && uneven.length === 0;
@@ -149,10 +157,10 @@ export function breathCompare(
   return {
     without: { nugol: Math.round(a.gold), total: totalA, breaths: Math.round(a.breaths), incomplete: withoutIncomplete },
     with: { nugol: Math.round(b.gold), total: totalB, breaths: Math.round(b.breaths), incomplete: withIncomplete },
-    cheaper: !comparable ? null : totalA === totalB ? "same" : totalB < totalA ? "with" : "without",
+    cheaper: !comparable ? null : Math.abs(gap) <= SAME ? "same" : gap < 0 ? "with" : "without",
     breathValue,
     breathPrice,
-    verdict: breathValue == null || breathPrice == null ? null : breathValue >= breathPrice ? "BUY" : "SKIP",
+    verdict: value == null || unitPrice == null ? null : value >= unitPrice - SAME / Math.max(1, b.breaths) ? "BUY" : "SKIP",
     unpriced: [...unpriced],
     uneven,
   };
