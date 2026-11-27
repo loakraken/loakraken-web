@@ -33,6 +33,7 @@
 }
 .title {
   margin: 0 0 8px;
+  text-wrap: balance;
   font-size: var(--text-body);
   font-weight: 700;
 }

@@ -10,6 +10,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Select } from "@/components/ui/select";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useUrlState } from "@/lib/tools/url-state";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { priceBases, type PriceBasis } from "@/lib/market/model";
 import { RefiningQueryError } from "@/lib/refining/client";
@@ -19,6 +20,7 @@ import {
   observedLine,
   overridesFrom,
   parsePriceInput,
+  priceEditsCodec,
   pieceTargets,
   priceFields,
   rankingTargets,
@@ -51,6 +53,7 @@ const gold = (value: number | null | undefined, digits = 0) =>
 const stoneGold = (value: number | null | undefined) => gold(value, 1);
 /** The full ranking, the same 28 targets every render (one cache key). */
 const RANKING = rankingTargets();
+const NO_EDITS: Record<string, string> = {};
 
 function useNear<T extends Element>() {
   const ref = useRef<T>(null);
@@ -96,7 +99,8 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
   });
   const fields = useMemo(() => priceFields(market.data?.data), [market.data]);
 
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  // Typed prices live in the address like every other input on the page (#889).
+  const [edits, setEdits] = useUrlState("stone", NO_EDITS, priceEditsCodec);
   const overrides = overridesFrom(edits, fields);
   const typed = useDebounced<SpecialPrice[]>(overrides, JSON.stringify(overrides), EDIT_DEBOUNCE_MS);
   const custom = useQuery({
@@ -137,14 +141,15 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
   const detail = values?.rows.find((row) => targetKey(row) === detailKey) ?? null;
   const normal = detail?.status === "OK" ? detail.normalTry : null;
 
-  const basisLabel = priceBases.find((item) => item.value === basis)?.label ?? "";
+  // The basis the shown answer used: while a new basis loads, the kept answer (dimmed) still names its own.
+  const basisLabel = priceBases.find((item) => item.value === (values?.priceBasis ?? basis))?.label ?? "";
   const observed = observedLine(values?.pricesObservedAt);
   const statusText = failureText
     ? customFailed && market.data
       ? `${failureText.title}. 바꾼 값 없이 시세로 계산한 값이에요.`
       : failureText.title
     : !values
-      ? "돌파석 가치를 계산하고 있어요."
+      ? "돌파석 가치를 계산하고 있어요…"
       : `${basisLabel} 기준${observed ? ` · ${observed}` : ""}${usingTyped ? ` · 바꾼 재료 값 ${formatCount(typed.value.length)}개` : ""}`;
 
   return (
@@ -237,14 +242,15 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
 
       <div className={styles.block} data-stale={stale || undefined}>
         <h3 className={styles.title}>1회 일반 재련 내역</h3>
-        <label className={styles.pick}>
-          <span>단계</span>
+        <div className={styles.pick}>
+          <label htmlFor={`${headingId}-stage`}>단계</label>
           <Select
+            id={`${headingId}-stage`}
             value={detailKey}
             onValueChange={(key) => setPicked(String(key))}
             items={RANKING.map((target) => ({ value: targetKey(target), label: stageLabel(target) }))}
           />
-        </label>
+        </div>
         <dl className={styles.breakdown}>
           {(normal?.materials ?? Array.from({ length: 4 }, () => null)).map((m, i) => (
             <div key={m?.name ?? i}>
@@ -297,10 +303,11 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
           있어요.
         </p>
         <ul className={styles.fields}>
-          {fields.map((field) => {
+          {fields.map((field, i) => {
             const text = edits[field.name] ?? "";
             const invalid = parsePriceInput(text) === null;
-            const errorId = `${headingId}-${field.name}`;
+            // By place, not by name: a name has spaces, and aria-describedby splits on them.
+            const errorId = `${headingId}-price-${i}`;
             return (
               <li key={field.name}>
                 <label>
@@ -308,7 +315,9 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                   <input
                     type="text"
                     inputMode="decimal"
+                    name={`stone-price-${i}`}
                     autoComplete="off"
+                    spellCheck={false}
                     value={text}
                     placeholder={formatCount(field.market, 2)}
                     aria-invalid={invalid || undefined}

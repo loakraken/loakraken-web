@@ -8,6 +8,7 @@ import {
   observedLine,
   overridesFrom,
   parsePriceInput,
+  priceEditsCodec,
   parseSpecialRequest,
   pieceTargets,
   priceFields,
@@ -266,4 +267,18 @@ test("SPECIAL_STONE is off unless set on", () => {
   assert.equal(isSpecialStoneEnabled({}), false);
   assert.equal(isSpecialStoneEnabled({ SPECIAL_STONE: "true" }), false);
   assert.equal(isSpecialStoneEnabled({ SPECIAL_STONE: " ON " }), true);
+});
+
+test("typed prices in the address: bounded text only, empty means no parameter", () => {
+  assert.deepEqual(priceEditsCodec.parse('{"용암의 숨결":"400","운명의 파편":"0.1"}'), { "용암의 숨결": "400", "운명의 파편": "0.1" });
+  assert.equal(priceEditsCodec.parse("not json"), null);
+  assert.equal(priceEditsCodec.parse("[]"), null);
+  assert.equal(priceEditsCodec.parse('{"용암의 숨결":400}'), null);
+  assert.equal(priceEditsCodec.parse('{"용암의 숨결":"<b>"}'), null);
+  assert.equal(priceEditsCodec.parse(`{"${"가".repeat(33)}":"1"}`), null);
+  assert.equal(priceEditsCodec.parse(JSON.stringify({ x: "1".repeat(17) })), null);
+  assert.equal(priceEditsCodec.parse(JSON.stringify(Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`n${i}`, "1"])))), null);
+  assert.equal(priceEditsCodec.format({}), "");
+  assert.equal(priceEditsCodec.format({ "용암의 숨결": "  " }), "");
+  assert.equal(priceEditsCodec.format({ "용암의 숨결": "400", "운명의 파편": "" }), '{"용암의 숨결":"400"}');
 });

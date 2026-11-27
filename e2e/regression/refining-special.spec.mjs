@@ -22,7 +22,7 @@ for (const width of [320, 1280]) {
     await section.scrollIntoViewIfNeeded();
     // The request waits until the section nears the screen; held, the rows show '—'.
     await expect.poll(() => served).toBe(1);
-    await expect(section.getByRole("status")).toHaveText("돌파석 가치를 계산하고 있어요.");
+    await expect(section.getByRole("status")).toHaveText("돌파석 가치를 계산하고 있어요…");
     const rows = section.locator("ol > li");
     await expect(rows).toHaveCount(28);
     await expect(rows.first()).toContainText("—");
@@ -43,7 +43,7 @@ for (const width of [320, 1280]) {
     const mark = await shiftMark(page);
 
     release();
-    await expect(rows.first()).toContainText(/\d[\d,]*\.\d G/);
+    await expect(rows.first()).toContainText(/\d[\d,]*\.\d\sG/);
     await expect(section.getByRole("status")).toContainText("기준");
     await page.waitForTimeout(400);
     expect(await boxes(), "순위 줄 · 제목 · 재료 값 접기 위치와 높이").toEqual(before);
@@ -62,7 +62,7 @@ test("바꾼 재료 값은 멈춘 뒤 한 번만 묻고, 시세로 되돌리면 
   const section = page.locator("section", { has: page.getByText("특수 재련 돌파석 가치", { exact: true }) });
   await section.scrollIntoViewIfNeeded();
   const first = section.locator("ol > li").first();
-  await expect(first).toContainText(/\d[\d,]*\.\d G/);
+  await expect(first).toContainText(/\d[\d,]*\.\d\sG/);
   const market = await first.textContent();
   expect(bodies).toHaveLength(1);
   expect(bodies[0].targets).toHaveLength(28);
@@ -75,6 +75,8 @@ test("바꾼 재료 값은 멈춘 뒤 한 번만 묻고, 시세로 되돌리면 
   expect(bodies).toHaveLength(2);
   expect(bodies[1].prices).toEqual([{ name: "운명의 파괴석 결정", unitPriceGold: 20 }]);
   await expect(section.getByRole("status")).toContainText("바꾼 재료 값 1개");
+  // In the address like every input on the page (#889): a reload keeps it, from the cache-free start.
+  await expect.poll(() => new URL(page.url()).searchParams.get("stone")).toBe(JSON.stringify({ "운명의 파괴석 결정": "20" }));
 
   // Not a price: marked, not sent.
   await field.fill("1.234");
@@ -84,6 +86,7 @@ test("바꾼 재료 값은 멈춘 뒤 한 번만 묻고, 시세로 되돌리면 
   await section.getByRole("button", { name: "시세로 되돌리기" }).click();
   await expect(first).toHaveText(market);
   await expect(field).toHaveValue("");
+  await expect.poll(() => new URL(page.url()).searchParams.get("stone")).toBeNull();
   await expect(section.getByRole("button", { name: "시세로 되돌리기" })).toBeFocused();
   // The market answer comes from the cache: no third request.
   expect(bodies).toHaveLength(2);
