@@ -1,0 +1,139 @@
+/* (ours, X4 (a), web #1975) 원정대에서 고르기 in the 지옥 · 나락 tool. Every part has its height from the first paint:
+   the cards box and the status line never grow when the roster lands (A7). */
+.roster {
+  grid-area: roster;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+.form {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 18rem;
+  min-width: 0;
+  max-width: 28rem;
+}
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+}
+.input:focus-visible,
+.load:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.load {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.load[aria-disabled="true"] {
+  opacity: 0.5;
+}
+/* The cards scroll sideways inside a fixed box: a roster of any size never pushes the tool down. */
+.cards {
+  height: 80px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.list {
+  display: flex;
+  gap: 8px;
+  height: 100%;
+  margin: 0;
+  padding: 0 0 8px;
+  list-style: none;
+}
+.list li {
+  flex: none;
+}
+.card {
+  display: grid;
+  gap: 1px;
+  height: 64px;
+  min-width: 9.5rem;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  text-align: left;
+  font-size: 13px;
+  line-height: 18px;
+}
+.card b {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.key {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.card[aria-pressed="true"] {
+  border-color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+.card[aria-disabled="true"] {
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+}
+.card[aria-disabled="true"] .key {
+  font-weight: 400;
+}
+.hint,
+.status {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+.hint {
+  margin: 0;
+  padding-top: 4px;
+}
+/* Two lines held: the longest failure sentence fits at 320. */
+.status {
+  height: 36px;
+  overflow: hidden;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
