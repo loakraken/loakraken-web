@@ -55,6 +55,12 @@
 .load[aria-disabled="true"] {
   opacity: 0.5;
 }
+@media (pointer: coarse) {
+  .input,
+  .load {
+    height: 44px;
+  }
+}
 /* The cards scroll sideways inside a fixed box: a roster of any size never pushes the tool down. */
 .cards {
   height: 80px;

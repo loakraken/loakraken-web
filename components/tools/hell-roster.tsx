@@ -110,6 +110,9 @@ export function HellRoster({
                     aria-disabled={target == null || undefined}
                     onClick={() => {
                       if (target == null) return;
+                      // A failed reload's sentence ends here: the line goes back to the kept roster's time.
+                      // Not while a rate limit counts down (the error holds that countdown).
+                      if (load.isError && limit.seconds === 0) load.reset();
                       onPick(target);
                       setRoster({ ...roster, picked: m.characterName });
                     }}
