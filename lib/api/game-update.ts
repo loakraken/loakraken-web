@@ -13,6 +13,6 @@ export const GAME_UPDATE_COPY = {
   simulator: (changed: number) => `바꾼 ${changed}개 항목은 게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요.`,
   specUp: "게임 업데이트로 바뀐 장비 정보라 아직 스펙업 후보를 계산하지 않아요.",
   /** The sort bar's short note (the sentence above is read out with it). */
-  specUpNote: "게임 업데이트로 계산 멈춤",
+  specUpNote: "업데이트로 아직 계산 안 함",
   gemRanking: "게임 업데이트로 바뀐 장비 정보라 아직 젬 가공 순위를 계산하지 않아요.",
 } as const;
