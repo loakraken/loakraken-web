@@ -1976,6 +1976,30 @@ createServer(async (req, res) => {
       ]
         .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
         .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
+    // X4 (a) (web #1975): one character per 지옥 key level, one between two levels, one below the lowest.
+    else if (who === "지옥원정대")
+      base.data.siblings = [
+        ["지옥원정대", "블래스터", 1712.5],
+        ["지옥둘", "바드", 1760.83],
+        ["지옥셋", "버서커", 1745],
+        ["지옥넷", "소서리스", 1650],
+        ["지옥다섯", "도화가", 1600],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // #1976 P3: one member breaks the name rule (a space); the rest are real-shaped names (12 Hangul, digits, mixed
+    // case) and stay. '지옥모두나쁨': every member breaks a rule.
+    else if (who === "지옥섞임")
+      base.data.siblings = [
+        ["지옥섞임", "블래스터", 1712.5],
+        ["가나다라마바사아자차카타", "바드", 1745],
+        ["Ab12Cd", "버서커", 1700],
+        ["지옥99", "소서리스", 1650],
+        ["나쁜 이름", "도화가", 1760],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    else if (who === "지옥모두나쁨")
+      base.data.siblings = [
+        { characterName: "나쁜 이름", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1700 },
+        { characterName: "또<나쁨>", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1700 },
+      ];
     else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
