@@ -28,6 +28,9 @@ for (const width of [320, 1280])
     await expect(row).toContainText(API_TEXT);
     await expect(row).toContainText("계산하지 않음");
     await expect(row).not.toContainText("계산 준비 중");
+    // api #1129: target is the request kind and from / to are null — never the bare code or a '→' with nothing.
+    await expect(row).not.toContainText(/[A-Z]{3,}_[A-Z_]+/);
+    await expect(row).not.toContainText("→");
 
     const card = page.getByRole("region", { name: "젬 가공 순위" });
     await card.getByRole("button", { name: "순위 계산" }).click();

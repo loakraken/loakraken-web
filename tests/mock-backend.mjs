@@ -1837,7 +1837,8 @@ createServer(async (req, res) => {
             : "합성 값(목 서버)"
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
-      ...(request.characterName === GUARDED ? { reasonCode: GUARD_CODE, basis: GUARD_TEXT } : {}),
+      // api #1129: a guarded row reads no raw — target is the request kind, from / to null.
+      ...(request.characterName === GUARDED ? { target: change.kind, from: null, to: null, reasonCode: GUARD_CODE, basis: GUARD_TEXT } : {}),
     }));
     // The api's armour switch off (every character but the gate's two): armour 재련 · 상급 재련 held as today, whatever
     // the web sent. The proxy passes an armour 상급 재련 (it cannot tell its index from the weapon's); this holds it.

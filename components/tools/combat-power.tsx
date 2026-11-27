@@ -1088,7 +1088,9 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
           <li key={`${item.kind}-${item.target}-${i}`}>
             <span className={styles.kind}>{KIND_LABEL[item.kind] ?? item.kind}</span>
             <span className={styles.target}>
-              {item.target}
+              {/* A row the 2부 guard holds names only its request kind as the target (api #1129: the raw is not read),
+                  which the kind label before it already says: never the bare code (web #1979). */}
+              {item.target !== item.kind && item.target}
               {(item.from != null || item.to != null) && (
                 <small>
                   {changeText(item.kind, item.from) ?? "—"} →{" "}
