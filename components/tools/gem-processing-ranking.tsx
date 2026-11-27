@@ -160,7 +160,12 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
           aria-busy={busy || undefined}
           onClick={press}
         >
-          {busy ? "계산하는 중…" : retryLabel(limit.seconds, "순위 계산")}
+          {/* Both labels are always there in one cell, only one seen: the answer landing a second after the press
+              swapped the centred text and moved it (A7, web #1977). The hidden one is not read out. */}
+          <span className={styles.pressLabels}>
+            <span data-on={!busy || undefined}>{retryLabel(limit.seconds, "순위 계산")}</span>
+            <span data-on={busy || undefined}>계산하는 중…</span>
+          </span>
         </button>
       </div>
       {/* Always there: what is wrong with the typed prices (A7). */}

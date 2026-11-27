@@ -1552,6 +1552,15 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // The 2부 guard (web #1977), any sort: every candidate held with the code, the 크라켄 sort reason the same.
+    if (who === GUARDED) {
+      const guarded = specUp("character-spec-up.json");
+      guarded.data.characterName = who;
+      for (const c of guarded.data.candidates)
+        Object.assign(c, { status: "UNSUPPORTED", reasonCode: GUARD_CODE, reason: GUARD_TEXT, deltaCombatPower: null, deltaKrakenScore: null });
+      guarded.data.krakenSortUnavailableReason = GUARD_CODE;
+      return send(guarded);
+    }
     // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
     // web's own limit=50 request. '실목록2전체' is 실목록2's limit=200 KRAKEN answer, for the weapon 상급 재련 row a limit-50
     // answer never carries.
@@ -1611,13 +1620,6 @@ createServer(async (req, res) => {
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
-    if (who === GUARDED) {
-      envelope.data.characterName = who;
-      for (const c of envelope.data.candidates)
-        Object.assign(c, { status: "UNSUPPORTED", reasonCode: GUARD_CODE, reason: GUARD_TEXT, deltaCombatPower: null, deltaKrakenScore: null });
-      envelope.data.krakenSortUnavailableReason = GUARD_CODE;
-      return send(envelope);
-    }
     if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who?.startsWith("실표본")) envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
