@@ -84,7 +84,8 @@ test("다시 열면 이 브라우저에 남긴 원정대가 다시 부르지 않
   await expect(cards(page)).toHaveCount(5);
   await expect(card(page, "지옥셋")).toHaveAttribute("aria-pressed", "true");
   await expect(levelRadio(page, 1730)).toBeChecked();
-  await expect(roster(page).getByRole("button", { name: "다시 불러오기" })).toBeVisible();
+  // An empty name field reloads the kept roster: its name is the placeholder.
+  await expect(roster(page).getByRole("textbox", { name: "원정대 캐릭터 이름" })).toHaveAttribute("placeholder", "지옥원정대");
   await page.waitForTimeout(600);
   expect(asked, "다시 열 때 원정대 요청 없음").toEqual([]);
   const { all, moved } = await shiftsSince(page);

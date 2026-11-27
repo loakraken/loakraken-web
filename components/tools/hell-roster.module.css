@@ -3,6 +3,8 @@
 .roster {
   grid-area: roster;
   display: grid;
+  /* One column no wider than the tool: an auto track took the form's natural width and overflowed 320 by 48px. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
 }
@@ -25,7 +27,9 @@
   max-width: 28rem;
 }
 .input {
-  flex: 1 1 auto;
+  /* No natural width of its own (an input's default size counted toward the row's width). */
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
   height: 36px;
   padding: 0 10px;

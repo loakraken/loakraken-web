@@ -93,7 +93,8 @@ export function HellRoster({
             aria-disabled={blocked || undefined}
             aria-busy={load.isPending || undefined}
           >
-            {load.isPending ? "불러오는 중…" : limit.seconds > 0 ? retryLabel(limit.seconds, "불러오기") : roster && !name.trim() ? "다시 불러오기" : "불러오기"}
+            {/* The same label with or without a kept roster: it changing after the first paint moved its text (A7). */}
+            {load.isPending ? "불러오는 중…" : retryLabel(limit.seconds, "불러오기")}
           </button>
         </form>
         <FpEnd />
