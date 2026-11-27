@@ -176,6 +176,11 @@ function withArkSimulator(data) {
  * formula), and 의지력 효율 1 runs the core short (ARK_GRID_WILL_SHORT, the api's sentence).
  */
 const GEM_SWAP = "전투력젬바꿈";
+// 2부 raw-shape guard (api contract draft 11-28, web #1977): every surface this character reaches answers as the api does
+// with the guard enforcing (GAME_UPDATE_UNSUPPORTED + its sentence). Gem-swap gear, so the gem cards show too.
+const GUARDED = "업데이트가드";
+const GUARD_CODE = "GAME_UPDATE_UNSUPPORTED";
+const GUARD_TEXT = "게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요";
 const WILL_SHORT_BASIS = "젬을 바꾸면 그 코어의 의지력이 모자라 어느 젬이 꺼질지 알 수 없어 계산하지 않았어요.";
 function withGemSwap(data) {
   withArkSimulator(data);
@@ -1243,6 +1248,10 @@ createServer(async (req, res) => {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(withCostParts(envelope));
     }
+    if (who === GUARDED) {
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: null, totalCost: null, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
+      return send(withCostParts(envelope));
+    }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(withCostParts(envelope));
@@ -1428,6 +1437,10 @@ createServer(async (req, res) => {
     d.characterName = who;
     d.targetCombatPower = target;
     d.combatPower = base;
+    if (who === GUARDED) {
+      Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
+      return send(envelope);
+    }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
@@ -1598,6 +1611,13 @@ createServer(async (req, res) => {
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    if (who === GUARDED) {
+      envelope.data.characterName = who;
+      for (const c of envelope.data.candidates)
+        Object.assign(c, { status: "UNSUPPORTED", reasonCode: GUARD_CODE, reason: GUARD_TEXT, deltaCombatPower: null, deltaKrakenScore: null });
+      envelope.data.krakenSortUnavailableReason = GUARD_CODE;
+      return send(envelope);
+    }
     if (who === "점수순서딜러" || who?.startsWith("점수순서방어구") || who?.startsWith("실표본")) envelope.data.supportOrderAvailable = true;
     // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
     // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
@@ -1745,6 +1765,8 @@ createServer(async (req, res) => {
       return send({ code: "GEM_RANKING_BUSY", message: "젬 교체 순위 계산이 몰리고 있습니다." }, 429, { "Retry-After": "2" });
     const sample = JSON.parse(readFileSync(new URL("./combat-power-fixtures/gem-ranking.json", import.meta.url), "utf8"));
     const data = { ...sample.data, characterName: request.characterName, fetchedAt: new Date().toISOString() };
+    if (request.characterName === GUARDED)
+      return send({ ...sample, data: { ...data, status: "UNSUPPORTED", reasonCode: GUARD_CODE, basis: GUARD_TEXT, totalRows: 0, rows: [] } });
     if (request.characterName === "상세서포터")
       return send({ ...sample, data: { ...data, status: "UNSUPPORTED", reasonCode: "SUPPORTER_MODEL_PENDING", basis: "서포터의 젬 가공 순위는 아직 계산하지 않습니다.", totalRows: 0, rows: [] } });
     const pheon = request.prices?.pheonGold;
@@ -1788,7 +1810,7 @@ createServer(async (req, res) => {
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
-    else if (request.characterName === GEM_SWAP) withGemSwap(search);
+    else if (request.characterName === GEM_SWAP || request.characterName === GUARDED) withGemSwap(search);
     else if (request.characterName === MANY_GEMS) withManyGems(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
@@ -1812,6 +1834,7 @@ createServer(async (req, res) => {
             : "합성 값(목 서버)"
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
+      ...(request.characterName === GUARDED ? { reasonCode: GUARD_CODE, basis: GUARD_TEXT } : {}),
     }));
     // The api's armour switch off (every character but the gate's two): armour 재련 · 상급 재련 held as today, whatever
     // the web sent. The proxy passes an armour 상급 재련 (it cannot tell its index from the weapon's); this holds it.
@@ -3320,7 +3343,7 @@ createServer(async (req, res) => {
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
   if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
-  if (name === GEM_SWAP) withGemSwap(envelope.data);
+  if (name === GEM_SWAP || name === GUARDED) withGemSwap(envelope.data);
   if (name === MANY_GEMS) withManyGems(envelope.data);
   if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
   if (name === "재련상급") withAdvancedGear(envelope.data);

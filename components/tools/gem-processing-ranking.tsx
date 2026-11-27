@@ -26,6 +26,7 @@ import {
   type GemRankingRow,
 } from "@/lib/combat-power/gem-processing";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { GAME_UPDATE_COPY, isGameUpdate } from "@/lib/api/game-update";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./gem-processing-ranking.module.css";
@@ -178,7 +179,12 @@ export function GemProcessingRanking({ name, fetchedAt }: { name: string; fetche
         {!data && !failure && (
           <p className={styles.note}>{busy ? "계산하는 중이에요. 몇 초 걸릴 수 있어요." : "'순위 계산'을 누르면 여기에 젬마다 가장 좋은 방법이 나와요."}</p>
         )}
-        {data && data.status !== "OK" && <p className={styles.note}>{data.basis ?? "이 캐릭터는 젬 가공 순위를 계산하지 않아요."}</p>}
+        {data && data.status !== "OK" && (
+          <p className={styles.note}>
+            {/* The 2부 guard (web #1977): the web's own line for the code; any other reason reads the api's sentence. */}
+            {isGameUpdate(data.reasonCode) ? GAME_UPDATE_COPY.gemRanking : (data.basis ?? "이 캐릭터는 젬 가공 순위를 계산하지 않아요.")}
+          </p>
+        )}
         {data?.status === "OK" &&
           (groups.length === 0 ? (
             <p className={styles.note}>전투력이 오를 가공 방법을 찾지 못했어요.</p>
