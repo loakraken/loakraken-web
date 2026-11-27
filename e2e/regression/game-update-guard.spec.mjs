@@ -42,7 +42,8 @@ for (const width of [320, 1280])
     await expect(note).toBeVisible();
     // The empty list's own line (the same sentence is read out with the note).
     await expect(page.locator("p", { hasText: "게임 업데이트로 바뀐 장비 정보라 아직 스펙업 후보를 계산하지 않아요." })).toBeVisible();
-    await expect(page.getByText(/지금은 점수 정렬 불가/)).toHaveCount(0);
+    // Not the generic note (its hidden room-holding copy is always in the bar, so the status line is what counts).
+    await expect(page.getByRole("status").filter({ hasText: /지금은 점수 정렬 불가|효율 순/ })).toHaveCount(0);
     await expect(page.getByText("지금 계산할 수 있는 후보가 없어요.")).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
