@@ -20,8 +20,12 @@ for (const width of [320, 1280])
     const band = page.getByRole("region", { name: "예상 전투력" });
     await expect(band).toContainText("바꾼 1개 항목은 게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요.");
     await expect(band).not.toContainText("계산식을 확인하고 있어");
-    // The row keeps the api's own sentence.
-    await expect(page.getByRole("region", { name: "바꾼 것" })).toContainText(API_TEXT);
+    // The row keeps the api's own sentence, and its badge says 계산하지 않음 like the band, never 'coming soon'
+    // (PM-프론트 #1978 P2).
+    const row = page.getByRole("region", { name: "바꾼 것" }).getByRole("listitem").first();
+    await expect(row).toContainText(API_TEXT);
+    await expect(row).toContainText("계산하지 않음");
+    await expect(row).not.toContainText("계산 준비 중");
 
     const card = page.getByRole("region", { name: "젬 가공 순위" });
     await card.getByRole("button", { name: "순위 계산" }).click();
