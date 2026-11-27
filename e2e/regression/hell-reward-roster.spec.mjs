@@ -30,7 +30,7 @@ for (const width of [320, 1280])
     // Nothing is held before the press, so the page settles first (fonts too).
     await gotoReady(page, "/tools/hell-reward");
     await page.evaluate(() => document.fonts.ready);
-    await expect(roster(page)).toContainText("캐릭터 이름 하나로 원정대를 불러오면");
+    await expect(roster(page)).toContainText("누른 캐릭터가 들어갈 수 있는 열쇠 단계로");
     const before = await below(page);
 
     await roster(page).getByRole("textbox", { name: "원정대 캐릭터 이름" }).fill("지옥원정대");
@@ -47,7 +47,7 @@ for (const width of [320, 1280])
     await expect(card(page, "지옥셋")).toContainText("1730 열쇠");
     await expect(card(page, "지옥원정대")).toContainText("1700 열쇠");
     await expect(card(page, "지옥넷")).toContainText("1640 열쇠");
-    await expect(card(page, "지옥다섯")).toContainText("1640 미만");
+    await expect(card(page, "지옥다섯")).toContainText("입장 불가(1640 미만)");
     await expect(roster(page).getByRole("status")).toContainText("기준 아이템 레벨이에요.");
     expect(await below(page), "답 뒤").toBe(before);
 

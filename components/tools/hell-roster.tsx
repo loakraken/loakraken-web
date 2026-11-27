@@ -118,14 +118,14 @@ export function HellRoster({
                     <small>
                       {m.className} · {levelText(m.itemLevel)}
                     </small>
-                    <span className={styles.key}>{target == null ? `${keyLevels[0]} 미만` : `${target} 열쇠`}</span>
+                    <span className={styles.key}>{target == null ? `입장 불가(${keyLevels[0]} 미만)` : `${target} 열쇠`}</span>
                   </button>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className={styles.hint}>캐릭터 이름 하나로 원정대를 불러오면, 캐릭터를 눌러 그 캐릭터의 열쇠 단계로 바로 바꿔요.</p>
+          <p className={styles.hint}>원정대 캐릭터 이름 하나로 불러오면, 누른 캐릭터가 들어갈 수 있는 열쇠 단계로 바로 맞춰요.</p>
         )}
       </div>
       <p className={styles.status} role="status">
