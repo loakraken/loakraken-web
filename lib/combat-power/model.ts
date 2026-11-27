@@ -148,6 +148,8 @@ export const KIND_LABEL: Record<string, string> = {
   ARK_GRID_GEM: "아크 그리드 젬",
   ARM_GUARD: "팔 보호구",
 };
+/** A change's kind in Korean; a kind this screen does not know yet is '기타 항목', never the code (web #1979). */
+export const kindName = (kind: string) => (Object.hasOwn(KIND_LABEL, kind) ? KIND_LABEL[kind] : "기타 항목");
 
 /** What the user has changed, keyed by the target the backend uses. */
 export type Edits = {
