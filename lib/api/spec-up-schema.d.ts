@@ -508,7 +508,7 @@ export interface components {
             krakenScoreRole?: string | null;
             /**
              * Format: int64
-             * @description 비용을 아는 단계의 단계 비용(extraCost) 합(골드). 비용을 모르는 단계가 있어 totalCost가 null일 때 'X G + 비용 모름 N단계'로 보인다(unknownCostSteps와 함께). 단계가 없으면 0. 배포 순서 때문에 계약에서는 선택 필드
+             * @description 비용을 아는 단계의 단계 비용(extraCost) 합(골드). 비용을 모르는 단계가 있어 totalCost가 null일 때 'X G + 비용 모름 N단계'로 보인다(unknownCostSteps와 함께). 단계가 없으면 0(stopReasonCode가 GAME_UPDATE_UNSUPPORTED면 계산하지 않은 것이라 금액으로 보이지 않는다). 배포 순서 때문에 계약에서는 선택 필드
              */
             knownCostTotal?: number;
             /**
