@@ -9,12 +9,13 @@
   margin: 0;
 }
 .state .source {
-  min-height: 20px;
+  min-height: 40px;
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
 @media (min-width: 700px) {
-  .state p {
+  .state p,
+  .state .source {
     min-height: 20px;
   }
 }
@@ -103,13 +104,22 @@
   margin: 12px 0 0;
   font-variant-numeric: tabular-nums;
 }
+/* A phone stacks the name over its value, two lines held from the first frame ('—' until the answer); wider, one
+   line, the name column fits the longest material name (상급 아비도스 융화 재료). */
 .breakdown div {
   display: grid;
-  grid-template-columns: minmax(0, 9em) minmax(0, 1fr);
-  column-gap: 12px;
-  min-height: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 61px;
   padding: 10px 0;
   border-top: 1px solid var(--hairline);
+  line-height: 20px;
+}
+@media (min-width: 700px) {
+  .breakdown div {
+    grid-template-columns: minmax(0, 15em) minmax(0, 1fr);
+    column-gap: 12px;
+    min-height: 41px;
+  }
 }
 .breakdown dt {
   min-width: 0;

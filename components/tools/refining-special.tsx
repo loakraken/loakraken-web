@@ -272,27 +272,29 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                 : DASH}
             </dd>
           </div>
+          {/* Short values, one per row: a long one wrapped on a phone and grew its row when the answer came (A7). */}
           <div>
-            <dt>1회 비용</dt>
-            <dd>
-              {normal
-                ? `숨결 없이 ${gold(normal.costWithoutBreathGold)}${normal.costWithMaxBreathGold != null ? ` · 숨결 최대 ${gold(normal.costWithMaxBreathGold)}` : ""}`
-                : DASH}
-            </dd>
+            <dt>1회 비용(숨결 없이)</dt>
+            <dd>{gold(normal?.costWithoutBreathGold)}</dd>
           </div>
           <div>
-            <dt>일반 재련 기대</dt>
-            <dd>
-              {detail?.status === "OK"
-                ? `${gold(detail.expectedNormalCostGold)}(평균 ${formatCount(detail.expectedNormalAttempts ?? 0, 2)}회, 숨결은 회차마다 싼 쪽)`
-                : DASH}
-            </dd>
+            <dt>1회 비용(숨결 최대)</dt>
+            <dd>{normal ? (normal.costWithMaxBreathGold != null ? gold(normal.costWithMaxBreathGold) : "쓰지 않는 단계") : DASH}</dd>
+          </div>
+          <div>
+            <dt>일반 재련 기대 비용</dt>
+            <dd>{detail?.status === "OK" ? gold(detail.expectedNormalCostGold) : DASH}</dd>
+          </div>
+          <div>
+            <dt>평균 시도</dt>
+            <dd>{detail?.status === "OK" ? `${formatCount(detail.expectedNormalAttempts ?? 0, 2)}회` : DASH}</dd>
           </div>
           <div>
             <dt>{detail ? stoneLabel(detail) : "돌파석"} 1개</dt>
             <dd>{detail?.status === "OK" ? stoneGold(detail.valuePerStoneGold) : detail ? (rowNote(detail) ?? DASH) : DASH}</dd>
           </div>
         </dl>
+        <p className={quote.caption}>기대 비용은 회차마다 숨결을 쓰는 쪽과 안 쓰는 쪽 중 싼 쪽을 골라 계산해요.</p>
       </div>
 
       {/* Folded: the field count comes with the answer, so open fields would push what is under them (A7). */}
