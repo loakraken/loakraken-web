@@ -14,6 +14,8 @@ for (const width of [320, 1280])
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent(NAME)}`);
     const refine = page.getByRole("combobox", { name: "무기 재련 단계" });
     const now = Number((await refine.textContent())?.trim());
+    // From before the edit: the band's note lands with the answer, after the 0.5 s input window, and must fit its held room.
+    const mark = await shiftMark(page);
     await chooseOption(page, refine, String(now >= 25 ? now - 1 : now + 1));
     const band = page.getByRole("region", { name: "예상 전투력" });
     await expect(band).toContainText("바꾼 1개 항목은 게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요.");
@@ -22,7 +24,6 @@ for (const width of [320, 1280])
     await expect(page.getByRole("region", { name: "바꾼 것" })).toContainText(API_TEXT);
 
     const card = page.getByRole("region", { name: "젬 가공 순위" });
-    const mark = await shiftMark(page);
     await card.getByRole("button", { name: "순위 계산" }).click();
     await expect(card.getByRole("region", { name: "가공 순위 결과" })).toHaveText(
       "게임 업데이트로 바뀐 장비 정보라 아직 젬 가공 순위를 계산하지 않아요.",
