@@ -5,6 +5,7 @@ import {
   CATEGORY_LABEL,
   DEFAULT_SETTINGS,
   classStateSources,
+  critSpeedFailureCopy,
   groupSources,
   groupToggles,
   parseCritSpeedRequest,
@@ -293,4 +294,19 @@ test("rows sharing a toggle key become one switch with every axis value (backend
     { key: "a", label: "a", axis: "ATTACK_SPEED", coreState: false, on: true, value: 1, text: "" },
     { key: "a", label: "a", axis: "MOVE_SPEED", coreState: false, on: false, value: 1, text: "" },
   ])[0].on, false, "one row off means the switch shows off");
+});
+
+test("2부 guard (api #1127): the 422 keeps its code through the proxy and has its own sentence", async () => {
+  const fetcher = (async () =>
+    new Response(JSON.stringify({ code: "GAME_UPDATE_UNSUPPORTED", message: "게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요" }), {
+      status: 422,
+      headers: { "Content-Type": "application/json" },
+    })) as typeof fetch;
+  const held = await requestCritSpeed({ characterName: "기준캐릭터A" }, "http://127.0.0.1:8080", { fetcher });
+  assert.equal(held.ok, false);
+  if (!held.ok) {
+    assert.equal(held.error.code, "GAME_UPDATE_UNSUPPORTED");
+    assert.equal(held.error.status, 422);
+    assert.match(critSpeedFailureCopy(held.error).text, /게임 업데이트로 바뀐 장비 정보라 아직 치명 · 신속을 계산하지 않아요/);
+  }
 });

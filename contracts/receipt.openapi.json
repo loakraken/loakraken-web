@@ -243,8 +243,8 @@
           }
         },
         "required": [
-          "name",
-          "amount"
+          "amount",
+          "name"
         ]
       },
       "ReceiptEquipmentResponse": {
@@ -293,7 +293,7 @@
           },
           "status": {
             "type": "string",
-            "description": "READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함) 또는 UNAVAILABLE(공식 전투정보를 찾지 못해 이번에는 셀 수 없음, pending에 넣지 않음)",
+            "description": "READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함, 다시 요청하면 채움), UNAVAILABLE(캐릭터를 찾지 못해 받을 수 없음, 대기 수에 넣지 않음 — 또는 unavailableReasonCode가 있으면 그 이유로 계산하지 않음)",
             "enum": [
               "READY",
               "PENDING",
@@ -304,7 +304,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "PENDING이면 null"
+                "description": "READY가 아니면 null"
               },
               {
                 "type": "null"
@@ -327,7 +327,7 @@
             "anyOf": [
               {
                 "type": "boolean",
-                "description": "산정 대상 부위를 모두 셌는가. false면 gold는 센 부위만의 합(시세 없음·재련 단계를 읽지 못함·장비 정보 없음). PENDING이면 null"
+                "description": "산정 대상 부위를 모두 셌는가. false면 gold는 센 부위만의 합(시세 없음·재련 단계를 읽지 못함·장비 정보 없음). READY가 아니면 null"
               },
               {
                 "type": "null"
@@ -339,7 +339,19 @@
               {
                 "type": "string",
                 "format": "date-time",
-                "description": "이 캐릭터 장비를 관측한 시각(영수증에 쓴 값). 없으면 null"
+                "description": "계산에 쓴 장비를 관측한 시각(조금 전 관측을 다시 쓸 수 있음). READY가 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unavailableReasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNAVAILABLE의 이유 코드. 지금 값: GAME_UPDATE_UNSUPPORTED(게임 업데이트로 바뀐 장비 정보라 계산하지 않음 — 2부 대비 막기·끄기 스위치가 켜졌을 때만, 골드에 넣지 않음). 그 밖(캐릭터를 찾지 못한 UNAVAILABLE 포함)은 null",
+                "example": "GAME_UPDATE_UNSUPPORTED"
               },
               {
                 "type": "null"
@@ -616,14 +628,14 @@
           "pending": {
             "type": "integer",
             "format": "int32",
-            "description": "아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움). UNAVAILABLE은 세지 않음"
+            "description": "아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움)"
           },
           "nextAvailableAt": {
             "anyOf": [
               {
                 "type": "string",
                 "format": "date-time",
-                "description": "남은 캐릭터를 이어 받을 수 있는 시각. 상한으로 멈췄으면 지금, 공식 한도·장애로 멈췄으면 1분 뒤. 남은 사람이 없으면 null"
+                "description": "남은 캐릭터를 이어 받을 수 있는 시각. 요청당 상한으로 멈췄고 방문자의 분당 공식 호출 칸이 남았으면 지금, 칸이 모자라면 칸이 다시 차는 시각(분 경계), 공식 한도·장애로 멈췄으면 1분 뒤. 이 시각 전에 다시 요청하면 새로 받지 못할 수 있다. 남은 사람이 없으면 null"
               },
               {
                 "type": "null"
@@ -633,7 +645,7 @@
           "unavailable": {
             "type": "integer",
             "format": "int32",
-            "description": "공식 전투정보를 찾지 못해 이번에 셀 수 없는 캐릭터 수"
+            "description": "캐릭터를 찾지 못해 받을 수 없는 수(UNAVAILABLE, 대기 수에 넣지 않음)"
           }
         },
         "required": [

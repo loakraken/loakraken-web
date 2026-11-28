@@ -276,3 +276,11 @@
     background: var(--hover-surface);
   }
 }
+/* A member the 2부 guard held (api #1127): its sentence inside the row, where its parts would be. */
+.heldLine {
+  margin: 0;
+  padding: 0 4px 10px 16px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -10,6 +10,7 @@ import { remainingText } from "@/lib/time/remaining";
 import { countdownText, rateLimitCopy } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { labelOf } from "@/lib/api/tolerant";
+import { GAME_UPDATE_COPY } from "@/lib/api/game-update";
 import { CharacterQueryError, fetchReceipt } from "@/lib/character/client";
 import {
   GEM_STATUS,
@@ -18,6 +19,8 @@ import {
   excludedLabel,
   excludedSummary,
   includedText,
+  allHeld,
+  isHeld,
   isReceiptOff,
   memberState,
   nextRefreshDelay,
@@ -45,6 +48,8 @@ function CharacterRow({ row, now }: { row: ReceiptCharacter; now: number | null 
   // Not found this time (api receipt fan-out), or a status this screen does
   // not know: not counted, not asked for again.
   const unavailable = state === "UNAVAILABLE";
+  // Held by the 2부 guard (api #1127): found, but not computed; its own word and sentence, not '확인 못 함'.
+  const held = isHeld(row);
   const marker = rowMarker(row);
   const observed = now == null ? null : observedText(row.observedAt, now);
   return (
@@ -68,10 +73,11 @@ function CharacterRow({ row, now }: { row: ReceiptCharacter; now: number | null 
               </>
             )}
             <b className={pending || unavailable ? styles.pending : undefined}>
-              {pending ? "계산 대기" : unavailable ? "확인 못 함" : gold(row.gold)}
+              {pending ? "계산 대기" : held ? GAME_UPDATE_COPY.receiptRow : unavailable ? "확인 못 함" : gold(row.gold)}
             </b>
           </span>
         </summary>
+        {held && <p className={styles.heldLine}>{GAME_UPDATE_COPY.receiptRowText}</p>}
         {row.parts.length > 0 && (
           <ul className={styles.parts}>
             {row.parts.map((part, i) => (
@@ -134,7 +140,8 @@ function Body({
         {status === "UNAVAILABLE" ? (
           <>
             <strong>합계 없음</strong>
-            <p>아직 계산한 금액이 없어요.</p>
+            {/* Every member held by the 2부 guard: the reason, said once (never '0 G'). */}
+            <p>{allHeld(data) ? GAME_UPDATE_COPY.receiptRoster : "아직 계산한 금액이 없어요."}</p>
           </>
         ) : (
           <>

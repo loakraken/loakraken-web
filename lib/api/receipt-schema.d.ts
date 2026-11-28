@@ -93,7 +93,7 @@ export interface components {
             className: string | null;
             itemLevel: number | null;
             /**
-             * @description READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함) 또는 UNAVAILABLE(공식 전투정보를 찾지 못해 이번에는 셀 수 없음, pending에 넣지 않음)
+             * @description READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함, 다시 요청하면 채움), UNAVAILABLE(캐릭터를 찾지 못해 받을 수 없음, 대기 수에 넣지 않음 — 또는 unavailableReasonCode가 있으면 그 이유로 계산하지 않음)
              * @enum {string}
              */
             status: "READY" | "PENDING" | "UNAVAILABLE";
@@ -102,6 +102,7 @@ export interface components {
             excluded: components["schemas"]["ReceiptExcludedResponse"][];
             complete?: boolean | null;
             observedAt?: string | null;
+            unavailableReasonCode?: string | null;
         };
         ReceiptPartResponse: {
             slot: string;
@@ -200,13 +201,13 @@ export interface components {
             ready: number;
             /**
              * Format: int32
-             * @description 아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움). UNAVAILABLE은 세지 않음
+             * @description 아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움)
              */
             pending: number;
             nextAvailableAt: string | null;
             /**
              * Format: int32
-             * @description 공식 전투정보를 찾지 못해 이번에 셀 수 없는 캐릭터 수
+             * @description 캐릭터를 찾지 못해 받을 수 없는 수(UNAVAILABLE, 대기 수에 넣지 않음)
              */
             unavailable?: number;
         };

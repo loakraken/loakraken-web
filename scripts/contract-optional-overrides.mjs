@@ -50,7 +50,8 @@ export const OPTIONAL_OVERRIDES = {
   },
   receipt: {
     ReceiptTotalResponse: ["nonGold", "status"],
-    ReceiptCharacterResponse: ["complete", "observedAt"],
+    // unavailableReasonCode: 2부 guard (api #1127); optional until that api is deployed everywhere.
+    ReceiptCharacterResponse: ["complete", "observedAt", "unavailableReasonCode"],
     ReceiptCoverageResponse: ["unavailable"],
   },
   refining: {

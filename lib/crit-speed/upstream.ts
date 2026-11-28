@@ -6,6 +6,8 @@ const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST"],
   404: ["CHARACTER_NOT_FOUND"],
   415: ["UNSUPPORTED_MEDIA_TYPE"],
+  // 2부 guard (api #1127): the raw's shape is not one the model reads, or the crit-speed kill switch is on.
+  422: ["GAME_UPDATE_UNSUPPORTED"],
   429: ["LOST_ARK_RATE_LIMITED"],
   502: ["LOST_ARK_API_ERROR"],
   503: ["LOST_ARK_NOT_CONFIGURED", "CHARACTER_CACHE_UNAVAILABLE"],

@@ -6,6 +6,7 @@
 import type { components } from "../api/receipt-schema";
 
 import { labelOf } from "../api/tolerant";
+import { GAME_UPDATE_COPY, isGameUpdate } from "../api/game-update";
 
 type Schemas = components["schemas"];
 export type ReceiptEnvelope = Schemas["ApiResponseReceiptResponse"];
@@ -77,6 +78,8 @@ export type TotalStatus = "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
  * from the same facts the backend uses, erring on the side of "partial".
  */
 export function totalStatus(data: Receipt): TotalStatus {
+  // Every member held by the 2부 guard: nothing was counted, whatever the total says (its gold stays 0, api #1127).
+  if (allHeld(data)) return "UNAVAILABLE";
   const status = data.total.status;
   if (status === "COMPLETE" || status === "PARTIAL" || status === "UNAVAILABLE") return status;
   const missing =
@@ -97,7 +100,9 @@ export function totalStatus(data: Receipt): TotalStatus {
 export function excludedSummary(data: Receipt) {
   const parts: string[] = [];
   if (data.coverage.pending > 0) parts.push(`계산 대기 ${data.coverage.pending}명`);
-  const unavailable = unavailableCount(data);
+  const held = heldCount(data);
+  if (held > 0) parts.push(GAME_UPDATE_COPY.receiptCount(held));
+  const unavailable = notFoundCount(data);
   if (unavailable > 0) parts.push(`확인 못 함 ${unavailable}명`);
   const counts = new Map<string, number>();
   for (const row of data.equipment.characters)
@@ -139,6 +144,23 @@ export function memberState(row: ReceiptCharacter): "READY" | "PENDING" | "UNAVA
 }
 
 /**
+ * A member the 2부 guard held (api #1127: status UNAVAILABLE + unavailableReasonCode GAME_UPDATE_UNSUPPORTED): its
+ * equipment no longer has the shape the cost model reads, so nothing was counted. Not '확인 못 함' (it was found).
+ * The field is optional on the web until that api is deployed everywhere; absent or null is a plain UNAVAILABLE.
+ */
+export const isHeld = (row: ReceiptCharacter) =>
+  memberState(row) === "UNAVAILABLE" && isGameUpdate(row.unavailableReasonCode);
+
+export const heldCount = (data: Receipt) => data.equipment.characters.filter(isHeld).length;
+
+/** UNAVAILABLE members that are not held: the ones not found this time (and statuses this screen does not know). */
+export const notFoundCount = (data: Receipt) => Math.max(0, unavailableCount(data) - heldCount(data));
+
+/** Every member held (CP_KILL_RECEIPT, or every raw failing): the total says it once, never '0 G'. */
+export const allHeld = (data: Receipt) =>
+  data.equipment.characters.length > 0 && data.equipment.characters.every(isHeld);
+
+/**
  * "원정대 14명 중 6명 계산 · 8명 갱신 중 · 1명 확인 못 함": "갱신 중" while
  * the panel is still filling members in by itself, "대기" once it stopped.
  */
@@ -146,7 +168,9 @@ export function coverageText(data: Receipt, refreshing = false) {
   const c = data.coverage;
   const parts = [`원정대 ${c.rosterCharacters}명 중 ${c.ready}명 계산`];
   if (c.pending > 0) parts.push(`${c.pending}명 ${refreshing ? "갱신 중" : "대기"}`);
-  const unavailable = unavailableCount(data);
+  const held = heldCount(data);
+  if (held > 0) parts.push(`${held}명 업데이트로 계산 안 함`);
+  const unavailable = notFoundCount(data);
   if (unavailable > 0) parts.push(`${unavailable}명 확인 못 함`);
   return parts.join(" · ");
 }

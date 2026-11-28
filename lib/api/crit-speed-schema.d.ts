@@ -151,6 +151,7 @@ export interface components {
             /** @description 노드 장착 시 적용 치적 */
             effectiveCritRate: number;
         };
+        /** @description 치명타 목표. crit.mainSkillRate가 있으면 그 값으로, 없으면 totalRate로 잰다(필요 스탯 올림) */
         CritSpeedTargetResponse: {
             key: string;
             targetRate: number;
@@ -167,7 +168,7 @@ export interface components {
             base: number;
             /** @description 관측 출처 합 */
             observed: number;
-            /** @description base + observed + assumed(켠 토글 등 가정 출처) */
+            /** @description base + observed + assumed(켠 토글 등 가정 출처, 스킬 한정 토글 포함) */
             total: number;
             /** @description 가정 출처 합(켠 치명타 피해 토글 등, 없으면 0) */
             assumed: number;
@@ -338,6 +339,15 @@ export interface operations {
             };
             /** @description UNSUPPORTED_MEDIA_TYPE */
             415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GAME_UPDATE_UNSUPPORTED: 게임 업데이트로 바뀐 장비 정보라 계산하지 않음(2부 대비 막기·끄기 스위치가 켜졌을 때만, 기본 꺼짐). 숫자를 내지 않는다 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

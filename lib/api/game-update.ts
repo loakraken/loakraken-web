@@ -15,4 +15,16 @@ export const GAME_UPDATE_COPY = {
   /** The sort bar's short note (the sentence above is read out with it). */
   specUpNote: "업데이트로 아직 계산 안 함",
   gemRanking: "게임 업데이트로 바뀐 장비 정보라 아직 젬 가공 순위를 계산하지 않아요.",
+  /** 치명 · 신속 (crit-speed 422, api #1127): no numbers at all, so the whole result says it. */
+  critSpeed: {
+    title: "아직 계산하지 않아요",
+    text: "게임 업데이트로 바뀐 장비 정보라 아직 치명 · 신속을 계산하지 않아요. 업데이트 내용을 반영하면 다시 계산할 수 있어요.",
+  },
+  /** 원정대 영수증, one member (status UNAVAILABLE + unavailableReasonCode): the row's short word, then its sentence. */
+  receiptRow: "업데이트로 계산 안 함",
+  receiptRowText: "게임 업데이트로 바뀐 장비 정보라 아직 이 캐릭터의 재련 비용을 계산하지 않아요.",
+  /** Every member held (CP_KILL_RECEIPT, or every raw failing): said once at the total, never '0 G'. */
+  receiptRoster: "게임 업데이트로 바뀐 장비 정보라 아직 원정대 재련 비용을 계산하지 않아요.",
+  /** The coverage line's count for held members, apart from the ones not found. */
+  receiptCount: (n: number) => `업데이트로 계산 안 함 ${n}명`,
 } as const;

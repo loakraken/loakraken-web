@@ -93,6 +93,24 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(page.locator("details summary").filter({ hasText: /일부\s*일부만 계산/ }).first()).toBeVisible();
   });
 
+  // 2부 guard (api #1127 / #1129): a held member is found but not computed — its own word and sentence, counted apart
+  // from '확인 못 함'; every member held (CP_KILL_RECEIPT) says the reason at the total, never '0G'.
+  test("게임 업데이트로 막힌 캐릭터는 '업데이트로 계산 안 함', 모두 막히면 합계 자리에 이유", async ({ page }) => {
+    await page.goto(receiptPath("영수증업데이트한명"));
+    const held = page.locator("details").filter({ has: page.locator("summary", { hasText: "업데이트로 계산 안 함" }) });
+    await expect(held).toHaveCount(1);
+    await held.locator("summary").click();
+    await expect(held).toContainText("게임 업데이트로 바뀐 장비 정보라 아직 이 캐릭터의 재련 비용을 계산하지 않아요.");
+    await expect(page.getByRole("status").filter({ hasText: "1명 업데이트로 계산 안 함" })).toBeVisible();
+    await expect(page.getByText("확인 못 함")).toHaveCount(0);
+
+    await page.goto(receiptPath("영수증업데이트전부"));
+    await expect(total(page)).toHaveAttribute("data-status", "UNAVAILABLE");
+    await expect(total(page).getByText("합계 없음")).toBeVisible();
+    await expect(total(page)).toContainText("게임 업데이트로 바뀐 장비 정보라 아직 원정대 재련 비용을 계산하지 않아요.");
+    await expect(total(page)).not.toContainText(/\dG/);
+  });
+
   for (const width of [null, 320]) {
   test(`${width ? `${width}px: ` : ""}대기 중인 캐릭터는 패널이 스스로 채우고, 그동안은 '갱신 중'이며 다시 계산 단추가 없다`, async ({ page }) => {
     if (width) await page.setViewportSize({ width, height: 900 });

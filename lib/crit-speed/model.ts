@@ -4,6 +4,7 @@
 import type { components } from "../api/crit-speed-schema";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
+import { GAME_UPDATE_COPY, GAME_UPDATE_UNSUPPORTED } from "../api/game-update";
 
 type Schemas = components["schemas"];
 /** classState: backend #193 (omitted = on, false = observed only). */
@@ -256,6 +257,9 @@ export function critSpeedFailureCopy(error: { code: string }) {
         title: "계산 서비스 연결을 준비하고 있어요",
         text: "서비스 연결 설정이 끝나면 이용할 수 있어요.",
       };
+    // 2부 guard (api #1127, 422): no numbers at all; before this, the proxy read the 422 as a 502 '계산하지 못했어요'.
+    case GAME_UPDATE_UNSUPPORTED:
+      return GAME_UPDATE_COPY.critSpeed;
     case "CHARACTER_CACHE_UNAVAILABLE":
       return {
         title: "캐릭터 정보를 잠시 불러올 수 없어요",

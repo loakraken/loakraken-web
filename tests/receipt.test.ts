@@ -15,6 +15,10 @@ import {
   rowMarker,
   totalStatus,
   unavailableCount,
+  allHeld,
+  heldCount,
+  isHeld,
+  notFoundCount,
 } from "../lib/character/receipt";
 import { isReceiptEnvelope, requestReceipt } from "../lib/character/receipt.backend";
 
@@ -213,4 +217,31 @@ test("non-gold costs (api #761) read as quantities, never gold; none or an older
   assert.equal(nonGoldText(data), "실링 1,960,000 · 고통의 가시 15");
   assert.doesNotMatch(nonGoldText(data), /G\b/);
   assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
+});
+test("2부 guard (api #1127): a held member is its own count, not '확인 못 함'; all held means no total, never 0 G", () => {
+  // The field is optional on the web until the api ships everywhere: a receipt without it still passes.
+  assert.equal(isReceiptEnvelope(fixture()), true);
+  const one = fixture();
+  const row = one.data.equipment.characters.find((c: { status: string }) => c.status === "READY");
+  Object.assign(row, { status: "UNAVAILABLE", unavailableReasonCode: "GAME_UPDATE_UNSUPPORTED", gold: null, parts: [], excluded: [] });
+  one.data.coverage.unavailable = (one.data.coverage.unavailable ?? 0) + 1;
+  assert.equal(isReceiptEnvelope(one), true);
+  assert.equal(isHeld(row), true);
+  assert.equal(heldCount(one.data), 1);
+  assert.equal(notFoundCount(one.data), unavailableCount(one.data) - 1);
+  assert.match(coverageText(one.data), /1명 업데이트로 계산 안 함/);
+  assert.match(excludedSummary(one.data), /업데이트로 계산 안 함 1명/);
+  assert.equal(allHeld(one.data), false);
+  // A plain UNAVAILABLE (not found, or the code absent / null) stays '확인 못 함'.
+  for (const code of [undefined, null, "SOMETHING_NEW"]) {
+    const plain = { ...row, unavailableReasonCode: code };
+    assert.equal(isHeld(plain), false, String(code));
+  }
+  // Every member held (CP_KILL_RECEIPT): no total, whatever the api's status and gold say.
+  const all = fixture();
+  for (const c of all.data.equipment.characters)
+    Object.assign(c, { status: "UNAVAILABLE", unavailableReasonCode: "GAME_UPDATE_UNSUPPORTED", gold: null, parts: [], excluded: [] });
+  all.data.total = { ...all.data.total, gold: 0, status: "COMPLETE" };
+  assert.equal(allHeld(all.data), true);
+  assert.equal(totalStatus(all.data), "UNAVAILABLE");
 });
