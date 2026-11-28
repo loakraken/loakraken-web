@@ -192,11 +192,13 @@ export const priceEditsCodec = {
   },
 };
 
-export type PriceField = { name: string; market: number; role: "material" | "breath" };
+/** market null: the market has no price for it (a PRICE_MISSING row names it), so only a typed price can fill it. */
+export type PriceField = { name: string; market: number | null; role: "material" | "breath" };
 
 /**
  * The prices a user can change: every material and breath the OK rows' one normal try uses, at the value the api used
- * (read from a market-only answer, so it is the market price at that basis). First seen first: weapon stages first.
+ * (read from a market-only answer, so it is the market price at that basis), then the names a PRICE_MISSING row lacks
+ * (no market price: typing one is the only way to value that stage; codex #1974 re-run P2). First seen first.
  */
 export function priceFields(values: SpecialValues | null | undefined): PriceField[] {
   const fields = new Map<string, PriceField>();
@@ -207,6 +209,11 @@ export function priceFields(values: SpecialValues | null | undefined): PriceFiel
       if (!fields.has(m.name)) fields.set(m.name, { name: m.name, market: m.unitPriceGold, role: "material" });
     if (normal.breath && !fields.has(normal.breath.name))
       fields.set(normal.breath.name, { name: normal.breath.name, market: normal.breath.unitPriceGold, role: "breath" });
+  }
+  for (const row of values?.rows ?? []) {
+    if (row.status !== "PRICE_MISSING") continue;
+    for (const name of row.missingPrices)
+      if (!fields.has(name)) fields.set(name, { name, market: null, role: /숨결$/.test(name) ? "breath" : "material" });
   }
   return [...fields.values()];
 }
@@ -219,7 +226,9 @@ export function overridesFrom(edits: Readonly<Record<string, string>>, fields: r
   return fields
     .flatMap((field) => {
       const value = parsePriceInput(edits[field.name] ?? "");
-      return value == null || Math.abs(value - field.market) < 1e-9 ? [] : [{ name: field.name, unitPriceGold: value }];
+      // No market price: any valid typed price goes. Else only one that is not the market's own value.
+      if (value == null || (field.market != null && Math.abs(value - field.market) < 1e-9)) return [];
+      return [{ name: field.name, unitPriceGold: value }];
     })
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     .slice(0, SPECIAL_MAX_PRICES);

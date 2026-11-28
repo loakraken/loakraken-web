@@ -119,3 +119,52 @@ test("다시 불러와도 올바른 재료 값은 남고, 잘못 넣은 칸 하�
   await expect(bad).toHaveValue("");
   await expect.poll(() => new URL(page.url()).searchParams.get("stone")).toBe(JSON.stringify({ "운명의 파괴석 결정": "20" }));
 });
+// codex #1974 re-run P2s (SPECIAL_STONE flag-on follow-up).
+test.describe("돌파석 가치 켜기 전 보완", () => {
+  const open = async (page, path = "/tools/refining") => {
+    await page.goto(path);
+    const section = page.locator("section", { has: page.getByText("특수 재련 돌파석 가치", { exact: true }) });
+    await section.scrollIntoViewIfNeeded();
+    return section;
+  };
+
+  test("시세가 없는 재료도 칸이 있고, 값을 넣으면 그 단계가 계산된다 @regression", async ({ page }) => {
+    // The mock's 전일 평균가 has no price for 상급 아비도스 융화 재료: every stage is PRICE_MISSING naming it.
+    const section = await open(page, "/tools/refining?price=YDAY_AVG_PRICE");
+    const first = section.locator("ol > li").first();
+    await expect(first).toContainText("시세가 없는 재료가 있어 계산하지 않았어요: 상급 아비도스 융화 재료");
+    await section.getByText("재료 값 바꾸기").click();
+    const field = section.getByRole("textbox", { name: "상급 아비도스 융화 재료" });
+    await expect(field).toHaveAttribute("placeholder", "시세 없음");
+    await field.fill("221");
+    await expect(first).toContainText(/\d[\d,]*\.\d\sG/);
+  });
+
+  test("열어 둔 동안 1분마다 다시 묻는다 @regression", async ({ page }) => {
+    await page.clock.install();
+    let asked = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/api/refining/special-stone-values")) asked++;
+    });
+    const section = await open(page);
+    await expect(section.locator("ol > li").first()).toContainText(/\d[\d,]*\.\d\sG/);
+    expect(asked).toBe(1);
+    await page.clock.runFor(61_000);
+    await expect.poll(() => asked).toBe(2);
+  });
+
+  test("바꾼 값 요청이 실패해도 다시 계산 단추가 보인다 @regression", async ({ page }) => {
+    const section = await open(page);
+    const first = section.locator("ol > li").first();
+    await expect(first).toContainText(/\d[\d,]*\.\d\sG/);
+    const market = await first.textContent();
+    await section.getByText("재료 값 바꾸기").click();
+    // The mock refuses this price as a busy solver every time: the one retry after Retry-After fails too.
+    await section.getByRole("textbox", { name: "운명의 파괴석 결정" }).fill("999999");
+    const alert = section.getByRole("alert").filter({ hasText: "계산이 몰려 있어요" });
+    await expect(alert).toBeVisible({ timeout: 15_000 });
+    await expect(section.getByRole("button", { name: /다시 계산/ })).toBeVisible();
+    await expect(section.getByRole("status")).toContainText("바꾼 값 없이 시세로 계산한 값이에요.");
+    await expect(first).toHaveText(market);
+  });
+});

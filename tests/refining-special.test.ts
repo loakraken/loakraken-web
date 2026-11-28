@@ -297,3 +297,17 @@ test("typed prices in the address: only valid prices are written, a bad entry dr
   const written = priceEditsCodec.format({ "용암의 숨결": "1,234.5", "운명의 파편": "0.08" });
   assert.deepEqual(priceEditsCodec.parse(written), { "용암의 숨결": "1,234.5", "운명의 파편": "0.08" });
 });
+test("a material with no market price is a field too, and any valid typed price for it goes (codex #1974 re-run P2)", () => {
+  const values = sample().data;
+  const missing = { ...values.rows[0], status: "PRICE_MISSING" as const, normalTry: null, valuePerStoneGold: null, missingPrices: ["상급 아비도스 융화 재료", "용암의 숨결"] };
+  const onlyMissing = priceFields({ ...values, rows: [missing] });
+  assert.deepEqual(onlyMissing, [
+    { name: "상급 아비도스 융화 재료", market: null, role: "material" },
+    { name: "용암의 숨결", market: null, role: "breath" },
+  ]);
+  // An OK row's market price wins over the same name missing elsewhere.
+  const mixed = priceFields({ ...values, rows: [values.rows[0], missing] });
+  assert.equal(mixed.find((f) => f.name === "용암의 숨결")?.market, 433);
+  assert.deepEqual(overridesFrom({ "상급 아비도스 융화 재료": "221" }, onlyMissing), [{ name: "상급 아비도스 융화 재료", unitPriceGold: 221 }]);
+  assert.deepEqual(overridesFrom({ "상급 아비도스 융화 재료": "" }, onlyMissing), []);
+});

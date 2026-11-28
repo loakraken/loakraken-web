@@ -96,6 +96,8 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
     ...specialQuery({ targets: RANKING, priceBasis: basis }),
     enabled: near,
     staleTime: MARKET_STALE_MS,
+    // Asked again every minute while the page is open, as its prices are (codex #1974 re-run P2: it never refreshed).
+    refetchInterval: MARKET_STALE_MS,
     placeholderData: keepPreviousData,
   });
   const fields = useMemo(() => priceFields(market.data?.data), [market.data]);
@@ -107,7 +109,9 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
   const custom = useQuery({
     ...specialQuery({ targets: RANKING, priceBasis: basis, prices: typed.value }),
     enabled: near && typed.value.length > 0,
-    staleTime: Infinity,
+    // The typed prices stay; the materials not typed follow the market, so this answer refreshes too.
+    staleTime: MARKET_STALE_MS,
+    refetchInterval: MARKET_STALE_MS,
     placeholderData: keepPreviousData,
   });
   const usingTyped = typed.value.length > 0;
@@ -167,7 +171,8 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
         <p role="status">{statusText}</p>
         <p className={styles.source}>{values ? sourceLine(values.perTrySource) : ""}</p>
       </div>
-      {failureText && (failedQuery === market || !market.data) && (
+      {/* Every failure, typed prices' too (codex #1974 re-run P2: a failed custom request hid its retry). */}
+      {failureText && (
         <div className={quote.notice}>
           <div role="alert">
             <strong>{failureText.title}</strong>
@@ -329,7 +334,7 @@ export function RefiningSpecial({ parts, basis }: { parts: Record<PartId, PartSt
                     autoComplete="off"
                     spellCheck={false}
                     value={text}
-                    placeholder={formatCount(field.market, 2)}
+                    placeholder={field.market == null ? "시세 없음" : formatCount(field.market, 2)}
                     aria-invalid={invalid || undefined}
                     aria-describedby={invalid ? errorId : undefined}
                     onChange={(event) => setEdits((prev) => ({ ...prev, [field.name]: event.target.value }))}

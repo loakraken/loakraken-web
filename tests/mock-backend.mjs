@@ -1065,6 +1065,13 @@ createServer(async (req, res) => {
     const used = new Set([...ok.normalTry.materials.map((m) => m.name), ok.normalTry.breath.name, "빙하의 숨결"]);
     if ([...prices.keys()].some((name) => !used.has(name)))
       return send({ code: "INVALID_REQUEST", message: "요청한 단계가 쓰지 않는 재료 이름입니다." }, 400);
+    // A typed price of 999,999: the user-price seat is taken (429 REFINING_SOLVE_BUSY, Retry-After 1), every time, so the
+    // web's one retry fails too and its notice shows.
+    if ([...prices.values()].includes(999_999))
+      return send({ code: "REFINING_SOLVE_BUSY", message: "최적 풀이 자리가 모두 차 있습니다." }, 429, { "Retry-After": "1" });
+    // 전일 평균가: the market has no price for 상급 아비도스 융화 재료, so every OK stage is PRICE_MISSING naming it until
+    // a typed price fills it.
+    const missing = (request.priceBasis === "YDAY_AVG_PRICE" && !prices.has("상급 아비도스 융화 재료")) ? ["상급 아비도스 융화 재료"] : [];
     const rows = request.targets.map((t) => {
       const i = t.fromStage - 11;
       if (t.grade !== "JEONYUL" || t.equipmentType === "ARM_GUARD" || i < 0)
@@ -1081,6 +1088,21 @@ createServer(async (req, res) => {
       const attempts = Math.round((ok.expectedNormalAttempts * (0.5 + 0.05 * i)) * 100) / 100;
       const cost = Math.round(without * attempts * scale * 100) / 100;
       const averageNeeded = perTry[t.equipmentType][i] / (rateBp[i] / 10_000);
+      if (missing.length)
+        return {
+          ...unsupported,
+          grade: t.grade,
+          equipmentType: t.equipmentType,
+          fromStage: t.fromStage,
+          targetStage: t.fromStage + 1,
+          status: "PRICE_MISSING",
+          reasonCode: null,
+          reason: "시세도 사용자 가격도 없는 재료가 있어 계산하지 않았습니다.",
+          perTry: perTry[t.equipmentType][i],
+          baseRateBp: rateBp[i],
+          averageNeeded,
+          missingPrices: missing,
+        };
       return {
         ...ok,
         grade: t.grade,
