@@ -7,6 +7,7 @@ import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useOptimi
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
+import { GAME_UPDATE_COPY } from "@/lib/api/game-update";
 import { failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
@@ -21,6 +22,7 @@ import {
   noCombatPower,
   krakenRanked,
   KRAKEN_NOTE_ALL,
+  guardedGuide,
   krakenUnavailableCopy,
   krakenUnavailableNote,
   isFreeCost,
@@ -35,6 +37,7 @@ import {
   specUpQuery,
   groupStages,
   splitCandidates,
+  armorHeldNotice,
   tryParam,
   type Candidate,
   type Sort,
@@ -92,7 +95,8 @@ function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pul
     );
   if (isFreeCost(cost))
     return (
-      <td data-cell="cost" data-label="기대 비용" className={styles.specUpMuted}>
+      // No phone label: the text already says 비용 ('기대 비용 추가 비용 없음', QA v0.3.15 RC P3-2).
+      <td data-cell="cost" className={styles.specUpMuted}>
         추가 비용 없음
       </td>
     );
@@ -117,7 +121,13 @@ function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pul
       </td>
     );
   return (
-    <td data-cell="cost" data-label="기대 비용" className={styles.specUpMuted} title={cost.basis}>
+    // The phone label only where the text does not already say 비용 ('기대 비용 비용 미확인', QA v0.3.15 RC P3-2).
+    <td
+      data-cell="cost"
+      data-label={cost.status === "PENDING" ? "기대 비용" : undefined}
+      className={styles.specUpMuted}
+      title={cost.basis}
+    >
       {cost.status === "PENDING" ? "시세 대기" : "비용 미확인"}
     </td>
   );
@@ -302,6 +312,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  const heldNotice = armorHeldNotice(folded);
   // Under 크라켄 점수 the api ranks scored rows with and without combat power together (SpecUpService: ranked = OK or a
   // Δ점수); how many shown have none, counted by the same test the 전투력 cell uses for its dash (noCombatPower). Not
   // for a supporter, whose rows all have none (the role note says why).
@@ -642,8 +653,11 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           // anew, so the lines under the table are not slid down as it grows (A7).
           // The minute refresh keeps the key, and its change marks (#857).
           <Fragment key={listKey}>
+            {/* Drawn with the list, in the same render (CLS 0): armour rows the api held fold under the list. */}
+            {heldNotice && <p className={styles.muted}>{heldNotice}</p>}
             {ok.length === 0 ? (
-              <p className={styles.muted}>지금 계산할 수 있는 후보가 없어요.</p>
+              // The 2부 guard holds every candidate (web #1977): say why, not that none qualifies.
+              <p className={styles.muted}>{guardedGuide(guide) ? GAME_UPDATE_COPY.specUp : "지금 계산할 수 있는 후보가 없어요."}</p>
             ) : (
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>

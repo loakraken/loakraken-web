@@ -9,6 +9,7 @@ import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 const OPEN = "방어구문열림";
 const CLOSED = "방어구문닫힘";
 const TEXT = "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+const HELD_POINTER = "그 후보는 목록 아래 ‘아직 계산하지 않은 후보’에 있어요.";
 const simulateRequest = (page) =>
   page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
 const tool = (name) => `/tools/combat-power?character=${encodeURIComponent(name)}`;
@@ -127,6 +128,36 @@ for (const width of [320, 1280]) {
     await group.click();
     await expect(folded.locator("details li").filter({ hasText: "+19 테스트 투구 (+19 → +20)" })).toHaveCount(1);
     await expectNoHorizontalOverflow(page);
+  });
+
+  // PM 총괄 11-22: the folded line sits under the whole list (50 rows), so a held dealer missed why armour has no
+  // 전투력. One notice above the list: the api sentence once, and where the rows are. Drawn with the list (CLS 0).
+  test(`${width}: 문 밖 — 목록 위에 방어구 보류 안내 하나(api 문장 + 접힌 줄 위치), 흔들림 없음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await page.goto(`${characterPath(CLOSED, "specup")}&sort=DELTA`);
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await table.locator("tbody tr").first().waitFor();
+    const notice = page.getByText(HELD_POINTER);
+    await expect(notice).toHaveCount(1);
+    await expect(notice).toContainText(TEXT);
+    // Above the table, not under it.
+    const [n, t] = [await notice.boundingBox(), await table.boundingBox()];
+    expect(n.y + n.height).toBeLessThanOrEqual(t.y);
+    // The sentence once in the notice, once in the folded line (not more).
+    await expect(page.getByText(TEXT)).toHaveCount(2);
+    await page.waitForTimeout(400);
+    const { all, moved } = await shiftsSince(page, 0);
+    expect(all, `흔들림 (${moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test(`${width}: 문 안 — 방어구 보류 안내가 없다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${characterPath(OPEN, "specup")}&sort=DELTA`);
+    await page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr").first().waitFor();
+    await expect(page.getByText(HELD_POINTER)).toHaveCount(0);
+    await expect(page.getByText(TEXT)).toHaveCount(0);
   });
 
   test(`${width}: 문 안 — 목표 경로의 방어구 재련 · 상급 재련 단계가 시뮬레이터로 넘어간다 @regression`, async ({ page }) => {

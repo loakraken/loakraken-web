@@ -62,8 +62,28 @@ import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
+import amount from "./refining-total.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 import { FpEnd } from "@/components/ui/fp-end";
+import { RefiningBreathCompare } from "./refining-breath";
+import { priceNames } from "@/lib/refining/breath";
+import { RefiningTargets } from "./refining-targets";
+import {
+  AdvancedBands,
+  AdvancedFailureNotice,
+  AdvancedModeLine,
+  RefiningAdvanced,
+  useAdvanced,
+  type Advanced,
+} from "./refining-advanced";
+import {
+  advancedFailureCopy,
+  advancedFromCharacter,
+  advancedRaisable,
+  bumpAdvanced,
+  joinAdvanced,
+  type AdvancedPartId,
+} from "@/lib/refining/advanced";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -102,7 +122,8 @@ type Loaded = {
   name: string;
   server: string;
   itemLevel: number | null;
-  unsupported: string[];
+  /** (X3 part 2) Each part's 상급 재련 from its tooltip; null when not read. */
+  advanced: Record<AdvancedPartId, number | null>;
 };
 
 function Switch({
@@ -151,15 +172,13 @@ function CharacterLoader({
       fetchCharacter(target, AbortSignal.timeout(20_000)),
     retry: false,
     onSuccess: (envelope) => {
-      const { parts, unsupported, itemLevel } = partsFromCharacter(
-        envelope.data,
-      );
+      const { parts, itemLevel } = partsFromCharacter(envelope.data);
       onLoaded(
         {
           name: envelope.data.characterName,
           server: envelope.data.serverName,
           itemLevel,
-          unsupported,
+          advanced: advancedFromCharacter(envelope.data),
         },
         parts,
       );
@@ -230,7 +249,7 @@ function CharacterLoader({
       )}
       <p className={quote.hint}>
         장비 툴팁의 재련 단계와 이름(운명의 업화·전율)으로 현재 단계를 채워요.
-        불러오지 않고 아래에서 직접 골라도 돼요.
+        업화·전율 장비가 아니거나 단계를 읽지 못한 부위는 &apos;제외&apos;로 둬요. 불러오지 않고 아래에서 직접 골라도 돼요.
       </p>
     </>
   );
@@ -477,9 +496,13 @@ type Owned = Record<string, string>;
  * result section both call it with the same key, so react-query shares one
  * request and the two always show the same total.
  */
-function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned: Owned) {
-  const summary = summarize(plans, mode);
-  const names = summary.materials.map((item) => item.name);
+function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned: Owned, advanced: Advanced) {
+  // (X3 part 2) The 상급 bands join as expected values: materials merged before rounding, refine gold added.
+  const summary = joinAdvanced(summarize(plans, mode), advanced.total);
+  // The plans' materials and each part's breaths: the breath compare (M41) reads the same list, so one request a
+  // minute serves both (PM-프론트 #1932, performance first). The extra breath prices are not in the table below.
+  // The 상급 materials go in the same list on both sides (프론트 condition a: one query key).
+  const names = priceNames(plans, mode, advanced.names);
   const prices = useQuery({
     queryKey: ["material-prices", basis, [...names].sort().join("|")],
     queryFn: ({ signal }) =>
@@ -515,17 +538,24 @@ function TopSummary({
   mode,
   basis,
   owned,
+  advanced,
 }: {
   plans: PartPlan[];
   mode: Mode;
   basis: PriceBasis;
   owned: Owned;
+  advanced: Advanced;
 }) {
-  const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
+  const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned, advanced);
   return (
     <>
+      {/* The number in its own slot (PM-프론트 #1943 P2): the first prices (재련 골드 alone → the longer total) and a
+          minute refresh with more digits only grow it inside the slot, so '골드' stays put. A <data>, not a span:
+          the line's span rule styles the unit. */}
       <p className={styles.topTotal}>
-        {formatCount(total)}
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       {/* One line per part: in a single run, a basis or count that changed
@@ -535,9 +565,13 @@ function TopSummary({
           {priceList ? "재련 골드 + 사야 할 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
         </span>
         <span className={styles.topLine}>
-          총 {formatCount(summary.stageCount)}단계, 시도{" "}
-          {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+          {/* 상급 targets only (X3 part 2): its bands, not '총 0단계, 시도 0회'. */}
+          {summary.stageCount > 0
+            ? `총 ${formatCount(summary.stageCount)}단계, 시도 ${formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회`
+            : `상급 재련 ${formatCount(advanced.total?.bandCount ?? 0)}구간`}
         </span>
+        {/* (web #1955) The total is the 일반 part alone after a 상급 failure: said here too. */}
+        {advanced.failure && <span className={styles.topLine}>상급 재련은 빠졌어요(아래에서 다시 계산)</span>}
         <a className={styles.topLine} href="#estimate-heading">
           재료와 부위별 내역
         </a>
@@ -553,6 +587,7 @@ function Result({
   setBasis,
   owned,
   setOwned,
+  advanced,
 }: {
   plans: PartPlan[];
   mode: Mode;
@@ -560,9 +595,10 @@ function Result({
   setBasis: (basis: PriceBasis) => void;
   owned: Owned;
   setOwned: (update: (prev: Owned) => Owned) => void;
+  advanced: Advanced;
 }) {
   const { summary, prices, priceList, total, lines, buyGold, valueRaw, unpriced } =
-    useRefiningCost(plans, mode, basis, owned);
+    useRefiningCost(plans, mode, basis, owned, advanced);
   const priceLimit = useRateLimit(prices.error);
   // A refreshed unit price is marked for a moment (▲/▼, wash once). Watched
   // on the response's own list, which keeps its identity between renders.
@@ -583,21 +619,29 @@ function Result({
   const assumptions = [
     // Books are in by default (PM 총괄 10-11 00:20); say so next to the result.
     ...(plans.some(({ plan }) => plan.useBook) ? [BOOK_ASSUMPTION] : []),
-    ...new Set(plans.flatMap(({ plan }) => plan.assumptions)),
+    ...new Set([...plans.flatMap(({ plan }) => plan.assumptions), ...advanced.plans.flatMap((plan) => plan.assumptions)]),
   ];
   return (
     <>
+      {/* The number in its own slot, as the total above (PM-프론트 #1943 P2). */}
       <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
-        {formatCount(total)}
+        <data className={amount.amount} value={total}>
+          {formatCount(total)}
+        </data>
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
         {priceList
           ? `재련 골드 ${formatCount(summary.gold)} + 사야 할 골드 ${formatCount(buyGold)} (가진 재료까지 시세로 치면 ${formatCount(Math.round(summary.rawGold + valueRaw))})`
-          : `재련 골드 ${formatCount(summary.gold)}`}{" "}
-        · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
-        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+          : `재련 골드 ${formatCount(summary.gold)}`}
+        {/* 상급 targets only (X3 part 2): no 일반 stage to count. */}
+        {summary.stageCount > 0 &&
+          ` · 총 ${formatCount(summary.stageCount)}단계, 시도 ${formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회`}
       </p>
+      {/* (X3 part 2) Held while a 상급 target is set; words only in 50% · 90% · 장인의 기운 (프론트 condition c). */}
+      <AdvancedModeLine advanced={advanced} mode={mode} />
+      {/* (web #1955) A 상급-only failure: the 일반 total stands, the 상급 part said here with its own retry. */}
+      <AdvancedFailureNotice advanced={advanced} />
       {/* Always there, one line high: appearing and leaving moved the table.
           A refresh in the background keeps the time line (no flicker); the
           line is redrawn when its text changes. */}
@@ -755,6 +799,8 @@ function Result({
         </p>
       </details>
 
+      {/* 상급 targets only (프론트 condition d): no 일반 stage to list. */}
+      {plans.length > 0 && (
       <details className={styles.disclosure}>
         <summary>부위·단계별 시도 횟수</summary>
         <div className={styles.tableWrap}>
@@ -811,6 +857,9 @@ function Result({
           회. 첫 시도 성공 확률은 고른 숨결·책을 더한 값이라, 넣은 현재 성공 확률보다 높을 수 있어요.
         </p>
       </details>
+      )}
+      {/* (X3 part 2) Each part's 상급 bands at the same prices. */}
+      <AdvancedBands advanced={advanced} prices={priceList} />
 
       <div className={quote.resultFooter}>
         {assumptions.map((text) => (
@@ -869,7 +918,7 @@ const ownedCodec = json<Owned>((v) => {
 });
 const NO_OWNED: Owned = {};
 
-function RefiningContent({ initialName }: { initialName: string }) {
+function RefiningContent({ initialName, advancedOn }: { initialName: string; advancedOn: boolean }) {
   // Every input lives in the address: back and reload keep it (#889).
   const [parts, setParts] = useUrlState("parts", INITIAL_PARTS, partsCodec);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -913,13 +962,19 @@ function RefiningContent({ initialName }: { initialName: string }) {
       refetchOnReconnect: false,
     })),
   });
-  const pending = queries.some((q) => q.isPending);
-  const failed = queries.find((q) => q.isError);
+  // (X3 part 2, REFINING_ADVANCED) 상급 재련: its own requests; the result waits for both (프론트 condition d).
+  const advanced = useAdvanced(parts, advancedOn);
+  const pending = queries.some((q) => q.isPending) || advanced.pending;
+  // A 상급-only failure (e.g. 409 price pending) keeps the 일반 result, the 상급 part said in its own notice under the
+  // total (PM-프론트 #1952 P3, web #1955). With no 일반 request, it is the page's failure as before.
+  const advancedAside = !!advanced.failed && requests.length > 0;
+  const failed = queries.find((q) => q.isError) ?? (advancedAside ? undefined : advanced.failed);
   const planLimit = useRateLimit(failed?.error);
   const plans: PartPlan[] = queries.flatMap((q, i) =>
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
-  const complete = requests.length > 0 && plans.length === requests.length;
+  const asked = requests.length + advanced.requests.length > 0;
+  const complete = asked && plans.length === requests.length && (advanced.complete || advancedAside);
   if (!rateKnown && plans.some(({ plan }) => "failedAttemptsFrom" in plan)) setRateKnown(true);
   const derived: Partial<Record<PartId, number>> = Object.fromEntries(
     plans.flatMap(({ part, plan }) => {
@@ -934,6 +989,12 @@ function RefiningContent({ initialName }: { initialName: string }) {
       : failed
         ? { code: "LOST_ARK_API_ERROR", status: 502 }
         : null;
+  // A 상급 failure in its own words (전율 '계산하지 않음', price pending); the 일반 one as before.
+  const failureText = failure
+    ? queries.some((q) => q.isError)
+      ? refiningFailureCopy(failure)
+      : advancedFailureCopy(failure)
+    : null;
   const modeHint = MODES.find((m) => m.id === mode)?.hint;
 
   return (
@@ -968,11 +1029,11 @@ function RefiningContent({ initialName }: { initialName: string }) {
             {failure ? (
               <p className={styles.topNote}>계산하지 못했어요. 아래 결과에서 다시 시도할 수 있어요.</p>
             ) : complete ? (
-              <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} />
+              <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} advanced={advanced} />
             ) : (
               // A line of its own per state: rewriting one line's text moved it by a sub-pixel (A7).
-              <p className={styles.topNote} key={requests.length ? "pending" : "empty"}>
-                {requests.length ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
+              <p className={styles.topNote} key={asked ? "pending" : "empty"}>
+                {asked ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
               </p>
             )}
           </section>
@@ -986,6 +1047,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                     setLoaded(next);
                     const saved = restored.current?.name === next.name ? restored.current.parts : null;
                     restored.current = null;
+                    // (X3 part 2) 상급 current from the tooltips; a restored address keeps its targets above them.
+                    advanced.load(next.advanced, !!saved);
                     setParts(
                       saved
                         ? (Object.fromEntries(
@@ -1003,22 +1066,18 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   }}
                 />
               </div>
-              {loaded && (
-                <p className={styles.loaded} role="status">
+              {/* There from the first frame, its line held (A7, PM-프론트 11-22): a character opened from the address
+                  loads with no input, and the line and the left-out note arriving pushed the 목표 단계 card 40px
+                  down. The parts it could not read show '제외' in their own rows; the hint above says why. */}
+              <p className={styles.loaded} role="status">
+                {loaded && (
                   <span>
                     <strong>{loaded.name}</strong> · {loaded.server}
                     {loaded.itemLevel != null &&
                       ` · 아이템 레벨 ${formatLevel(loaded.itemLevel)}`}
                   </span>
-                  {loaded.unsupported.length > 0 && (
-                    <small>
-                      {loaded.unsupported.join(", ")} 부위는 업화·전율 장비가
-                      아니거나 단계를 읽지 못해 계산에서 뺐어요. 직접 포함해
-                      고를 수 있어요.
-                    </small>
-                  )}
-                </p>
-              )}
+                )}
+              </p>
             </section>
 
             <section className={quote.card} aria-labelledby="target-heading">
@@ -1059,6 +1118,20 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 누르면 계산에 포함한 모든 부위의 목표가 그 단계로 바뀌어요.
                 이미 더 높은 부위는 그대로예요. 완갑은 단계표가 달라 아래 줄에서 따로 골라요.
               </p>
+              {/* (X3) Target item-level slider and '고른 부위 +1' (components/tools/refining-targets.tsx). */}
+              <RefiningTargets
+                parts={parts}
+                setParts={setParts}
+                itemLevel={loaded?.itemLevel ?? null}
+                advanced={
+                  advancedOn
+                    ? {
+                        can: (picked) => advancedRaisable(advanced.stages, parts, picked),
+                        raise: (picked) => advanced.setStages((prev) => bumpAdvanced(prev, parts, picked)),
+                      }
+                    : undefined
+                }
+              />
               <ul className={styles.parts}>
                 {PARTS.map((part) => (
                   <PartRow
@@ -1077,6 +1150,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   <strong>{formatLevel(nextLevel)}</strong>
                 </p>
               )}
+              {/* (X3 part 2) 상급 재련 per part (components/tools/refining-advanced.tsx), REFINING_ADVANCED only. */}
+              {advancedOn && <RefiningAdvanced advanced={advanced} parts={parts} />}
               <Progress parts={parts} setPart={setPart} derived={derived} rateKnown={rateKnown} />
             </section>
 
@@ -1141,19 +1216,23 @@ function RefiningContent({ initialName }: { initialName: string }) {
               {/* The alert holds the sentence only; the retry button's countdown
                   ticks outside it so it is not re-announced every second. */}
               <div role="alert">
-                <strong>{refiningFailureCopy(failure).title}</strong>
-                <p>{refiningFailureCopy(failure).text}</p>
+                <strong>{failureText?.title}</strong>
+                <p>{failureText?.text}</p>
               </div>
               <button
                 type="button"
                 className={quote.outlinePill}
                 aria-disabled={planLimit.seconds > 0 || undefined}
-                onClick={() => planLimit.seconds === 0 && failed?.refetch()}
+                // A 상급-only failure: every errored 상급 part asked again (web #1961); a 일반 one as before.
+                onClick={() =>
+                  planLimit.seconds === 0 &&
+                  (queries.some((q) => q.isError) ? failed?.refetch() : advanced.retry())
+                }
               >
                 {retryLabel(planLimit.seconds, "다시 계산")}
               </button>
             </div>
-          ) : !requests.length ? (
+          ) : !asked ? (
             <p className={quote.empty}>
               목표 단계를 현재보다 높게 고르면 바로 계산해요.
             </p>
@@ -1162,14 +1241,22 @@ function RefiningContent({ initialName }: { initialName: string }) {
               계산하고 있어요.
             </p>
           ) : (
-            <Result
-              plans={plans}
-              mode={mode}
-              basis={basis}
-              setBasis={setBasis}
-              owned={owned}
-              setOwned={setOwned}
-            />
+            <>
+              <Result
+                plans={plans}
+                mode={mode}
+                basis={basis}
+                setBasis={setBasis}
+                owned={owned}
+                setOwned={setOwned}
+                advanced={advanced}
+              />
+              {/* M41: 숨결 없이 vs 숨결 최대 per part (refining-breath.tsx), 일반 only; the 상급 names keep its price
+                  list the result's own (one query key, 프론트 conditions a · e). */}
+              {requests.length > 0 && (
+                <RefiningBreathCompare requests={requests} mode={mode} basis={basis} extraNames={advanced.names} />
+              )}
+            </>
           )}
         </section>
       </main>
@@ -1180,8 +1267,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
   );
 }
 
-export function RefiningPlanTool({ initialName }: { initialName: string }) {
+export function RefiningPlanTool({ initialName, advanced = false }: { initialName: string; advanced?: boolean }) {
   return (
-    <RefiningContent initialName={initialName} />
+    <RefiningContent initialName={initialName} advancedOn={advanced} />
   );
 }

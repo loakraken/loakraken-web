@@ -4,14 +4,15 @@ import { HubTabs } from "@/components/site/hub-tabs";
 // 레이드 컨닝페이퍼 (checklist N20): per gate, the main boss patterns with
 // what happens and how to answer it. Static data (lib/tools/raid-cheatsheet.ts);
 // sources stay in the data file and are never shown (사용자 결정 10-12).
-import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BookSquare } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { CHEATSHEET_DATA, type HpBarRange } from "@/lib/tools/raid-cheatsheet";
-import { DIFFICULTY_LABEL, RAID_DATA } from "@/lib/tools/raid-rewards";
+import { DIFFICULTY_LABEL, RAID_DATA, type Difficulty } from "@/lib/tools/raid-rewards";
+import { CHEATSHEET_DIFFICULTY_CODEC, CHEATSHEET_GATE_CODEC, CHEATSHEET_RAID_CODEC } from "@/lib/tools/raid-url";
+import { useUrlState } from "@/lib/tools/url-state";
 import quote from "./material-quote.module.css";
 import styles from "./raid-cheatsheet.module.css";
 
@@ -27,11 +28,13 @@ export function barsText(bars: HpBarRange | null): string | null {
 
 export function RaidCheatSheet() {
   const raids = CHEATSHEET_DATA.raids;
-  const [raidId, setRaidId] = useState(raids[0].raidId);
+  // The pick is kept in the address (M51, PM 총괄 11-21): reload and a shared link come back to the same gate. The
+  // difficulty "" is the raid's first, so a raid change drops it (and the gate) from the address.
+  const [raidId, setRaidId] = useUrlState("raid", raids[0].raidId, CHEATSHEET_RAID_CODEC);
   const raid = raids.find((r) => r.raidId === raidId) ?? raids[0];
-  const [difficultyKey, setDifficultyKey] = useState(raid.difficulties[0].difficulty);
+  const [difficultyKey, setDifficultyKey] = useUrlState<Difficulty | "">("difficulty", "", CHEATSHEET_DIFFICULTY_CODEC);
   const difficulty = raid.difficulties.find((d) => d.difficulty === difficultyKey) ?? raid.difficulties[0];
-  const [gateNo, setGateNo] = useState(1);
+  const [gateNo, setGateNo] = useUrlState("gate", 1, CHEATSHEET_GATE_CODEC);
   const gate = difficulty.gates.find((g) => g.gate === gateNo) ?? difficulty.gates[0];
 
   return (
@@ -68,7 +71,7 @@ export function RaidCheatSheet() {
                     onValueChange={(next) => {
                       const nextRaid = raids.find((r) => r.raidId === next) ?? raids[0];
                       setRaidId(nextRaid.raidId);
-                      setDifficultyKey(nextRaid.difficulties[0].difficulty);
+                      setDifficultyKey("");
                       setGateNo(1);
                     }}
                   />
@@ -80,7 +83,8 @@ export function RaidCheatSheet() {
                     value={difficulty.difficulty}
                     items={raid.difficulties.map((d) => ({ value: d.difficulty, label: DIFFICULTY_LABEL[d.difficulty] }))}
                     onValueChange={(next) => {
-                      setDifficultyKey(next as typeof difficultyKey);
+                      // The raid's first is the default: kept out of the address.
+                      setDifficultyKey(next === raid.difficulties[0].difficulty ? "" : (next as Difficulty));
                       setGateNo(1);
                     }}
                   />

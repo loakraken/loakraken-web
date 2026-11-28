@@ -28,6 +28,14 @@ const specUpDelta = (change) =>
       ? 90.33
       : null;
 
+/**
+ * The api's sentence for a 상급 재련 step cost (api #1081 SpecUpCost ADVANCED_REFINE_EXPECTED, develop), with its last
+ * clause as asked of 백엔드 (11-22: the screen's A13 rule bans the word the api's version uses); the web's test reads its
+ * fixed start only.
+ */
+const ADVANCED_REFINE_BASIS =
+  "10단계 구간마다 일반·무료·선조 턴의 기대 횟수에 턴마다 재료 1개 즉시 구매 최저가와 골드를 곱해 더한 상급 재련 기대 비용입니다(턴 종류마다 숨결·책 사용을 골라 기대 비용이 가장 작은 조합, 시세가 없는 숨결·책은 쓰지 않음). 지금 단계의 상급 경험치·선조 구슬은 0으로 가정했습니다. 실링, 장비 성장(경험치) 비용과 10·20·30단계를 넘는 담금질 재료(귀속)는 넣지 않았습니다. 일부 값(10~40단계 1회 재료, 나베르 뒤 선조 확률)은 아직 한 곳에서만 확인한 값입니다.";
+
 /** The synthetic glove: an armour quality change the backend scores as ±0. */
 const armourQuality = (search, change) =>
   change.kind === "EQUIPMENT_QUALITY" && search.loadout.equipment[change.index]?.type === "장갑";
@@ -107,6 +115,28 @@ function withSimulatorGear(data) {
  * (PM-프론트 #1845: with only 0 and 1 the armour steps stayed out for want of a piece, not by the gate). 실표본2's weapon
  * is 업화 as the sample's is (+16, 상급 재련 21 → 40 in its path), so its 상급 재련 opens in the simulator (#1847).
  */
+/**
+ * '재련상급' (web #1951, X3 part 2): 운명의 업화 gear the 재련 계산기 reads (its grade from the name), with 상급 재련 read
+ * from the tooltips: 무기 21, 머리 13, 상의 · 어깨 0, 장갑 not read (null); 하의 is 전율 (no 상급 재련).
+ */
+function withAdvancedGear(data) {
+  const [weapon, helmet] = data.loadout.equipment;
+  const piece = (type, name, refineLevel, advancedRefineLevel) => ({
+    ...helmet,
+    type,
+    name,
+    detail: { ...helmet.detail, refineLevel, advancedRefineLevel },
+  });
+  data.loadout.equipment = [
+    { ...piece("무기", "+18 운명의 업화 무기", 18, 21), icon: weapon.icon },
+    piece("투구", "+18 운명의 업화 투구", 18, 13),
+    piece("상의", "+18 운명의 업화 상의", 18, 0),
+    piece("하의", "+18 운명의 전율 하의", 18, 0),
+    piece("장갑", "+18 운명의 업화 장갑", 18, null),
+    piece("어깨", "+18 운명의 업화 어깨", 18, 0),
+  ];
+  return data;
+}
 function withSampleGear(data, n) {
   const [weapon, helmet] = data.loadout.equipment;
   const piece = (type, name, refineLevel) => ({ ...helmet, type, name, detail: { ...helmet.detail, refineLevel, advancedRefineLevel: 0 } });
@@ -139,6 +169,78 @@ function withArkSimulator(data) {
   data.loadout.arkGrid.slots.push({ ...data.loadout.arkGrid.slots[0], index: 1, name: "혼돈의 별 코어 : 무기", grade: "유물", point: 17 });
   return data;
 }
+/**
+ * 아크 그리드 젬 바꾸기 (api #1079, web #1935): '전투력젬바꿈' has an order and a chaos core with real-shaped gems (the
+ * type after ': ' as the official name has it, two options of the type's pool), and the weapon core the api does not
+ * compute. The simulate answer gives a gem swap a synthetic number from its options and point (not the game's
+ * formula), and 의지력 효율 1 runs the core short (ARK_GRID_WILL_SHORT, the api's sentence).
+ */
+const GEM_SWAP = "전투력젬바꿈";
+// 2부 raw-shape guard (api contract draft 11-28, web #1977): every surface this character reaches answers as the api does
+// with the guard enforcing (GAME_UPDATE_UNSUPPORTED + its sentence). Gem-swap gear, so the gem cards show too.
+const GUARDED = "업데이트가드";
+const GUARD_CODE = "GAME_UPDATE_UNSUPPORTED";
+const GUARD_TEXT = "게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요";
+const WILL_SHORT_BASIS = "젬을 바꾸면 그 코어의 의지력이 모자라 어느 젬이 꺼질지 알 수 없어 계산하지 않았어요.";
+function withGemSwap(data) {
+  withArkSimulator(data);
+  const gem = (index, kind, type, options, point = 5, willpowerEfficiency = 4) => ({
+    index, icon: "grid-gem.png", active: true, grade: "유물", name: `${kind}의 젬 : ${type}`, gemType: kind,
+    gemPoint: point, corePoint: point, requiredWillpower: 4, baseWillpower: 8, willpowerEfficiency,
+    options: options.map(([name, level]) => ({ name, level, effect: `${name} +0.10%`, percent: 0.1 })),
+  });
+  const core = (index, name, gems) => ({
+    index, icon: "core.png", name, point: 17, grade: "유물", gems, coreType: name.split(" 코어")[0],
+    supplyWillpower: 18, usedWillpower: 16, options: [], activeOptionCount: 3, optionCount: 6, conditions: [],
+  });
+  data.loadout.arkGrid.slots = [
+    core(0, "질서의 해 코어 : 살상연희", [gem(0, "질서", "안정", [["공격력", 2], ["추가 피해", 3]]), gem(1, "질서", "견고", [["보스 피해", 4], ["공격력", 1]], 4)]),
+    core(1, "혼돈의 별 코어 : 무기", [gem(0, "혼돈", "침식", [["추가 피해", 5], ["낙인력", 4]])]),
+    core(2, "혼돈의 달 코어 : 불타는 일격", [gem(0, "혼돈", "침식", [["추가 피해", 3], ["공격력", 2]]), gem(1, "혼돈", "왜곡", [["보스 피해", 2], ["아군 공격 강화", 1]])]),
+  ];
+  // X2 (web #1939): its 아크 그리드 실 효율, PM 총괄's example value (5.02% → 보스 피해 환산 Lv 60.24).
+  data.arkGridEfficiency = {
+    percent: null, coresPercent: null, status: "OK", reasonCode: null, reason: "합성 값(목 서버)", lines: [], ruleVersion: "combat-power-v3",
+    real: {
+      status: "OK", reasonCode: null, reason: null, percent: 5.02, optionsPercent: 3.6, pointsPercent: 1.42, ruleVersion: "ark-grid-real-v1",
+      options: [], series: [],
+    },
+  };
+  return data;
+}
+/**
+ * '전투력젬많음' (#1947): a full-size grid, six cores (none the 무기 core) × four gems = 24 editable gems, as a real
+ * character has — for measuring the gem card at its real size. Same shapes as '전투력젬바꿈'.
+ */
+const MANY_GEMS = "전투력젬많음";
+function withManyGems(data) {
+  withGemSwap(data);
+  const [order, , chaos] = data.loadout.arkGrid.slots;
+  const types = { 질서: ["안정", "견고", "불변", "안정"], 혼돈: ["침식", "왜곡", "붕괴", "침식"] };
+  const pools = {
+    안정: ["공격력", "추가 피해"], 견고: ["공격력", "보스 피해"], 불변: ["추가 피해", "보스 피해"],
+    침식: ["공격력", "추가 피해"], 왜곡: ["공격력", "보스 피해"], 붕괴: ["추가 피해", "보스 피해"],
+  };
+  const names = [
+    "질서의 해 코어 : 살상연희", "질서의 달 코어 : 쌍검난무", "질서의 별 코어 : 쾌도난마",
+    "혼돈의 해 코어 : 현란한 공격", "혼돈의 달 코어 : 불타는 일격", "혼돈의 별 코어 : 공격",
+  ];
+  data.loadout.arkGrid.slots = names.map((name, index) => {
+    const kind = name.slice(0, 2);
+    const base = kind === "질서" ? order : chaos;
+    return {
+      ...base, index, name,
+      gems: [0, 1, 2, 3].map((g) => ({
+        ...base.gems[0], index: g, name: `${kind}의 젬 : ${types[kind][g]}`, gemType: kind,
+        options: pools[types[kind][g]].map((n, i) => ({ name: n, level: 2 + ((g + i + index) % 4), effect: `${n} +0.10%`, percent: 0.1 })),
+      })),
+    };
+  });
+  return data;
+}
+/** A gem swap's synthetic number: options' levels and the point (higher is more), never the game's formula. */
+const gemSwapDelta = (change) =>
+  Math.round(((change.effects ?? []).reduce((sum, e) => sum + e.level * 40, 0) + change.point * 25 - 300) * 100) / 100;
 /**
  * 깨달음 카르마 레벨 (api #1004, web #1781): the ark rows with a 깨달음 point whose description carries the karma
  * level ("6랭크 29레벨", as the official armory writes it), and since api #1023 the same level as karmaLevel.
@@ -945,6 +1047,52 @@ createServer(async (req, res) => {
     if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
     return send(plan);
   }
+  // 상급 재련 (api #1091 advanced-plans, web #1951): the api's CI sample (tests/refining-fixtures/refining-advanced-plan.json),
+  // one band per 10 stages crossed. Bands 0·20 copy the sample's first band, 10·30 its second (synthetic numbers, not
+  // the model); a band started inside keeps the whole band's numbers. Weapon names its own materials. 전율 400; a
+  // request from 39 answers 409 (price pending) so the screen's failure line can be seen.
+  if (url.pathname === "/api/v1/refining/advanced-plans" && req.method === "POST") {
+    counts.refiningAdvanced = (counts.refiningAdvanced || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.grade === "JEONYUL") return send({ code: "REFINING_ADVANCED_UNCONFIRMED", message: "운명의 전율 상급 재련은 아직 확인되지 않았습니다." }, 400);
+    if (request.fromStage === 39) return send({ code: "REFINING_PRICE_PENDING", message: "재료 시세를 모으고 있습니다." }, 409);
+    const sample = JSON.parse(readFileSync(new URL("./refining-fixtures/refining-advanced-plan.json", import.meta.url), "utf8"));
+    const weapon = request.equipmentType === "WEAPON";
+    const rename = (name) => (weapon ? { "빙하의 숨결": "용암의 숨결", "운명의 수호석": "운명의 파괴석" }[name] ?? name : name);
+    const bands = [];
+    for (let start = Math.floor(request.fromStage / 10) * 10; start < request.toStage; start += 10) {
+      const template = sample.data.bands[(start / 10) % 2];
+      bands.push({
+        ...template,
+        bandStart: start,
+        fromStage: Math.max(request.fromStage, start),
+        toStage: Math.min(request.toStage, start + 10),
+        growthSupport: start < 20,
+        expectedTurns: { ...template.expectedTurns, enhanced: start >= 20 ? 5 : null },
+        policy: { ...template.policy, enhanced: start >= 20 ? "BOTH" : null },
+        expectedMaterials: template.expectedMaterials.map((item) => ({ ...item, name: rename(item.name) })),
+      });
+    }
+    const sum = (pick) => bands.reduce((total, band) => total + pick(band), 0);
+    const materials = new Map();
+    for (const band of bands) for (const item of band.expectedMaterials) materials.set(item.name, (materials.get(item.name) ?? 0) + item.amount);
+    return send({
+      ...sample,
+      data: {
+        ...sample.data,
+        equipmentType: request.equipmentType,
+        fromStage: request.fromStage,
+        toStage: request.toStage,
+        bands,
+        temperingStages: [10, 20, 30].filter((stage) => stage > request.fromStage && stage < request.toStage),
+        expectedMaterials: [...materials].map(([name, amount]) => ({ name, amount })),
+        expectedRefineGold: sum((band) => band.expectedRefineGold),
+        expectedCostGold: Math.ceil(sum((band) => band.expectedCostGold)),
+      },
+    });
+  }
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
   // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
   // formulas) so the computed path can be seen, "갱신됨" a 409.
@@ -992,6 +1140,13 @@ createServer(async (req, res) => {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         return [s.name, `${s.grade} ${s.point}P`];
       }
+      // As the api names it (api #1079 gemText, counted from 1 since its P3 follow-up, 백엔드 11-22): '<core> 젬 <n>',
+      // the gem worn as its type, point and options.
+      case "ARK_GRID_GEM": {
+        const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
+        const g = s?.gems.find((x) => x.index === change.index);
+        return [`${s?.name ?? "코어"} 젬 ${change.index + 1}`, g ? `${g.name.replace(/^.*: /, "")} ${g.corePoint}P ${g.options.map((o) => `${o.name} ${o.level}`).join(" · ")}` : null];
+      }
       case "ARM_GUARD": {
         const g = loadout.equipment.find((x) => x.type === "완갑");
         return [g?.name ?? "팔 보호구", g ? `+${g.detail.refineLevel} ${g.grade}` : null];
@@ -1004,6 +1159,7 @@ createServer(async (req, res) => {
     change.kind === "POLISH" ? (change.option === "NONE" ? "점수 옵션 없는 줄" : `${change.option} ${change.grade}`)
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : change.kind === "ARK_GRID_GEM" ? `${change.gemType} ${change.point}P ${change.effects.map((e) => `${e.name} ${e.level}`).join(" · ")}`
     : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
     : String(change.level ?? change.refine ?? change.quality ?? change.points ?? change.karmaLevel ?? "");
   const powerRead = (name) =>
@@ -1090,6 +1246,11 @@ createServer(async (req, res) => {
     if (who === "점수순서서폿") {
       // A supporter's other orders: no combat-power model, no steps (as 상세서포터).
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(withCostParts(envelope));
+    }
+    if (who === GUARDED) {
+      // knownCostTotal / unknownCostSteps stay 0 / 0 (gold sums of zero steps; the contract types them non-null).
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: null, totalCost: null, knownCostTotal: 0, unknownCostSteps: 0, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
       return send(withCostParts(envelope));
     }
     if (who === "상세서포터") {
@@ -1277,6 +1438,10 @@ createServer(async (req, res) => {
     d.characterName = who;
     d.targetCombatPower = target;
     d.combatPower = base;
+    if (who === GUARDED) {
+      Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: GUARD_CODE, stopReason: GUARD_TEXT });
+      return send(envelope);
+    }
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
@@ -1368,6 +1533,8 @@ createServer(async (req, res) => {
     const id = decodeURIComponent(detailPath[1]);
     const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
     const list = fixture("character-spec-up.json");
+    // The 2부 guard (api B2): a guarded character's detail is the existing 404 (only a stale link reaches it).
+    if (url.searchParams.get("characterName") === GUARDED) return send(fixture("character-spec-up-detail-not-found.json"), 404);
     if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
@@ -1388,6 +1555,13 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // The 2부 guard (api B2 after #1127, PM 총괄 02:57), any sort: no candidate at all (rows built from today's tables
+    // would carry numbers), the one top-level reason in krakenSortUnavailableReason.
+    if (who === GUARDED) {
+      const guarded = specUp("character-spec-up.json");
+      Object.assign(guarded.data, { characterName: who, candidates: [], total: 0, krakenSortUnavailableReason: GUARD_CODE });
+      return send(guarded);
+    }
     // v0.3.15 real LIST answers (계산 검증 06:08, stub api on develop c76685dc, blinded): '실목록1~4' are the answers to the
     // web's own limit=50 request. '실목록2전체' is 실목록2's limit=200 KRAKEN answer, for the weapon 상급 재련 row a limit-50
     // answer never carries.
@@ -1401,6 +1575,25 @@ createServer(async (req, res) => {
             krakenScoreReasonCode: "KRAKEN_SCORE_EMPTY_GEM_SLOT",
             krakenScoreReason: "빈 보석 칸은 넣을 스킬이 정해지지 않아 크라켄 점수를 매기지 않아요.",
           });
+      return send(answer);
+    }
+    // '실목록2상급' (api #1081, web #1965): 실목록2's answer with its 상급 재련 rows priced as the api now prices them —
+    // status OK, code ADVANCED_REFINE_EXPECTED and the api's own sentence (SpecUpCost). Amounts are synthetic.
+    // KRAKEN serves the limit-200 answer ('실목록2전체'), whose 상급 rows are ranked (a Δ점수 each; weapon OK).
+    if (who === "실목록2상급") {
+      const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
+      const answer = specUp(`v0315-list/${sort === "KRAKEN" ? "실목록2전체" : "실목록2"}-${sort}.json`);
+      for (const c of answer.data.candidates)
+        if (c.change?.kind === "EQUIPMENT_ADVANCED_REFINE")
+          c.cost = {
+            unit: "GOLD",
+            amount: 1_200_000 + c.change.index * 10_000,
+            status: "OK",
+            code: "ADVANCED_REFINE_EXPECTED",
+            basis: ADVANCED_REFINE_BASIS,
+            priceObservedAt: null,
+            stale: null,
+          };
       return send(answer);
     }
     if (who?.startsWith("실목록")) {
@@ -1562,6 +1755,49 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/combat-power/options")
     return send(powerRead("combat-power-options.json"));
+  // 젬 가공 순위 (api gem-ranking #1095, web #1969): the api's CI sample (combat-power-fixtures/gem-ranking.json) for any
+  // dealer. Prices the user types fill the cost the way the contract sums it (§1; gem price synthetic, 30,000 G); with no
+  // 페온 the cost waits (missingPrices GEM · PHEON as the sample). A 초기화권 price adds reset rows (synthetic: P × 1.1).
+  // '젬순위바쁨' answers 429 (seats full, Retry-After 2), a supporter UNSUPPORTED.
+  if (url.pathname === "/api/v1/characters/combat-power/gem-ranking" && req.method === "POST") {
+    counts.gemRanking = (counts.gemRanking || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.characterName === "젬순위바쁨")
+      return send({ code: "GEM_RANKING_BUSY", message: "젬 교체 순위 계산이 몰리고 있습니다." }, 429, { "Retry-After": "2" });
+    const sample = JSON.parse(readFileSync(new URL("./combat-power-fixtures/gem-ranking.json", import.meta.url), "utf8"));
+    const data = { ...sample.data, characterName: request.characterName, fetchedAt: new Date().toISOString() };
+    if (request.characterName === GUARDED)
+      return send({ ...sample, data: { ...data, status: "UNSUPPORTED", reasonCode: GUARD_CODE, basis: GUARD_TEXT, totalRows: 0, rows: [] } });
+    if (request.characterName === "상세서포터")
+      return send({ ...sample, data: { ...data, status: "UNSUPPORTED", reasonCode: "SUPPORTER_MODEL_PENDING", basis: "서포터의 젬 가공 순위는 아직 계산하지 않습니다.", totalRows: 0, rows: [] } });
+    const pheon = request.prices?.pheonGold;
+    const ticket = request.prices?.resetTicketGold;
+    let rows = sample.data.rows;
+    if (ticket != null)
+      rows = [
+        ...rows,
+        ...rows.slice(0, 4).map((row) => ({ ...row, reset: true, successProbability: row.successProbability * 1.1, expectedGems: Math.round((row.expectedGems / 1.1) * 100) / 100 })),
+      ];
+    rows = rows.map((row) => {
+      if (pheon == null) return { ...row, expectedCost: null, goldPerPercent: null, missingPrices: ["PHEON"] };
+      const gem = Math.round(30_000 * row.expectedGems);
+      const pheonGold = Math.round(12 * pheon * row.expectedGems);
+      const processingGold = Math.round(900 * 9 * row.expectedGems);
+      const resetTicket = row.reset ? Math.round((ticket ?? 0) * row.expectedGems * 0.5) : 0;
+      const total = gem + pheonGold + processingGold + resetTicket;
+      return { ...row, expectedCost: { gem, pheon: pheonGold, processingGold, resetTicket, total }, goldPerPercent: Math.round(total / row.expectedGainPct), missingPrices: [] };
+    });
+    // The contract's order: priced rows by gold per 1% (ties: higher P), then the rest by gain × P.
+    rows.sort((a, b) =>
+      a.goldPerPercent != null && b.goldPerPercent != null
+        ? a.goldPerPercent - b.goldPerPercent || b.successProbability - a.successProbability
+        : a.goldPerPercent != null ? -1 : b.goldPerPercent != null ? 1 : b.expectedGainPct * b.successProbability - a.expectedGainPct * a.successProbability,
+    );
+    rows = rows.map((row, i) => ({ ...row, rank: i + 1 }));
+    return send({ ...sample, data: { ...data, totalRows: rows.length, rows } });
+  }
   if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {
     counts.combatPower = (counts.combatPower || 0) + 1;
     let body = "";
@@ -1571,12 +1807,14 @@ createServer(async (req, res) => {
     const envelope = powerRead("character-combat-power-simulate.json");
     const d = envelope.data;
     const search = read("character-full-data.json");
-    const computed = ["전투력계산", "전투력코어도약", ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
+    const computed = ["전투력계산", "전투력코어도약", GEM_SWAP, MANY_GEMS, ...KARMA_NAMES, ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName);
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
     // The same gear the character answer has, so each change's "from" is the worn step.
     if (KARMA_NAMES.includes(request.characterName)) withKarma(search);
     else if (request.characterName === "전투력코어도약") withArkSimulator(search);
+    else if (request.characterName === GEM_SWAP || request.characterName === GUARDED) withGemSwap(search);
+    else if (request.characterName === MANY_GEMS) withManyGems(search);
     else if (computed || ["전투력계산저재련", "스펙업무기재련", "스펙순서연마"].includes(request.characterName)) withSimulatorGear(search);
     if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(request.characterName)) withUpgradeWeapon(search, request.characterName);
     if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
@@ -1599,6 +1837,8 @@ createServer(async (req, res) => {
             : "합성 값(목 서버)"
           : d.contributions[0].basis,
       reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
+      // api #1129: a guarded row reads no raw — target is the request kind, from / to null.
+      ...(request.characterName === GUARDED ? { target: change.kind, from: null, to: null, reasonCode: GUARD_CODE, basis: GUARD_TEXT } : {}),
     }));
     // The api's armour switch off (every character but the gate's two): armour 재련 · 상급 재련 held as today, whatever
     // the web sent. The proxy passes an armour 상급 재련 (it cannot tell its index from the weapon's); this holds it.
@@ -1607,6 +1847,13 @@ createServer(async (req, res) => {
         if (armourRefine(search, change))
           Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: "방어구 재련 전투력은 계산식을 확인하고 있습니다.", reasonCode: "MODEL_UNCONFIRMED" });
       });
+    // 아크 그리드 젬 (api #1079): a synthetic number per swap; 의지력 효율 1 leaves the core short (not computed, its sentence).
+    request.changes.forEach((change, i) => {
+      if (change.kind !== "ARK_GRID_GEM" || !computed) return;
+      if (change.willEfficiency === 1)
+        Object.assign(d.contributions[i], { status: "UNSUPPORTED", delta: null, basis: WILL_SHORT_BASIS, reasonCode: "ARK_GRID_WILL_SHORT" });
+      else Object.assign(d.contributions[i], { delta: gemSwapDelta(change), basis: "합성 값(목 서버)" });
+    });
     // Outside the armour CP gate: the armour rows are held with the gate's reason, the rest computed.
     if (request.characterName === ARMOR_CLOSED)
       request.changes.forEach((change, i) => {
@@ -1620,6 +1867,8 @@ createServer(async (req, res) => {
     d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
     d.unsupportedCount = computed ? held : d.contributions.length;
     d.partial = held > 0 && d.contributions.length > 0;
+    // The 2부 guard (api B2): no number of ours — after / delta null; the official before stays.
+    if (request.characterName === GUARDED) Object.assign(d, { after: null, delta: null, deltaPercent: null });
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
@@ -1756,6 +2005,30 @@ createServer(async (req, res) => {
       ]
         .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
         .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
+    // X4 (a) (web #1975): one character per 지옥 key level, one between two levels, one below the lowest.
+    else if (who === "지옥원정대")
+      base.data.siblings = [
+        ["지옥원정대", "블래스터", 1712.5],
+        ["지옥둘", "바드", 1760.83],
+        ["지옥셋", "버서커", 1745],
+        ["지옥넷", "소서리스", 1650],
+        ["지옥다섯", "도화가", 1600],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // #1976 P3: one member breaks the name rule (a space); the rest are real-shaped names (12 Hangul, digits, mixed
+    // case) and stay. '지옥모두나쁨': every member breaks a rule.
+    else if (who === "지옥섞임")
+      base.data.siblings = [
+        ["지옥섞임", "블래스터", 1712.5],
+        ["가나다라마바사아자차카타", "바드", 1745],
+        ["Ab12Cd", "버서커", 1700],
+        ["지옥99", "소서리스", 1650],
+        ["나쁜 이름", "도화가", 1760],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    else if (who === "지옥모두나쁨")
+      base.data.siblings = [
+        { characterName: "나쁜 이름", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1700 },
+        { characterName: "또<나쁨>", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1700 },
+      ];
     else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
@@ -3012,6 +3285,9 @@ createServer(async (req, res) => {
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;
+  // '느린답…' (web #1959): a slow backend, 1.8 s per answer — past the simulator page's 1.2 s server wait and well inside
+  // the 2.5 s it had before, so the first HTML alone tells the two apart (no wall-clock bound in the test).
+  if (name?.startsWith("느린답")) await new Promise((done) => setTimeout(done, 1800));
   const errors = {
     미존재: [404, "CHARACTER_NOT_FOUND"],
     제한: [429, "LOST_ARK_RATE_LIMITED"],
@@ -3073,7 +3349,10 @@ createServer(async (req, res) => {
   if (["전투력계산", "전투력계산저재련", "스펙업무기재련", "스펙순서연마", ...ARMOR_GATE_NAMES, UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withSimulatorGear(envelope.data);
   if ([UPGRADE_WEAPON, ESTHER_WEAPON].includes(name)) withUpgradeWeapon(envelope.data, name);
   if (name === "전투력코어도약") withArkSimulator(envelope.data);
+  if (name === GEM_SWAP || name === GUARDED) withGemSwap(envelope.data);
+  if (name === MANY_GEMS) withManyGems(envelope.data);
   if (name.startsWith("실표본")) withSampleGear(envelope.data, name.slice(3));
+  if (name === "재련상급") withAdvancedGear(envelope.data);
   if (KARMA_NAMES.includes(name)) withKarma(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;

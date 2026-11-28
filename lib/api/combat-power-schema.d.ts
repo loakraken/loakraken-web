@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/combat-power/gem-ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 아크 그리드 젬 교체 순위(공식 호출 없음)
+         * @description 딜러의 장착 젬 칸마다 그 코어 계열의 세 종류 × 효과 정책(ALL·A_OR_B·A·A_AND_B, A·B는 그 종류의 딜러 옵션 두 개) × 초기화로, 새 젬을 사서 '네 옵션 포인트 합이 targetTotal 이상이 되면 완료' 정책으로 가공했을 때 이 칸에 넣어 전투력이 오르고 의지력이 맞고 정책 효과를 만족할 확률(successProbability, 0~1), 성공할 때의 기대 전투력 증가(expectedGainPct, %, 시뮬레이터 deltaPercent와 같은 단위), 기대 비용(구성 요소 모두 젬 여러 개를 산 전체 기대값이고 합이 total)을 줍니다. targetTotal은 확률이 가장 큰 목표 합입니다. 성공 확률이 0인 줄은 주지 않습니다. 순위: goldPerPercent 오름차순(같으면 확률 높은 쪽), 비용이 없는 줄은 그 뒤에 expectedGainPct × successProbability 내림차순. 젬 가격은 거래소 시세 캐시(1개 즉시 구매 최저가)만 읽고, 페온 1개 골드·초기화권 가격은 요청 값입니다. 서포터·판정 불가는 status UNSUPPORTED와 빈 rows. slotIndex·gemIndex는 공식 ArkGrid Slots·Gems Index(0부터)로 캐릭터 응답과 같습니다. policy·gemType·grade·missingPrices·status·reasonCode는 문자열이며 값이 늘 수 있습니다.
+         */
+        post: operations["rank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -80,7 +100,7 @@ export interface components {
         /** @description 바꾼 항목 하나. kind마다 쓰는 필드가 다르다 */
         ChangeRequest: {
             /** @enum {string} */
-            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD";
+            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD" | "ARK_GRID_GEM";
             /**
              * Format: int32
              * @description 보석 slot(GEM_LEVEL, 0~10). 보석이 없는 빈 칸이면 그 칸에 4티어 보석을 새로 끼우는 변화로 계산한다(before = 0)
@@ -126,19 +146,43 @@ export interface components {
             points?: number;
             /**
              * Format: int32
-             * @description 아크 그리드 slot index
+             * @description 아크 그리드 slot index(ARK_GRID_CORE·ARK_GRID_GEM, 공식 ArkGrid.Slots Index)
              */
             slotIndex?: number;
             /**
              * Format: int32
-             * @description 아크 그리드 코어 포인트
+             * @description 아크 그리드 코어 포인트(ARK_GRID_CORE 0~20), 새 젬 포인트(ARK_GRID_GEM 1~5)
              */
             point?: number;
             /**
              * Format: int32
-             * @description 깨달음 카르마 레벨(0~30, ARK_PASSIVE_POINT tree 깨달음만, points·level과 함께 쓰지 않음). 딜러만 계산한다(무기 공격력 레벨당 +0.1%)
+             * @description 카르마 레벨(0~30, ARK_PASSIVE_POINT tree 깨달음·도약, points·karmaRank·level과 함께 쓰지 않음). 깨달음은 무기 공격력 레벨당 +0.1%, 도약은 × (1 + 0.0002 × 레벨) 모델값. 진화는 400. 딜러만 계산한다
              */
             karmaLevel?: number;
+            /**
+             * Format: int32
+             * @description 카르마 랭크(0~6, ARK_PASSIVE_POINT tree 진화·깨달음·도약, points·karmaLevel·level과 함께 쓰지 않음). 깨달음은 랭크마다 포인트 +1, 도약은 +2(같은 요청의 앞 변경 뒤 포인트에 더하고, 깨달음 0~101·도약 0~70 밖이면 400), 진화는 × (1 + 0.006 × 랭크) 모델값. 같은 트리의 points 변경이 랭크 변경보다 뒤에 오면 그 points가 포인트 합을 정한다(랭크로 옮긴 포인트를 덮음). 딜러만 계산한다
+             */
+            karmaRank?: number;
+            /** @description 새 젬 종류(ARK_GRID_GEM): 질서 코어는 안정·견고·불변, 혼돈 코어는 침식·왜곡·붕괴. 바꿀 젬은 index(공식 Gems Index). 종류별 옵션 4종(effects[].name, 공식 확률 정보·공지 13204): 안정·침식 = 공격력·추가 피해·아군 피해 강화·낙인력, 견고·왜곡 = 공격력·보스 피해·아군 피해 강화·아군 공격 강화, 불변·붕괴 = 추가 피해·보스 피해·낙인력·아군 공격 강화. 필요 의지력 기본값 안정·침식 8, 견고·왜곡 9, 불변·붕괴 10. 바꾼 뒤 그 코어의 의지력이 모자라면 그 줄은 UNSUPPORTED, reasonCode ARK_GRID_WILL_SHORT(basis에 한국어 문장) */
+            gemType?: string;
+            /**
+             * Format: int32
+             * @description 새 젬 의지력 효율(ARK_GRID_GEM 1~5). 필요 의지력 = 종류 기본값(8·9·10) − 효율
+             */
+            willEfficiency?: number;
+            /** @description 새 젬 옵션 두 줄(ARK_GRID_GEM): 그 종류의 옵션 4종 중 서로 다른 둘, 레벨 1~5 */
+            effects?: components["schemas"]["GemOptionRequest"][];
+        };
+        /** @description 젬 옵션 한 줄(ARK_GRID_GEM) */
+        GemOptionRequest: {
+            /** @description 옵션 이름(공격력·추가 피해·보스 피해·아군 피해 강화·아군 공격 강화·낙인력) */
+            name?: string;
+            /**
+             * Format: int32
+             * @description 옵션 레벨 1~5
+             */
+            level?: number;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseCombatPowerSimulationResponse: {
@@ -192,6 +236,8 @@ export interface components {
             /** @description 근거 문장 */
             basis: string;
             reasonCode: string | null;
+            /** @description 이 줄의 배수가 모델값(공식이 아닌 비교 기준 한 곳의 식)이면 true: 진화 포인트·진화 카르마 랭크·도약 카르마 레벨. 배포 순서 때문에 계약에서는 선택 필드(없으면 false로 본다) */
+            modelValue?: boolean;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -325,6 +371,165 @@ export interface components {
             /** @description UNSUPPORTED 이유 코드(시뮬레이터·스펙업과 같은 코드). OK면 null */
             reasonCode?: string;
         };
+        GemRankingRequest: {
+            /**
+             * @description 캐릭터명(먼저 검색해 캐시에 있어야 함)
+             * @example 모험가
+             */
+            characterName: string;
+            /**
+             * @description HERO(영웅)·RARE(희귀). 고급은 나중
+             * @example HERO
+             * @enum {string}
+             */
+            grade: "HERO" | "RARE";
+            /** @description 정책(생략하면 네 가지 모두). 같은 값을 두 번 쓰면 400 */
+            policies?: ("ALL" | "A_OR_B" | "A" | "A_AND_B")[];
+            /** @description 초기화 끔·켬(생략하면 둘 다). 켬(true)은 prices.resetTicketGold가 있을 때만 계산(없으면 그 줄은 빠짐) */
+            reset?: boolean[];
+            prices?: components["schemas"]["GemRankingPrices"];
+            /**
+             * Format: int32
+             * @description 돌려줄 줄 수(1~200, 생략하면 50)
+             */
+            limit?: number;
+        };
+        /** @description 사용자 가격(서버가 시세에서 읽지 않는 값) */
+        GemRankingPrices: {
+            /**
+             * Format: int64
+             * @description 젬 가공 초기화권 1장 골드(사용자 입력)
+             * @example 59110
+             */
+            resetTicketGold?: number;
+            /**
+             * @description 페온 1개 골드(사용자의 크리스탈 환율로 정한 값)
+             * @example 72.5
+             */
+            pheonGold?: number;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseGemRankingResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["GemRankingResponse"];
+        };
+        GemRankingResponse: {
+            ruleVersion: string;
+            characterName: string;
+            /**
+             * Format: date-time
+             * @description 캐릭터 캐시 수집 시각
+             */
+            fetchedAt: string;
+            /**
+             * @description OK·UNSUPPORTED(문자열, 값이 늘 수 있음)
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
+            basis: string | null;
+            pricesObservedAt: string | null;
+            /**
+             * Format: int32
+             * @description limit 전 줄 수
+             */
+            totalRows: number;
+            rows: components["schemas"]["GemRankingRowResponse"][];
+            /** @description 계산 가정과 표시 문구 */
+            assumptions: string[];
+        };
+        GemRankingRowResponse: {
+            /**
+             * Format: int32
+             * @description 순위(1부터)
+             */
+            rank: number;
+            /**
+             * Format: int32
+             * @description 공식 ArkGrid.Slots Index(0부터)
+             */
+            slotIndex: number;
+            /**
+             * Format: int32
+             * @description 공식 Gems Index(0부터)
+             */
+            gemIndex: number;
+            coreName: string;
+            currentGem: components["schemas"]["GemRankingCurrentGemResponse"];
+            /** @description 새 젬 종류(문자열) */
+            gemType: string;
+            /** @description HERO·RARE(문자열) */
+            grade: string;
+            /** @description ALL·A_OR_B·A·A_AND_B(문자열) */
+            policy: string;
+            reset: boolean;
+            /**
+             * Format: int32
+             * @description 가공 목표 포인트 합 T*(이 합 이상이 되면 완료하는 정책, 확률이 가장 큰 T)
+             */
+            targetTotal: number;
+            /** @description 젬 하나당 성공 확률(0~1, 소수 여섯째 자리) */
+            successProbability: number;
+            /** @description 성공까지 기대 젬 수 = 1 / successProbability(소수 둘째 자리) */
+            expectedGems: number;
+            /** @description 성공할 때 기대 전투력 증가(%, 소수 셋째 자리) */
+            expectedGainPct: number;
+            /** @description 성공할 때 기대 옵션 레벨(소수 둘째 자리) */
+            expectedOptions: components["schemas"]["GemRankingOptionResponse"][];
+            /** @description 성공할 때 기대 의지력 효율 */
+            expectedWillEfficiency: number;
+            /** @description 성공할 때 기대 질서·혼돈 포인트 */
+            expectedPoint: number;
+            expectedCost: components["schemas"]["GemRankingCostResponse"] | null;
+            goldPerPercent: number | null;
+            /** @description 없는 가격: GEM·PHEON·RESET_TICKET(문자열) */
+            missingPrices: string[];
+        };
+        /** @description 지금 그 칸의 젬 */
+        GemRankingCurrentGemResponse: {
+            type: string | null;
+            point: number | null;
+            effects: components["schemas"]["GemRankingOptionResponse"][];
+        };
+        GemRankingOptionResponse: {
+            name: string;
+            level: number;
+        };
+        /** @description 기대 비용(골드). 모두 성공까지 젬 여러 개를 산 전체 기대값이고 합이 total */
+        GemRankingCostResponse: {
+            /**
+             * Format: int64
+             * @description 젬 구매 = 젬 1개 값 × expectedGems
+             */
+            gem: number;
+            /**
+             * Format: int64
+             * @description 페온 = 구매 한 번의 페온(영웅 12·희귀 6) × 페온 1개 골드 × expectedGems
+             */
+            pheon: number;
+            /**
+             * Format: int64
+             * @description 가공 골드 = 젬 하나의 기대 가공 골드 × expectedGems
+             */
+            processingGold: number;
+            /**
+             * Format: int64
+             * @description 초기화권 = 젬 하나의 기대 사용 수 × expectedGems × 초기화권 가격
+             */
+            resetTicket: number;
+            /** Format: int64 */
+            total: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -356,7 +561,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponseCombatPowerSimulationResponse"];
                 };
             };
-            /** @description INVALID_REQUEST: 범위 밖·모르는 kind·필수 값 없음(메시지에 필드와 허용 범위) */
+            /** @description INVALID_REQUEST: 범위 밖·모르는 kind·필수 값 없음(메시지에 필드와 허용 범위). KARMA_POINTS_OUT_OF_RANGE: karmaRank를 바꾸면 그 트리 포인트 합이 깨달음 0~101·도약 0~70을 벗어남(자르지 않음, 랭크 자체가 0~6 밖이면 INVALID_REQUEST) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -462,6 +667,57 @@ export interface operations {
                 };
             };
             /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rank: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GemRankingRequest"];
+            };
+        };
+        responses: {
+            /** @description GEM_RANKING_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseGemRankingResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 등급·정책·초기화·가격·limit 값 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함. 스위치(combat-power-sim.gem-ranking.enabled)가 꺼져 있으면 이 경로가 없어 404 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description GEM_RANKING_BUSY: 순위 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

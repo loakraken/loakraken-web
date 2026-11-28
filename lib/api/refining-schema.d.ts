@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refining/advanced-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 티어 4 상급 재련 기대 비용
+         * @description 운명의 업화 무기·방어구의 현재 상급 재련 단계부터 목표 단계(1~40)까지 10단계 구간마다 기대 턴(유료·무료·선조·강화 선조), 턴 종류별 숨결·책 선택(기대 비용이 가장 작은 조합), 기대 재료·재련 골드·실링·기대 비용을 계산합니다. 재료 값은 서버 시세 캐시(1개 즉시 구매 최저가)만 읽습니다(공식 호출 없음). 스펙업 상급 재련 단계 비용과 같은 모델·같은 값입니다. 스위치 refining.advanced.enabled가 꺼져 있으면 400입니다.
+         */
+        post: operations["advancedPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -264,6 +284,151 @@ export interface components {
             message: string;
             data: null;
         };
+        AdvancedRefiningPlanRequest: {
+            /**
+             * @description UPHWA: 운명의 업화. JEONYUL(운명의 전율)은 상급 재련 표를 확인하기 전이라 400 REFINING_ADVANCED_UNCONFIRMED
+             * @example UPHWA
+             * @enum {string}
+             */
+            grade: "UPHWA" | "JEONYUL";
+            /**
+             * @description WEAPON: 무기, ARMOR: 방어구. ARM_GUARD(완갑)는 상급 재련이 없어 400
+             * @example ARMOR
+             * @enum {string}
+             */
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
+            /**
+             * Format: int32
+             * @description 현재 상급 재련 단계(0~39)
+             * @example 0
+             */
+            fromStage: number;
+            /**
+             * Format: int32
+             * @description 목표 상급 재련 단계(1~40, 현재보다 큼)
+             * @example 10
+             */
+            toStage: number;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseAdvancedRefiningPlanResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["AdvancedRefiningPlanResponse"];
+        };
+        /** @description 상급 재련 기대 비용. 10단계 구간마다 기대 턴·숨결·책 선택·재료·골드이고, 기대값은 확률 분포의 평균이다(중앙값·90% 없음). */
+        AdvancedRefiningPlanResponse: {
+            /** @description 상급 재련 규칙 버전 */
+            ruleVersion: string;
+            source: components["schemas"]["AdvancedRefiningSourceResponse"];
+            /** @enum {string} */
+            grade: "UPHWA" | "JEONYUL";
+            /** @enum {string} */
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
+            /** Format: int32 */
+            fromStage: number;
+            /** Format: int32 */
+            toStage: number;
+            /** @description 지나는 10단계 구간마다 한 줄(차례대로) */
+            bands: components["schemas"]["AdvancedRefiningBandResponse"][];
+            /** @description 지나는 담금질 단계(10·20·30에서 다음으로 갈 때). 담금질 재료는 귀속이라 금액에 넣지 않는다. 없으면 빈 목록 */
+            temperingStages: number[];
+            /** @description 구간 기대 재료의 합(소수 둘째 자리 반올림) */
+            expectedMaterials: components["schemas"]["QuantityResponse"][];
+            /** @description 구간 재련 골드의 합(재료 값 제외, 소수 둘째 자리 반올림) */
+            expectedRefineGold: number;
+            expectedSilver: number | null;
+            /**
+             * Format: int64
+             * @description 계획 전체 기대 비용(골드) = 올리기 전 구간 값(재료 × priceBasis 값 + 재련 골드)의 합을 한 번 올림. 스펙업 상급 재련 단계 비용(ADVANCED_REFINE_EXPECTED)과 같은 계산
+             */
+            expectedCostGold: number;
+            /**
+             * Format: date-time
+             * @description 계산에 쓴 재료 시세 관측 시각
+             */
+            pricesObservedAt: string;
+            /**
+             * @description 재료 값 기준. CURRENT_MIN_PRICE = 1개 즉시 구매 최저가
+             * @example CURRENT_MIN_PRICE
+             */
+            priceBasis: string;
+            /** @description 숨결·책 가운데 시세가 없는 재료가 있어 그 재료를 쓰는 선택을 빼고 골랐는지(시세가 다 있으면 비용이 더 작을 수 있음) */
+            policyLimited: boolean;
+            /** @description 출처가 한 곳뿐인 값을 썼는지(규칙 파일 표시, 21단계부터 강화 선조 확률 포함) */
+            singleSource: boolean;
+            /** @description 계산 가정과 제외 항목 */
+            assumptions: string[];
+        };
+        AdvancedRefiningSourceResponse: {
+            /** @description 출처 이름 */
+            name: string;
+            /** @description 공식 가이드(주소·확인일) */
+            officialGuide: string;
+            /** @description 공식 공지(주소·확인일) */
+            officialNotice: string;
+            verifiedOn: string;
+        };
+        AdvancedRefiningBandResponse: {
+            /**
+             * Format: int32
+             * @description 구간 시작 단계(0·10·20·30)
+             */
+            bandStart: number;
+            /**
+             * Format: int32
+             * @description 이 구간에서 시작하는 단계
+             */
+            fromStage: number;
+            /**
+             * Format: int32
+             * @description 이 구간에서 끝나는 단계
+             */
+            toStage: number;
+            expectedTurns: components["schemas"]["AdvancedRefiningTurnsResponse"];
+            policy: components["schemas"]["AdvancedRefiningPolicyResponse"];
+            /** @description 성장 지원(1~20단계 할인)을 적용했는지 */
+            growthSupport: boolean;
+            /** @description 기대 재료 개수(기본 재료는 유료·선조·강화 선조 턴, 숨결·책은 고른 선택대로, 소수 둘째 자리 반올림) */
+            expectedMaterials: components["schemas"]["QuantityResponse"][];
+            /** @description 기대 재련 골드(재료 값 제외) */
+            expectedRefineGold: number;
+            expectedSilver: number | null;
+            /**
+             * Format: int64
+             * @description 이 구간 기대 비용(골드, 올림) = 재료 × priceBasis 값 + 재련 골드
+             */
+            expectedCostGold: number;
+            /** @description 이 구간에 출처가 한 곳뿐인 값이 있는지 */
+            singleSource: boolean;
+        };
+        /** @description 턴 종류별 기대 턴 수(소수 둘째 자리 반올림) */
+        AdvancedRefiningTurnsResponse: {
+            /** @description 유료 일반 턴 */
+            paid: number;
+            /** @description 무료 일반 턴(테메르) */
+            free: number;
+            /** @description 선조 턴 */
+            ancestor: number;
+            enhanced: number | null;
+            /** @description 합 */
+            total: number;
+        };
+        /** @description 턴 종류마다 고른 선택: NONE(없음)·BREATH(숨결)·BOOK(책)·BOTH(둘 다). 모르는 값은 코드 그대로 보인다 */
+        AdvancedRefiningPolicyResponse: {
+            normal: string;
+            ancestor: string;
+            enhanced: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -332,6 +497,84 @@ export interface operations {
                 };
             };
             /** @description REFINING_SOLVE_BUSY: breath=OPTIMAL인데 서버의 최적 풀이 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTERNAL_SERVER_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    advancedPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvancedRefiningPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description REFINING_ADVANCED_PLAN_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseAdvancedRefiningPlanResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 단계 범위(현재 0~39, 목표 1~40, 목표 > 현재), ARM_GUARD, 빠진 값, 스위치가 꺼져 있음. REFINING_ADVANCED_UNCONFIRMED: grade=JEONYUL(운명의 전율 상급 재련 표를 확인하기 전) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_ACCEPTABLE */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description REFINING_PRICE_PENDING: 기본 재료 시세가 아직 없음(Retry-After 초). 일부만 계산하지 않는다 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNSUPPORTED_MEDIA_TYPE */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

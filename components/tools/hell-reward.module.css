@@ -6,6 +6,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
   grid-template-areas:
     "controls controls"
+    "roster roster"
     "main side";
   gap: 16px 24px;
 }
@@ -44,6 +45,40 @@
   font-size: 15px;
   font-weight: 700;
   line-height: 21px;
+}
+/* (M52) The result's title with the '작은 창' button. The row takes the title's bottom margin, so where the button is
+   hidden (no Document PiP) the page is exactly as before; where it shows (<html data-pip>, set before the first
+   paint) the row is the button's 32px from the first paint, so nothing moves. */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.titleRow .sectionTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.pipButton {
+  display: none;
+  flex: none;
+}
+/* Where it shows, its room is fixed before any of it arrives: a cut first HTML (the row without the button yet, or
+   the button without its label) draws the title at its final width and the row at its final height (A7 rest sweep). */
+:global(:root[data-pip]) .titleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  min-height: 32px;
+}
+:global(:root[data-pip]) .pipButton {
+  display: inline-flex;
+  width: 96px;
+  padding: 0;
+  overflow: hidden;
+}
+.pipButton[aria-pressed="true"] {
+  background: var(--control);
 }
 .stage {
   display: grid;
@@ -311,6 +346,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "controls"
+      "roster"
       "main"
       "side";
   }

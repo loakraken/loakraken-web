@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { arkGridRealView, braceletRealView } from "../lib/character/efficiency-real";
+import { BOSS_LEVELS_PER_PERCENT, arkGridRealView, bossLevel, braceletRealView } from "../lib/character/efficiency-real";
 
 const arkOk = {
   status: "OK" as const,
@@ -35,6 +35,8 @@ test("아크 그리드 실 효율: total, parts, series with a value, option lin
     state: "ready",
     total: "+4.67%",
     parts: "젬 옵션 +3.21% · 코어 포인트 +1.41%",
+    // 보스 피해 환산 Lv (X2): the total × 12.
+    bossLevel: "56.04",
     series: [{ label: "질서", percent: "+2.66%" }],
     lines: [
       { name: "공격력", level: 28, percent: "+0.99%" },
@@ -75,4 +77,12 @@ test("팔찌 실 효율: two decimals, the 악마 피해 value for a dealer, gra
     braceletRealView({ ...braceletOk, status: "UNAVAILABLE" as unknown as "OK", reasonCode: "UNKNOWN_OPTION", reason: "알 수 없는 옵션", percent: null, devilDamagePercent: null }),
     { state: "unavailable" },
   );
+});
+
+test("보스 피해 환산 Lv (X2): the total × 12, two decimals, no float noise", () => {
+  assert.equal(bossLevel(5.02), "60.24");
+  assert.equal(bossLevel(4.67), "56.04");
+  assert.equal(bossLevel(0.01), "0.12");
+  assert.equal(bossLevel(12.5), "150.00");
+  assert.equal(BOSS_LEVELS_PER_PERCENT, 12);
 });

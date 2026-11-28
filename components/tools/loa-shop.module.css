@@ -82,12 +82,27 @@
 }
 /* An invalid rate is said under the field (a polite live region, empty while the rate is fine). Empty, it stays in
    the page for the announce but out of the grid's flow (an absolutely placed child takes no cell, so no extra gap). */
-.rateError {
-  color: var(--destructive);
+.fieldGroup {
+  display: grid;
+  gap: 6px;
+}
+/* The error's own room, kept while empty: a message appearing (or going) moves nothing below (codex P3 on #1889).
+   The unseen copy and the live line share one cell, so the room is the message's own height at this width and text
+   size (codex P3 on #1899). */
+.rateErrorSlot {
+  display: grid;
   font-size: var(--text-caption);
 }
-.rateError:empty {
-  position: absolute;
+.rateErrorSizer,
+.rateError {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.rateErrorSizer {
+  visibility: hidden;
+}
+.rateError {
+  color: var(--destructive);
 }
 .basis {
   margin-top: var(--space-3);

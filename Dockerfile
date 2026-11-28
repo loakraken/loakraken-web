@@ -3,19 +3,19 @@
 # 백엔드 주소(LOAKRAKEN_API_ORIGIN)는 서버 전용 실행 환경변수로 받으며 이미지에 넣지 않는다.
 # next.config.ts의 output: "standalone" 결과(.next/standalone + .next/static + public)만 실행 이미지에 담는다.
 
-FROM node:24.21.0-bookworm-slim AS deps
+FROM node:24.22.3-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
-FROM node:24.21.0-bookworm-slim AS build
+FROM node:24.22.3-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:24.21.0-bookworm-slim
+FROM node:24.22.3-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

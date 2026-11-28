@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { RaidRewardsTable } from "@/components/tools/raid-rewards";
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools/raid-rewards" },
 };
 
-export default function RaidRewardsPage() {
+export default async function RaidRewardsPage() {
+  // Rendered per request: the filter and card picks kept in the address (M51) are in the first HTML.
+  await connection();
   return <RaidRewardsTable />;
 }

@@ -2,7 +2,7 @@
 
 import { HubTabs } from "@/components/site/hub-tabs";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Box } from "@/components/ui/icons";
@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
+import { oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
@@ -271,7 +272,8 @@ function PackageCard({
 
 /** `renderedAt`: the server render time (epoch ms), the clock until the client one starts. */
 export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
+  // Kept in the address (M51, PM 총괄 11-21); the typed rate is not (it stays in this browser, useCrystalRate).
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
   const { text: rateText, change: changeRate, rate, invalid: rateInvalid } = useCrystalRate();
   const rateId = useId();
   const hintId = useId();
@@ -347,25 +349,36 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
               <h2 id="settings-heading" className={styles.sectionTitle}>
                 계산 기준
               </h2>
-              <label className={styles.field} htmlFor={rateId}>
-                <span>게임 안 크리스탈 교환소 시세(블루 크리스탈 100개당 골드)</span>
-                <input
-                  id={rateId}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="비워 두면 이득을 계산하지 않아요"
-                  maxLength={20}
-                  aria-invalid={rateInvalid || undefined}
-                  aria-describedby={rateInvalid ? `${errorId} ${hintId}` : hintId}
-                  value={rateText}
-                  onChange={(event) => changeRate(event.target.value)}
-                />
-              </label>
-              {/* Always in the page (a polite live region), so the message is read when it appears. */}
-              <p id={errorId} className={styles.rateError} role="status">
-                {rateInvalid ? RATE_INVALID : ""}
-              </p>
+              {/* The field and its error slot are one item of the column: the slot is always there (one line), so a
+                  message coming or going moves nothing below (codex P3 on #1889). */}
+              <div className={styles.fieldGroup}>
+                <label className={styles.field} htmlFor={rateId}>
+                  <span>게임 안 크리스탈 교환소 시세(블루 크리스탈 100개당 골드)</span>
+                  <input
+                    id={rateId}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="비워 두면 이득을 계산하지 않아요"
+                    maxLength={20}
+                    aria-invalid={rateInvalid || undefined}
+                    aria-describedby={rateInvalid ? `${errorId} ${hintId}` : hintId}
+                    value={rateText}
+                    onChange={(event) => changeRate(event.target.value)}
+                  />
+                </label>
+                {/* The slot is as tall as the message would be here, wrapped or not (an unseen copy sizes it, codex P3
+                    on #1899: at 320 with 200% text the message took two lines and pushed the hint down). The live
+                    line sits over the copy; it is always in the page, so the message is read when it appears. */}
+                <div className={styles.rateErrorSlot}>
+                  <span className={styles.rateErrorSizer} aria-hidden="true">
+                    {RATE_INVALID}
+                  </span>
+                  <p id={errorId} className={styles.rateError} role="status">
+                    {rateInvalid ? RATE_INVALID : ""}
+                  </p>
+                </div>
+              </div>
               <p id={hintId} className={styles.small}>
                 게임 안 크리스탈 교환소에서 블루 크리스탈 100개를 살 때 드는 골드를 넣어 주세요. 이 브라우저에만 저장하고
                 서버로 보내지 않아요. 공식 상점에서 블루 크리스탈 100개는 로열 크리스탈 {count(SHOP_DATA.crystal.royalPer100)}

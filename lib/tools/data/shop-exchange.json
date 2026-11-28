@@ -1,0 +1,106 @@
+{
+  "version": "2026-11-22",
+  "sources": {
+    "ref-capture-2026-11-22": {
+      "title": "외부 화면 캡처(사용자 확인)",
+      "url": null,
+      "_note": "게임 안 화면이 아니라 외부 화면을 사용자가 캡처해 확인한 것(상시 상점 교환표: 레이드 재화 · 싱글 · 길드 혈석). 출처 id와 주소는 내부 기록(#1470).",
+      "date": "2026-11-22",
+      "kind": "COMMUNITY"
+    }
+  },
+  "shops": [
+    {
+      "id": "raid",
+      "name": "레이드 재화 교환",
+      "limitNote": "모든 품목 제한 없음",
+      "rows": [
+        { "id": "raid-01", "item": "재련 보조 재료 주머니", "qty": 1, "currency": "고통의 가시", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-02", "item": "지평의 재련 재료 상자", "qty": 1, "currency": "은총의 파편", "cost": 60, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-03", "item": "사령의 재련 보조 재료 주머니", "qty": 1, "currency": "죽음의 손", "cost": 10, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-04", "item": "심연의 재련 보조 재료 주머니", "qty": 1, "currency": "업화의 쐐기돌", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-05", "item": "심연의 재련 보조 재료 주머니", "qty": 1, "currency": "카르마의 잔영", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-06", "item": "징벌의 재련 보조 재료 주머니", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 10, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-07", "item": "사령의 재련 재료 상자", "qty": 1, "currency": "죽음의 손", "cost": 10, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-08", "item": "사령의 재련 보조 재료 주머니", "qty": 1, "currency": "사령의 잔영", "cost": 20, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-09", "item": "징벌의 재련 보조 재료 주머니", "qty": 1, "currency": "담금질 : 낙뢰의 뿔", "cost": 20, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-10", "item": "사령의 재련 재료 상자", "qty": 1, "currency": "사령의 잔영", "cost": 20, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-11", "item": "고통의 재련 재료 상자", "qty": 1, "currency": "고통의 가시", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-12", "item": "T4 욕망의 성장 재료 상자", "qty": 1, "currency": "담금질 : 알키오네의 눈", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-13", "item": "폭풍의 재련 보조 재료 주머니", "qty": 1, "currency": "베히모스의 비늘", "cost": 15, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-14", "item": "심연의 재련 재료 상자", "qty": 1, "currency": "업화의 쐐기돌", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-15", "item": "심연의 재련 재료 상자", "qty": 1, "currency": "카르마의 잔영", "cost": 5, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-16", "item": "징벌의 재련 재료 상자", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 10, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-17", "item": "장인의 재봉술 : 1단계 상자", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 5, "limit": null, "basis": "DIRECT", "market": "장인의 재봉술 : 1단계", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-18", "item": "장인의 야금술 : 1단계 상자", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 15, "limit": null, "basis": "DIRECT", "market": "장인의 야금술 : 1단계", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-19", "item": "징벌의 재련 재료 상자", "qty": 1, "currency": "담금질 : 낙뢰의 뿔", "cost": 20, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-20", "item": "장인의 재봉술 : 1단계 상자", "qty": 1, "currency": "담금질 : 낙뢰의 뿔", "cost": 10, "limit": null, "basis": "DIRECT", "market": "장인의 재봉술 : 1단계", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-21", "item": "장인의 야금술 : 1단계 상자", "qty": 1, "currency": "담금질 : 낙뢰의 뿔", "cost": 30, "limit": null, "basis": "DIRECT", "market": "장인의 야금술 : 1단계", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-22", "item": "폭풍의 재련 재료 상자", "qty": 1, "currency": "베히모스의 비늘", "cost": 15, "limit": null, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-23", "item": "장인의 재봉술 : 2단계 상자", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 10, "limit": null, "basis": "DIRECT", "market": "장인의 재봉술 : 2단계", "source": "ref-capture-2026-11-22" },
+        { "id": "raid-24", "item": "장인의 야금술 : 2단계 상자", "qty": 1, "currency": "담금질 : 우레의 뇌옥", "cost": 30, "limit": null, "basis": "DIRECT", "market": "장인의 야금술 : 2단계", "source": "ref-capture-2026-11-22" }
+      ]
+    },
+    {
+      "id": "single",
+      "name": "싱글 상점",
+      "limitNote": "주간 한도가 캐릭터마다인지 원정대마다인지는 확인 중",
+      "rows": [
+        { "id": "single-01", "item": "T4 재봉술 선택 상자 (귀속)", "qty": 1, "currency": "싱글 코인", "cost": 200, "limit": { "count": 15, "roster": false }, "basis": "CHOICE", "source": "ref-capture-2026-11-22" },
+        { "id": "single-02", "item": "카르마의 잔영", "qty": 30, "currency": "싱글 코인", "cost": 240, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "카르마의 잔영", "source": "ref-capture-2026-11-22" },
+        { "id": "single-03", "item": "아비도스 융화 재료 (귀속)", "qty": 10, "currency": "싱글 코인", "cost": 50, "limit": { "count": 10, "roster": false }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "single-04", "item": "상급 아비도스 융화 재료 (귀속)", "qty": 10, "currency": "싱글 코인", "cost": 70, "limit": { "count": 5, "roster": false }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "single-05", "item": "고통의 가시", "qty": 20, "currency": "싱글 코인", "cost": 400, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "고통의 가시", "source": "ref-capture-2026-11-22" },
+        { "id": "single-06", "item": "은총의 파편", "qty": 20, "currency": "싱글 코인", "cost": 320, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "은총의 파편", "source": "ref-capture-2026-11-22" },
+        { "id": "single-07", "item": "운명의 파괴석 결정 주머니", "qty": 1, "currency": "싱글 코인", "cost": 70, "limit": { "count": 5, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석 결정", "perItem": 200, "checking": "주머니 1개의 수량(200개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-08", "item": "업화의 쐐기돌", "qty": 20, "currency": "싱글 코인", "cost": 200, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "업화의 쐐기돌", "source": "ref-capture-2026-11-22" },
+        { "id": "single-09", "item": "담금질 : 우레의 뇌옥", "qty": 20, "currency": "싱글 코인", "cost": 300, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "담금질 : 우레의 뇌옥", "source": "ref-capture-2026-11-22" },
+        { "id": "single-10", "item": "베히모스의 비늘", "qty": 40, "currency": "싱글 코인", "cost": 140, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "베히모스의 비늘", "source": "ref-capture-2026-11-22" },
+        { "id": "single-11", "item": "T4 야금술 선택 상자 (귀속)", "qty": 1, "currency": "싱글 코인", "cost": 600, "limit": { "count": 3, "roster": false }, "basis": "CHOICE", "source": "ref-capture-2026-11-22" },
+        { "id": "single-12", "item": "운명의 파괴석 주머니", "qty": 1, "currency": "싱글 코인", "cost": 50, "limit": { "count": 10, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석", "perItem": 200, "checking": "주머니 1개의 수량(200개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-13", "item": "운명의 수호석 결정 주머니", "qty": 1, "currency": "싱글 코인", "cost": 70, "limit": { "count": 15, "roster": false }, "basis": "DIRECT", "market": "운명의 수호석 결정", "perItem": 200, "checking": "주머니 1개의 수량(200개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-14", "item": "담금질 : 알키오네의 눈", "qty": 10, "currency": "싱글 코인", "cost": 140, "limit": { "count": 1, "roster": false }, "basis": "DIRECT", "market": "담금질 : 알키오네의 눈", "source": "ref-capture-2026-11-22" },
+        { "id": "single-15", "item": "위대한 운명의 돌파석 상자", "qty": 1, "currency": "싱글 코인", "cost": 70, "limit": { "count": 5, "roster": false }, "basis": "DIRECT", "market": "위대한 운명의 돌파석", "perItem": 10, "checking": "상자 1개의 수량(10개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-16", "item": "운명의 파편 주머니(소)", "qty": 1, "currency": "싱글 코인", "cost": 50, "limit": { "count": 20, "roster": false }, "basis": "DIRECT", "market": "운명의 파편", "perItem": 1000, "checking": "주머니 1개의 수량(1,000개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-17", "item": "운명의 수호석 주머니", "qty": 1, "currency": "싱글 코인", "cost": 50, "limit": { "count": 30, "roster": false }, "basis": "DIRECT", "market": "운명의 수호석", "perItem": 200, "checking": "주머니 1개의 수량(200개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "single-18", "item": "운명의 돌파석 상자", "qty": 1, "currency": "싱글 코인", "cost": 50, "limit": { "count": 10, "roster": false }, "basis": "DIRECT", "market": "운명의 돌파석", "perItem": 10, "checking": "상자 1개의 수량(10개)을 확인 중", "source": "ref-capture-2026-11-22" }
+      ]
+    },
+    {
+      "id": "guild",
+      "name": "길드 혈석 교환",
+      "limitNote": "같은 품목이 값을 올려 여러 번 나오면 그 순서대로 한 줄씩 셉니다",
+      "rows": [
+        { "id": "guild-01", "item": "점령전 실링 상자 (소)", "qty": 1, "currency": "실마엘 혈석", "cost": 30, "limit": { "count": 6, "roster": true }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-02", "item": "점령전 실링 상자 (대)", "qty": 1, "currency": "실마엘 혈석", "cost": 130, "limit": { "count": 6, "roster": true }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-03", "item": "요즈의 입장권 상자 II", "qty": 1, "currency": "실마엘 혈석", "cost": 3600, "limit": { "count": 1, "roster": false }, "basis": "BOX", "note": "아이템 레벨 1720 이상", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-04", "item": "요즈의 입장권 상자 II", "qty": 1, "currency": "실마엘 혈석", "cost": 4000, "limit": { "count": 1, "roster": false }, "basis": "BOX", "note": "아이템 레벨 1720 이상", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-05", "item": "연합군의 입장권 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 2090, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-06", "item": "요즈의 입장권 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 3240, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-07", "item": "연합군의 입장권 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 2320, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-08", "item": "연합군의 입장권 상자 II", "qty": 1, "currency": "실마엘 혈석", "cost": 2920, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-09", "item": "요즈의 입장권 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 3600, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-10", "item": "4티어 숨결 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 670, "limit": { "count": 3, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-11", "item": "운명의 파괴석 결정", "qty": 40, "currency": "실마엘 혈석", "cost": 690, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석 결정", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-12", "item": "연합군의 입장권 상자 II", "qty": 1, "currency": "실마엘 혈석", "cost": 3240, "limit": { "count": 1, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-13", "item": "운명의 파괴석 결정", "qty": 40, "currency": "실마엘 혈석", "cost": 770, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석 결정", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-14", "item": "점령전 실링 상자 (소)", "qty": 1, "currency": "실마엘 혈석", "cost": 50, "limit": { "count": 6, "roster": true }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-15", "item": "점령전 실링 상자 (중)", "qty": 1, "currency": "실마엘 혈석", "cost": 90, "limit": { "count": 6, "roster": true }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-16", "item": "4티어 숨결 상자", "qty": 1, "currency": "실마엘 혈석", "cost": 790, "limit": { "count": 3, "roster": false }, "basis": "BOX", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-17", "item": "점령전 실링 상자 (소)", "qty": 1, "currency": "실마엘 혈석", "cost": 70, "limit": { "count": 6, "roster": true }, "basis": "BOUND", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-18", "item": "운명의 수호석 결정", "qty": 40, "currency": "실마엘 혈석", "cost": 240, "limit": { "count": 8, "roster": false }, "basis": "DIRECT", "market": "운명의 수호석 결정", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-19", "item": "운명의 수호석 결정", "qty": 40, "currency": "실마엘 혈석", "cost": 270, "limit": { "count": 8, "roster": false }, "basis": "DIRECT", "market": "운명의 수호석 결정", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-20", "item": "운명의 파괴석", "qty": 40, "currency": "실마엘 혈석", "cost": 690, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-21", "item": "운명의 파괴석", "qty": 40, "currency": "실마엘 혈석", "cost": 770, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파괴석", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-22", "item": "운명의 파편 주머니(소)", "qty": 1, "currency": "실마엘 혈석", "cost": 860, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파편", "perItem": 1000, "checking": "주머니 1개의 수량(1,000개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-23", "item": "운명의 파편 주머니(소)", "qty": 1, "currency": "실마엘 혈석", "cost": 1030, "limit": { "count": 3, "roster": false }, "basis": "DIRECT", "market": "운명의 파편", "perItem": 1000, "checking": "주머니 1개의 수량(1,000개)을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-24", "item": "운명의 수호석", "qty": 40, "currency": "실마엘 혈석", "cost": 240, "limit": null, "basis": "DIRECT", "market": "운명의 수호석", "checking": "주간 한도를 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-25", "item": "운명의 수호석", "qty": 40, "currency": "실마엘 혈석", "cost": 270, "limit": null, "basis": "DIRECT", "market": "운명의 수호석", "checking": "주간 한도를 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-26", "item": "위대한 운명의 돌파석 (귀속)", "qty": 1, "currency": "실마엘 혈석", "cost": 500, "limit": null, "basis": "BOUND", "checking": "주간 한도와 1회 수량을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-27", "item": "위대한 운명의 돌파석 (귀속)", "qty": 1, "currency": "실마엘 혈석", "cost": 590, "limit": null, "basis": "BOUND", "checking": "주간 한도와 1회 수량을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-28", "item": "운명의 돌파석 (귀속)", "qty": 1, "currency": "실마엘 혈석", "cost": 500, "limit": null, "basis": "BOUND", "checking": "주간 한도와 1회 수량을 확인 중", "source": "ref-capture-2026-11-22" },
+        { "id": "guild-29", "item": "운명의 돌파석 (귀속)", "qty": 1, "currency": "실마엘 혈석", "cost": 590, "limit": null, "basis": "BOUND", "checking": "주간 한도와 1회 수량을 확인 중", "source": "ref-capture-2026-11-22" }
+      ]
+    }
+  ]
+}

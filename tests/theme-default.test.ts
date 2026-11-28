@@ -5,7 +5,7 @@ import { themeInitScript } from "../components/ui/theme-toggle";
 // The pre-paint script run against a stand-in page: what it puts on <html>
 // for a stored value (or none) and the OS setting (user decision 10-18:
 // nothing stored = follow the system; was light).
-function run(stored: string | null, osDark: boolean, blocked = false) {
+function run(stored: string | null, osDark: boolean, blocked = false, pip?: object) {
   const dataset: Record<string, string> = {};
   const attributes = new Set<string>();
   const root = { dataset, setAttribute: (name: string) => attributes.add(name) };
@@ -17,9 +17,21 @@ function run(stored: string | null, osDark: boolean, blocked = false) {
       return key === "loakraken-theme" ? stored : null;
     },
   };
-  new Function("document", "localStorage", "matchMedia", themeInitScript)({ documentElement: root }, storage, () => media);
-  return { dataset, media, listeners };
+  new Function("document", "localStorage", "matchMedia", "documentPictureInPicture", themeInitScript)(
+    { documentElement: root },
+    storage,
+    () => media,
+    pip,
+  );
+  return { dataset, media, listeners, attributes };
 }
+
+test("data-pip only where the browser has Document Picture-in-Picture (M52: the 작은 창 button from the first paint)", () => {
+  assert.equal(run(null, false).attributes.has("data-pip"), false);
+  assert.equal(run(null, false, false, { requestWindow() {} }).attributes.has("data-pip"), true);
+  // Storage blocked does not stop it (its own statement after the motion read).
+  assert.equal(run(null, false, true, { requestWindow() {} }).attributes.has("data-pip"), true);
+});
 
 test("nothing stored: the system theme, light or dark as the OS is", () => {
   assert.deepEqual(run(null, false).dataset, { themeChoice: "system" });

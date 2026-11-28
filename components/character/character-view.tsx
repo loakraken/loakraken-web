@@ -38,7 +38,8 @@ import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { ArmorSimEnabled, CharacterEfficiencyEnabled, GuildTabEnabled, KarmaSimEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
+import { GemRankingEnabled } from "@/components/tools/gem-processing-ranking";
+import { ArmorSimEnabled, GemSimEnabled, CharacterEfficiencyEnabled, GuildTabEnabled, KarmaSimEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -145,6 +146,7 @@ function SearchBox({ name }: { name: string }) {
           <SearchDropdown
             open={open && !moving}
             text={value === name ? "" : value}
+            rawText={value}
             panelId={panelId}
             onLeave={() => {
               setOpen(false);
@@ -471,6 +473,8 @@ export function CharacterView({
   simulator = true,
   karmaSim = false,
   armorSim = false,
+  gemSim = false,
+  gemRanking = false,
   specUp = true,
   specUpPath = true,
   armoryPage = true,
@@ -493,6 +497,10 @@ export function CharacterView({
   karmaSim?: boolean;
   /** ARMOR_CP_SIM on this deployment (server flag): armour 재련 · 상급 재련 in the simulator and spec-up hand-offs. */
   armorSim?: boolean;
+  /** ARK_GEM_SIM on this deployment (server flag): 아크 그리드 젬 바꾸기 in the simulator (api #1079). */
+  gemSim?: boolean;
+  /** GEM_RANKING on this deployment (server flag): 젬 가공 순위 in the simulator (M49 phase 2, web #1969). */
+  gemRanking?: boolean;
   /** SPEC_UP_GUIDE on this deployment (server flag). */
   specUp?: boolean;
   /** SPEC_UP_PATH on this deployment (server flag): the 추천 순서 section. */
@@ -516,6 +524,8 @@ export function CharacterView({
         <SimulatorEnabled.Provider value={simulator}>
           <KarmaSimEnabled.Provider value={karmaSim}>
           <ArmorSimEnabled.Provider value={armorSim}>
+          <GemSimEnabled.Provider value={gemSim}>
+          <GemRankingEnabled.Provider value={gemRanking}>
           <SpecUpEnabled.Provider value={specUp}>
           <SpecUpPathEnabled.Provider value={specUpPath}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
@@ -533,6 +543,8 @@ export function CharacterView({
             </ArmoryPageEnabled.Provider>
           </SpecUpPathEnabled.Provider>
           </SpecUpEnabled.Provider>
+          </GemRankingEnabled.Provider>
+          </GemSimEnabled.Provider>
           </ArmorSimEnabled.Provider>
           </KarmaSimEnabled.Provider>
         </SimulatorEnabled.Provider>

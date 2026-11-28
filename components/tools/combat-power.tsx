@@ -4,6 +4,7 @@ import { HubTabs } from "@/components/site/hub-tabs";
 
 import {
   useCallback,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -14,7 +15,6 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FlashCircle, RotateLeft, UndoArrow } from "@/components/ui/icons";
 import { Select as ChoiceSelect } from "@/components/ui/select";
@@ -30,6 +30,25 @@ import {
   postSimulation,
 } from "@/lib/combat-power/client";
 import {
+  GEM_MAX,
+  GEM_MIN,
+  GEM_OPTIONS,
+  GEM_SERIES,
+  currentGems,
+  gemEditError,
+  gemKey,
+  gemText,
+  sameGem,
+  withGemType,
+  type CurrentGem,
+  type GemEdit,
+} from "@/lib/combat-power/ark-gems";
+import { BOSS_LEVEL_NOTE, arkGridRealView } from "@/lib/character/efficiency-real";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArkGemRanking } from "./ark-gem-ranking";
+import { GemProcessingRanking, GemRankingEnabled } from "./gem-processing-ranking";
+import type { GemSwap } from "@/lib/combat-power/gem-ranking";
+import {
   ARM_GUARD_GRADES,
   ARM_GUARD_MAX,
   notComputedHere,
@@ -39,7 +58,7 @@ import {
   hasNoAdvancedRefine,
   GRADES,
   GRADE_LABEL,
-  KIND_LABEL,
+  kindName,
   braceletName,
   gradeWithValue,
   arkPassiveMax,
@@ -74,6 +93,7 @@ import {
   type PolishPreset,
   type PolishValues,
   type Simulation,
+  gemLabels,
 } from "@/lib/combat-power/model";
 import {
   historyReducer,
@@ -86,6 +106,7 @@ import {
 } from "@/lib/combat-power/history";
 import { editsFor, gearTypeOf, type SpecUpChange } from "@/lib/spec-up/model";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { GAME_UPDATE_COPY, isGameUpdate } from "@/lib/api/game-update";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
 import quote from "./material-quote.module.css";
@@ -127,12 +148,14 @@ const withCurrent = (values: number[], current: number) =>
   values.includes(current) ? values : [...values, current].sort((x, y) => x - y);
 
 /** The parts of the character the first cut can change. */
-function currentOf(data: Character, karmaSim = false, armorSim = false) {
-  const gems = (data.loadout.gems?.items ?? []).flatMap((gem) =>
+function currentOf(data: Character, karmaSim = false, armorSim = false, gemSim = false) {
+  const worn = (data.loadout.gems?.items ?? []).flatMap((gem) =>
     gem.slot != null && gem.level != null
       ? [{ slot: gem.slot, level: gem.level, name: gem.name ?? `보석 ${gem.slot + 1}` }]
       : [],
   );
+  const labels = gemLabels(worn, data.loadout.gems?.effects?.skills);
+  const gems = worn.map((gem) => ({ ...gem, label: labels.get(gem.slot) ?? gem.name }));
   const gear = data.loadout.equipment.flatMap((item, index) =>
     (GEAR_TYPES as readonly string[]).includes(item.type ?? "") &&
     (item.detail?.refineLevel != null || item.detail?.quality != null)
@@ -194,8 +217,10 @@ function currentOf(data: Character, karmaSim = false, armorSim = false) {
       : null;
   // 깨달음 카르마 레벨 (api #1004): only where the screen edits it, and only once it was read.
   const karma = karmaSim ? karmaLevelOf(data.loadout.arkPassive?.points) : null;
+  // 아크 그리드 젬 (ARK_GEM_SIM, api #1079): the gems a swap starts from, in the cores that are open.
+  const arkGems = gemSim ? currentGems(data.loadout.arkGrid?.slots ?? [], isCoreOpen) : [];
   // Armour 재련 · 상급 재련 (ARMOR_CP_SIM): the rows open and their edits go out.
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, armGuard, armor: armorSim };
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, karma, cores, arkGems, armGuard, armor: armorSim };
 }
 
 function Choice({
@@ -301,16 +326,130 @@ function Select({
   );
 }
 
+/**
+ * One gem worn and the gem to try in its place (api #1079): type (that core's three), 의지력 효율, point and two
+ * options of the type with their levels. Folded to one line (the gem as it reads now) until opened; a type change
+ * keeps the options the new type rolls (withGemType). A swap the api would refuse says why and is not sent.
+ */
+function GemRow({
+  gem,
+  swap,
+  onChange,
+  onReset,
+}: {
+  gem: CurrentGem;
+  swap: GemEdit;
+  onChange: (next: GemEdit) => void;
+  onReset: () => void;
+}) {
+  const name = `${gem.core.replace(/^.*:\s*/, "")} 젬 ${gem.index + 1}`;
+  const changed = !sameGem(swap, gem.edit);
+  const error = gemEditError(swap, gem.series);
+  const pool = GEM_OPTIONS[swap.gemType] ?? [];
+  const levels = range(GEM_MIN, GEM_MAX);
+  const effect = (i: 0 | 1, next: Partial<GemEdit["effects"][number]>) => {
+    const effects = [...swap.effects] as GemEdit["effects"];
+    effects[i] = { ...effects[i], ...next };
+    onChange({ ...swap, effects });
+  };
+  // The editor (seven selects) only while the row is open (#1947): a closed <details> still renders its children, so
+  // every gem's editor re-rendered on each edit and mounted on load (24 gems at CPU 4×: type change max INP
+  // 176 → 136ms, load long tasks 315 → 273ms).
+  const [open, setOpen] = useState(false);
+  return (
+    <li className={styles.gemRow}>
+      <details className={styles.gemDetails} onToggle={(event) => setOpen(event.currentTarget.open)}>
+        <summary
+          className={`${styles.gemSummary} hit-44`}
+          data-changed={changed || undefined}
+          // The editor in the press's own event (#1967): the toggle event comes a task later, so the first open frame
+          // showed the row without its fields. Mouse, Enter and Space all click a summary; toggle still syncs after.
+          onClick={(event) => setOpen(!(event.currentTarget.parentElement as HTMLDetailsElement).open)}
+        >
+          <span className={styles.rowName}>{name}</span>
+          <span className={styles.gemText}>
+            {gemText(swap)}
+            {!gem.active && " · 꺼진 젬"}
+          </span>
+        </summary>
+        {open && (
+          <div className={styles.gemEditor}>
+            <Choice
+              label={`${name} 종류`}
+              caption="종류"
+              value={swap.gemType}
+              original={gem.edit.gemType}
+              values={GEM_SERIES[gem.series].map((type) => ({ value: type, label: type }))}
+              onChange={(type) => onChange(withGemType(swap, type))}
+            />
+            <Select
+              label={`${name} 의지력 효율`}
+              caption="의지력 효율"
+              value={swap.willEfficiency}
+              original={gem.edit.willEfficiency}
+              values={levels}
+              onChange={(willEfficiency) => onChange({ ...swap, willEfficiency })}
+            />
+            <Select
+              label={`${name} 포인트`}
+              caption="포인트"
+              value={swap.point}
+              original={gem.edit.point}
+              values={levels}
+              onChange={(point) => onChange({ ...swap, point })}
+            />
+            {([0, 1] as const).map((i) => (
+              <span key={i} className={styles.gemOption}>
+                <Choice
+                  label={`${name} 옵션 ${i + 1}`}
+                  caption={`옵션 ${i + 1}`}
+                  value={swap.effects[i].name}
+                  original={gem.edit.effects[i].name}
+                  // The other line's option is not offered: one gem rolls two different options.
+                  values={pool
+                    .filter((option) => option === swap.effects[i].name || option !== swap.effects[1 - i].name)
+                    .map((option) => ({ value: option, label: option }))}
+                  onChange={(option) => effect(i, { name: option })}
+                />
+                <Select
+                  label={`${name} 옵션 ${i + 1} 레벨`}
+                  caption="레벨"
+                  value={swap.effects[i].level}
+                  original={gem.edit.effects[i].level}
+                  values={levels}
+                  onChange={(level) => effect(i, { level })}
+                />
+              </span>
+            ))}
+            {changed && (
+              <button type="button" className={`${styles.gemReset} hit-44`} onClick={onReset}>
+                지금 젬으로 되돌리기
+              </button>
+            )}
+            {/* Always there, its text changing: a status region mounted with its text may go unread (#1928 P3). */}
+            <p className={styles.gemError} role="status">
+              {error ?? ""}
+            </p>
+          </div>
+        )}
+      </details>
+    </li>
+  );
+}
+
 function Editors({
   options,
   current,
   edits,
   setEdits,
+  gemRanking,
 }: {
   options: Options;
   current: ReturnType<typeof currentOf>;
   edits: Edits;
   setEdits: (update: (prev: Edits) => Edits) => void;
+  /** 바꿔 본 젬 순위, right under the gems it ranks. */
+  gemRanking?: ReactNode;
 }) {
   const gemValues = options.gemLevels;
   const refineValues = range(options.refineMin, options.refineMax);
@@ -352,10 +491,10 @@ function Editors({
           <ul className={styles.rows}>
             {current.gems.map((gem) => (
               <li key={gem.slot}>
-                <span className={styles.rowName}>{gem.name}</span>
+                <span className={styles.rowName}>{gem.label}</span>
                 <span className={styles.rowFrom}>Lv.{gem.level}</span>
                 <Select
-                  label={`${gem.name} 레벨`}
+                  label={`${gem.label} 레벨`}
                   value={gemLevel(edits, gem)}
                   original={gem.level}
                   values={gemValues}
@@ -739,6 +878,31 @@ function Editors({
           })}
         </Card>
       )}
+
+      {/* 아크 그리드 젬 (ARK_GEM_SIM, api #1079): each gem worn in an open core can be swapped for another. */}
+      {current.arkGems.length > 0 && (
+        <Card id="cp-ark-gems" title="아크 그리드 젬">
+          {current.arkGems.map((gem) => {
+            const key = gemKey(gem);
+            return (
+              <GemRow
+                key={key}
+                gem={gem}
+                swap={edits.arkGem[key] ?? gem.edit}
+                onChange={(next) => setEdits((prev) => ({ ...prev, arkGem: { ...prev.arkGem, [key]: next } }))}
+                onReset={() =>
+                  setEdits((prev) => {
+                    const rest = { ...prev.arkGem };
+                    delete rest[key];
+                    return { ...prev, arkGem: rest };
+                  })
+                }
+              />
+            );
+          })}
+        </Card>
+      )}
+      {gemRanking}
       {current.armor ? (
         <p className={styles.later}>
           지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·재련·상급 재련(업화 무기·방어구)·아크 그리드 코어·아크 패시브
@@ -817,12 +981,15 @@ function PointField({
 function ResultBand({
   base,
   itemLevel,
+  ark,
   data,
   changed,
   stale,
 }: {
   base: number | null;
   itemLevel: number | null;
+  /** Today's 아크 그리드 효율 and its 보스 피해 환산 Lv (X2), when worked out and shown on this deployment. */
+  ark: { total: string; bossLevel: string } | null;
   data: Simulation | null;
   changed: number;
   stale: boolean;
@@ -833,6 +1000,8 @@ function ResultBand({
   // (the armour CP gate) is counted as 계산하지 않음, never as 'coming soon'.
   const open = data?.contributions.filter((item) => !(item.status === "OK" && item.delta != null)) ?? [];
   const held = open.filter(notComputedHere).length;
+  // The 2부 guard holds every change (web #1977): the band says it is the game update, not a formula being checked.
+  const guarded = !!data && data.contributions.length > 0 && data.contributions.every((item) => isGameUpdate(item.reasonCode));
   const counts = (pending: number) =>
     `${pending > 0 ? ` · 계산 준비 중 ${pending}개` : ""}${held > 0 ? ` · 계산하지 않음 ${held}개` : ""}`;
   return (
@@ -858,6 +1027,8 @@ function ResultBand({
       <p className={styles.bandNote}>
         {changed === 0
           ? "아래에서 값을 바꾸면 바로 다시 계산해요."
+          : guarded
+            ? GAME_UPDATE_COPY.simulator(changed)
           : computed && data.delta === 0 && !data.partial
             ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
             : computed
@@ -873,6 +1044,20 @@ function ResultBand({
       {itemLevel != null && (
         <p className={styles.bandSub}>
           지금 아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
+        </p>
+      )}
+      {/* X2: today's value too (a gem swap's own share is in 바꿔 본 젬 순위); drawn with the band, so it never moves it. */}
+      {ark && (
+        <p className={styles.bandSub}>
+          지금 아크 그리드 효율 <b>{ark.total}</b> ·{" "}
+          {/* What the level is on its term, reachable by keyboard and touch (a title attribute is not). */}
+          <Tooltip>
+            <TooltipTrigger className={styles.bandTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
+              보스 피해 환산
+            </TooltipTrigger>
+            <TooltipContent>{BOSS_LEVEL_NOTE}</TooltipContent>
+          </Tooltip>{" "}
+          <b>Lv {ark.bossLevel}</b>
         </p>
       )}
     </section>
@@ -901,9 +1086,13 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
       <ul>
         {data.contributions.map((item, i) => (
           <li key={`${item.kind}-${item.target}-${i}`}>
-            <span className={styles.kind}>{KIND_LABEL[item.kind] ?? item.kind}</span>
+            {/* Always a Korean name (PM 총괄 11-28, api #1129: a guarded row has only its kind): an unknown kind is
+                '기타 항목', never the bare code. */}
+            <span className={styles.kind}>{kindName(item.kind)}</span>
             <span className={styles.target}>
-              {item.target}
+              {/* A row the 2부 guard holds names only its request kind as the target (api #1129: the raw is not read),
+                  which the kind label before it already says: never the bare code (web #1979). */}
+              {item.target !== item.kind && item.target}
               {(item.from != null || item.to != null) && (
                 <small>
                   {changeText(item.kind, item.from) ?? "—"} →{" "}
@@ -943,6 +1132,8 @@ export function CombatPowerSimulator({
   head,
   karma = false,
   armor = false,
+  gem = false,
+  efficiency = false,
 }: {
   name: string;
   initial?: Character;
@@ -950,6 +1141,10 @@ export function CombatPowerSimulator({
   karma?: boolean;
   /** ARMOR_CP_SIM on this deployment (server flag): armour 재련 · 상급 재련. */
   armor?: boolean;
+  /** ARK_GEM_SIM on this deployment (server flag): 아크 그리드 젬 바꾸기 and 바꿔 본 젬 순위 (api #1079). */
+  gem?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): today's 아크 그리드 효율 and 보스 피해 환산 Lv (X2). */
+  efficiency?: boolean;
   /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
   start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
@@ -974,6 +1169,8 @@ export function CombatPowerSimulator({
     [],
   );
   const saved = useSavedEdits(name);
+  // GEM_RANKING (web #1969): provided by the tool page and the character page.
+  const rankingOn = useContext(GemRankingEnabled);
   const [notice, setNotice] = useState("");
 
   const character = useQuery({
@@ -992,7 +1189,7 @@ export function CombatPowerSimulator({
     retry: false,
   });
   const data = character.data?.data ?? initial ?? null;
-  const current = useMemo(() => (data ? currentOf(data, karma, armor) : null), [data, karma, armor]);
+  const current = useMemo(() => (data ? currentOf(data, karma, armor, gem) : null), [data, karma, armor, gem]);
   const refineMin = options.data?.data.refineMin;
   const refineMax = options.data?.data.refineMax;
   // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
@@ -1006,6 +1203,23 @@ export function CombatPowerSimulator({
     [edits, current, refineMin, refineMax],
   );
   const debounced = useDebounced(changes);
+  // 바꿔 본 젬 순위 (ARK_GEM_SIM): every gem swap that differs from the gem worn and the api takes, each computed on
+  // its own; debounced as the simulator's own changes are.
+  const swaps = useMemo<GemSwap[]>(
+    () =>
+      (current?.arkGems ?? []).flatMap((gem) => {
+        const swap = edits.arkGem[gemKey(gem)];
+        return swap && !sameGem(swap, gem.edit) && !gemEditError(swap, gem.series) ? [{ key: gemKey(gem), gem, swap }] : [];
+      }),
+    [current, edits.arkGem],
+  );
+  const gemSwaps = useDebounced(swaps);
+  // 아크 그리드 효율 and its 보스 피해 환산 Lv (X2), as the character page shows them (CHARACTER_EFFICIENCY on).
+  const arkView = arkGridRealView(
+    efficiency ? data?.arkGridEfficiency?.real : null,
+    !!data?.loadout.arkGrid && data.loadout.arkGrid.slots.length > 0,
+  );
+  const ark = arkView.state === "ready" ? { total: arkView.total, bossLevel: arkView.bossLevel } : null;
   // Same changes → same key → no new request (PM-프론트 18:49).
   const simulation = useQuery({
     queryKey: ["combat-power", name, data?.fetchedAt, debounced],
@@ -1104,6 +1318,7 @@ export function CombatPowerSimulator({
           <ResultBand
             base={data.combatPower}
             itemLevel={data.itemLevel ?? null}
+            ark={ark}
             data={result}
             changed={changes.length}
             stale={simulation.isFetching || changes !== debounced}
@@ -1167,6 +1382,13 @@ export function CombatPowerSimulator({
             current={current}
             edits={edits}
             setEdits={setEdits}
+            gemRanking={
+              <>
+                <ArkGemRanking name={name} fetchedAt={data.fetchedAt} swaps={gemSwaps} />
+                {/* M49 phase 2 (GEM_RANKING, web #1969): the api's 젬 가공 순위, under the user's own swaps. */}
+                {rankingOn && current.arkGems.length > 0 && <GemProcessingRanking name={name} fetchedAt={data.fetchedAt} />}
+              </>
+            }
           />
         </div>
       ) : name ? (
@@ -1221,12 +1443,15 @@ function CombatPowerContent({
   initialName,
   karma = false,
   armor = false,
+  gem = false,
+  efficiency = false,
 }: {
   initialName: string;
   karma?: boolean;
   armor?: boolean;
+  gem?: boolean;
+  efficiency?: boolean;
 }) {
-  const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
   const [name, setName] = useState(
@@ -1253,7 +1478,9 @@ function CombatPowerContent({
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(input);
-    router.replace(`?${new URLSearchParams({ character: target })}`, { scroll: false });
+    // The address only (no server round trip): the page reads the character on the server for a name in the
+    // address (#1949), so router.replace would ask the backend again beside this query's own request.
+    window.history.replaceState(null, "", `?${new URLSearchParams({ character: target })}`);
     setName(target);
   }
 
@@ -1306,7 +1533,7 @@ function CombatPowerContent({
             </form>
 
             {/* A new character starts from its own values (keyed). */}
-            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} />
+            <CombatPowerSimulator key={name} name={name} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />
           </div>
         </div>
       </main>
@@ -1321,10 +1548,23 @@ export function CombatPowerTool({
   initialName,
   karma = false,
   armor = false,
+  gem = false,
+  efficiency = false,
+  gemRanking = false,
 }: {
   initialName: string;
   karma?: boolean;
   armor?: boolean;
+  /** ARK_GEM_SIM on this deployment (server flag): 아크 그리드 젬 바꾸기 (api #1079). */
+  gem?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): today's 아크 그리드 효율 and 보스 피해 환산 Lv (X2). */
+  efficiency?: boolean;
+  /** GEM_RANKING on this deployment (server flag): 젬 가공 순위 (M49 phase 2, web #1969). */
+  gemRanking?: boolean;
 }) {
-  return <CombatPowerContent initialName={initialName} karma={karma} armor={armor} />;
+  return (
+    <GemRankingEnabled.Provider value={gemRanking}>
+      <CombatPowerContent initialName={initialName} karma={karma} armor={armor} gem={gem} efficiency={efficiency} />
+    </GemRankingEnabled.Provider>
+  );
 }

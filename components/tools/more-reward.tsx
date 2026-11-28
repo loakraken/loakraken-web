@@ -17,6 +17,7 @@ import {
 } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { boolCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import { MINUTE, useClock } from "@/components/home/clock";
 import {
   EXCHANGES,
@@ -197,8 +198,10 @@ function RaidRows({
 }
 
 export function MoreRewardTool() {
-  const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
-  const [excludeBound, setExcludeBound] = useState(false);
+  // The price basis and the bound-gold switch are kept in the address (M51, PM 총괄 11-21); typed prices are not
+  // (they are this browser's guesses, as 지옥 보상's typed values).
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "RECENT_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
+  const [excludeBound, setExcludeBound] = useUrlState("bound", false, boolCodec);
   const [userUnits, setUserUnits] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
 

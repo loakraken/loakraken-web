@@ -141,6 +141,21 @@ export function isArmorCpSimEnabled(env: Env = process.env) {
 }
 
 /**
+ * 아크 그리드 젬 바꾸기 in the simulator (api #1079, ARK_GRID_GEM, web #1935): the gem editors, the swaps they send,
+ * the 바꿔 본 젬 순위 and the proxy forwarding them. A production api without #1079 refuses the kind (400 for the
+ * whole simulation), so it opens with that api release (the deploy sheet's paired block). Same rule as KARMA_SIM:
+ * `ARK_GEM_SIM=on|off` overrides, otherwise hidden only on the production host (and with the simulator itself).
+ * Off, every screen, request body and the proxy guard are as before.
+ */
+export function isArkGemSimEnabled(env: Env = process.env) {
+  if (!isCombatPowerEnabled(env)) return false;
+  const flag = env.ARK_GEM_SIM?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Official armory page details (tripod levels, skill code; backend flag off
  * by default). The web asks for them only where ARMORY_PAGE allows it:
  * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so
@@ -287,6 +302,24 @@ export function isCharacterIndexingEnabled(env: Env = process.env) {
  */
 export function isPriceAlertsEnabled(env: Env = process.env) {
   return env.PRICE_ALERTS?.trim().toLowerCase() === "on";
+}
+
+/**
+ * 상급 재련 +10 on the 재련 계산기 (X3 part 2, web #1951; api #1091 advanced-plans). Off unless `REFINING_ADVANCED=on`
+ * — every deployment — paired with the api's own switch (refining.advanced.enabled, off until 백엔드's cache follow-up;
+ * PM 총괄 11-22). Off: no 상급 card, no requests, no route.
+ */
+export function isRefiningAdvancedEnabled(env: Env = process.env) {
+  return env.REFINING_ADVANCED?.trim().toLowerCase() === "on";
+}
+
+/**
+ * 젬 가공 순위 in the simulator (M49 phase 2, web #1969; api gem-ranking #1095). Off unless `GEM_RANKING=on` — every
+ * deployment — paired with the api's own switch (combat-power-sim.gem-ranking.enabled; switch-on order api → web), and
+ * only with the simulator itself. Off: no card, no requests, no route.
+ */
+export function isGemRankingEnabled(env: Env = process.env) {
+  return isCombatPowerEnabled(env) && env.GEM_RANKING?.trim().toLowerCase() === "on";
 }
 
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;

@@ -72,7 +72,7 @@ import {
 } from "@/lib/character/history";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { failureCopy } from "@/lib/character/model";
-import { arkGridRealView, braceletRealView, type ArkGridRealView } from "@/lib/character/efficiency-real";
+import { BOSS_LEVEL_NOTE, arkGridRealView, braceletRealView, type ArkGridRealView } from "@/lib/character/efficiency-real";
 import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
@@ -185,6 +185,8 @@ export const SimulatorEnabled = createContext(true);
 export const KarmaSimEnabled = createContext(false);
 /** ARMOR_CP_SIM (server flag): armour 재련 · 상급 재련 in the simulator, and spec-up armour steps opening in it. */
 export const ArmorSimEnabled = createContext(false);
+/** ARK_GEM_SIM (server flag): 아크 그리드 젬 바꾸기 and 바꿔 본 젬 순위 in the simulator (api #1079). */
+export const GemSimEnabled = createContext(false);
 /** TITLE_STATS (server flag): the equip share beside each roster title. */
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
@@ -809,6 +811,16 @@ function ArkRealHead({ view }: { view: ArkGridRealView }) {
           <>
             <b>{view.total}</b>
             {view.parts && <small className={styles.arkEffCores}>{view.parts}</small>}
+            {/* 보스 피해 환산 Lv (X2): our own reading of the same total (× 12), with what it is on its term. */}
+            <span className={styles.arkBossLevel}>
+              <Tooltip>
+                <TooltipTrigger className={styles.braceletEffTerm} aria-label={`보스 피해 환산: ${BOSS_LEVEL_NOTE}`}>
+                  보스 피해 환산
+                </TooltipTrigger>
+                <TooltipContent>{BOSS_LEVEL_NOTE}</TooltipContent>
+              </Tooltip>
+              <b>Lv {view.bossLevel}</b>
+            </span>
           </>
         ) : view.state === "none" ? (
           <span className={styles.braceletEffReason}>0% · 아크 그리드 없음</span>

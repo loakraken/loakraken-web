@@ -2596,14 +2596,17 @@
   .specUpTable thead {
     display: none;
   }
+  /* Four columns so '적용해 보기' and the cost do not share one: the cost (7.5em plus its label) set that column, and
+     the target name beside the link was left a sliver (four lines at 320, QA v0.3.15 RC P3-2). The target spans up to
+     the link; the cost spans the last two. */
   .specUpTable tr {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-columns: 24px minmax(0, 1fr) auto auto;
     grid-template-areas:
-      "rank target try"
-      "rank change change"
-      "rank gain cost"
-      "rank eff eff";
+      "rank target target try"
+      "rank change change change"
+      "rank gain cost cost"
+      "rank eff eff eff";
     gap: 4px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--secondary);
@@ -2645,9 +2648,16 @@
   .specUpTable [data-cell="eff"] {
     grid-area: eff;
   }
+  /* Its own column now: one line, so the column is the link's width (min-content would wrap it to '적용해'). */
   .specUpTable [data-cell="try"] {
     grid-area: try;
     align-self: center;
+    white-space: nowrap;
+  }
+  /* The link has no border to reach over, so its tap area (hit-44) is its own width, as '자세히' (#1167): the
+     default + 4px would stick out of a column exactly the link's width (A37 at 320). Still 44px tall. */
+  .specUpTable [data-cell="try"] a::after {
+    width: max(100%, 44px);
   }
   .specUpTable [data-label]::before {
     content: attr(data-label) " ";
@@ -2772,6 +2782,13 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
+}
+/* 보스 피해 환산 Lv (X2): its term and value kept together (wraps as one piece at 320). */
+.arkBossLevel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
 }
 /* 질서·혼돈 apart (backend #570), one line under the total. */
 .arkRealSeries {

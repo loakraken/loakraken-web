@@ -30,10 +30,28 @@ function writeRate(value: string) {
   }
   rateListeners.forEach((listener) => listener());
 }
+// Another tab saved or cleared the rate (codex P3 on #1889): take its value and tell this tab's screens. Nothing is
+// written back. A storage clear() comes with no key.
+function onStorage(event: StorageEvent) {
+  if (event.key !== RATE_KEY && event.key !== null) return;
+  memoryRate = event.key === null ? "" : (event.newValue ?? "");
+  rateListeners.forEach((listener) => listener());
+}
 const subscribeRate = (listener: () => void) => {
+  if (rateListeners.size === 0) {
+    // Nothing listened while away (no card, no shop tool on screen): another tab may have changed the rate meanwhile,
+    // with no one here to hear its storage event. Read it again (codex P3 on #1899); blocked storage keeps memory.
+    try {
+      memoryRate = window.localStorage.getItem(RATE_KEY) ?? "";
+    } catch {
+      // the value in memory stays
+    }
+    window.addEventListener("storage", onStorage);
+  }
   rateListeners.add(listener);
   return () => {
     rateListeners.delete(listener);
+    if (rateListeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 };
 

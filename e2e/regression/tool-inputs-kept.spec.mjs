@@ -10,6 +10,12 @@ async function openFold(page) {
   }
 }
 
+// 더보기 손익 keeps the price basis and the bound-gold switch under a closed 고급 설정 <details>.
+async function openAdvanced(page) {
+  const fold = page.locator("details").filter({ has: page.locator("summary", { hasText: "고급 설정" }) });
+  if (!(await fold.evaluate((el) => el.open))) await fold.locator("summary").click();
+}
+
 async function awayAndBack(page) {
   await page.goto("/tools");
   await page.goBack();
@@ -88,6 +94,93 @@ const TOOLS = [
       // 장비를 다시 불러오고, 고른 목표 단계는 그대로다.
       await expect(page.getByText(/재련 · 루페온 · 아이템 레벨/)).toBeVisible();
       await expect(page.getByRole("group", { name: "무기" }).getByRole("combobox", { name: "목표" })).toHaveText("+25");
+    },
+  },
+  // M51 (PM 총괄 11-21): the tools that kept their picks only in state. The address holds them (checked too).
+  {
+    name: "레이드 컨닝페이퍼",
+    path: "/tools/raid-cheatsheet",
+    fill: async (page) => {
+      await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), /세르카/);
+      await page.getByRole("radiogroup", { name: "관문" }).getByRole("radio", { name: "2관문" }).click();
+    },
+    check: async (page) => {
+      await expect(page.getByRole("combobox", { name: "레이드" })).toHaveText(/세르카/);
+      await expect(page.getByRole("radiogroup", { name: "관문" }).getByRole("radio", { name: "2관문" })).toBeChecked();
+      const params = new URL(page.url()).searchParams;
+      expect([params.get("raid"), params.get("gate"), params.get("difficulty")]).toEqual(["serka", "2", null]);
+    },
+  },
+  {
+    name: "레이드 보상표",
+    path: "/tools/raid-rewards",
+    fill: async (page) => {
+      await page.getByRole("group", { name: "레이드 분류" }).getByRole("button", { name: "카제로스 레이드" }).click();
+      await page.getByRole("radiogroup", { name: "1막 난이도" }).getByRole("radio", { name: "하드" }).click();
+    },
+    check: async (page) => {
+      await expect(page.getByRole("group", { name: "레이드 분류" }).getByRole("button", { name: "카제로스 레이드" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.getByRole("radiogroup", { name: "1막 난이도" }).getByRole("radio", { name: "하드" })).toBeChecked();
+      const params = new URL(page.url()).searchParams;
+      expect([params.get("filter"), params.get("difficulty")]).toEqual(["KAZEROS", "kazeros-act1:HARD"]);
+    },
+  },
+  {
+    name: "더보기 손익",
+    path: "/tools/more-reward",
+    fill: async (page) => {
+      await openAdvanced(page);
+      await page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "전일 평균가" }).click();
+      await page.getByRole("switch", { name: /귀속 골드 비용 제외/ }).click();
+    },
+    check: async (page) => {
+      await openAdvanced(page);
+      await expect(page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "전일 평균가" })).toBeChecked();
+      await expect(page.getByRole("switch", { name: /귀속 골드 비용 제외/ })).toBeChecked();
+      const params = new URL(page.url()).searchParams;
+      expect([params.get("price"), params.get("bound")]).toEqual(["YDAY_AVG_PRICE", "1"]);
+    },
+  },
+  {
+    name: "로아샵 효율",
+    path: "/tools/loa-shop",
+    fill: async (page) => {
+      await page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+    },
+    check: async (page) => {
+      await expect(page.getByRole("radiogroup", { name: "시세 기준" }).getByRole("radio", { name: "최근 거래가" })).toBeChecked();
+      expect(new URL(page.url()).searchParams.get("price")).toBe("RECENT_PRICE");
+    },
+  },
+  // M51 follow-up (PM 총괄 11-22 13:31): the search conditions, not the search (it calls the auction; a shared link
+  // does not fire one).
+  {
+    name: "장신구 매물 검색",
+    path: "/market/accessories/search",
+    fill: async (page) => {
+      await page.getByRole("radiogroup", { name: "부위" }).getByRole("radio", { name: "반지" }).click();
+      await page.getByRole("radiogroup", { name: "등급" }).getByRole("radio", { name: "유물" }).click();
+      await chooseOption(page, page.getByRole("combobox", { name: "치명타 피해" }), "중 이상");
+      await chooseOption(page, page.getByRole("combobox", { name: "힘민지 범위 최소" }), "70% 이상");
+    },
+    check: async (page) => {
+      await expect(page.getByRole("radiogroup", { name: "부위" }).getByRole("radio", { name: "반지" })).toBeChecked();
+      await expect(page.getByRole("radiogroup", { name: "등급" }).getByRole("radio", { name: "유물" })).toBeChecked();
+      await expect(page.getByRole("combobox", { name: "치명타 피해" })).toHaveText("중 이상");
+      await expect(page.getByRole("combobox", { name: "힘민지 범위 최소" })).toHaveText("70% 이상");
+      const params = new URL(page.url()).searchParams;
+      expect([params.get("slot"), params.get("grade"), params.get("polish"), params.get("range"), params.get("role")]).toEqual([
+        "RING",
+        "RELIC",
+        "CRIT_DAMAGE:MID",
+        "70",
+        null,
+      ]);
+      // Conditions only: no search ran.
+      await expect(page.getByRole("region", { name: "매물", exact: true }).getByRole("listitem")).toHaveCount(0);
     },
   },
   {

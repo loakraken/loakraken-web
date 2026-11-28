@@ -35,15 +35,30 @@ import {
   type Slot,
 } from "@/lib/accessory-search/model";
 import { koreanGold } from "@/lib/spec-up/model";
+import {
+  ACCESSORY_ANY,
+  ACCESSORY_ENLIGHTENMENT_CODEC,
+  ACCESSORY_GRADE_CODEC,
+  ACCESSORY_OFF,
+  ACCESSORY_POLISH_CODEC,
+  ACCESSORY_QUALITY_CODEC,
+  ACCESSORY_QUALITY_STEPS,
+  ACCESSORY_RANGE_CODEC,
+  ACCESSORY_RANGE_STEPS,
+  ACCESSORY_ROLE_CODEC,
+  ACCESSORY_SLOT_CODEC,
+  type PolishPicks,
+} from "@/lib/tools/accessory-url";
+import { useUrlState } from "@/lib/tools/url-state";
 import { AccessoryCard } from "./accessory-detail";
 import { DetailPanel, RowExpander } from "@/components/market/listing-detail";
 import quote from "./material-quote.module.css";
 import styles from "./accessory-search.module.css";
 
-const ANY = "ANY";
-const OFF = "OFF";
-const RANGE_STEPS = [50, 60, 70, 80, 90];
-const QUALITY_STEPS = [50, 70, 90];
+const ANY = ACCESSORY_ANY;
+const OFF = ACCESSORY_OFF;
+const RANGE_STEPS = ACCESSORY_RANGE_STEPS;
+const QUALITY_STEPS = ACCESSORY_QUALITY_STEPS;
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -94,17 +109,25 @@ function failureCopy(code: string | null, limit?: "client") {
 }
 
 export function AccessorySearchTool() {
-  const [slot, setSlot] = useState<Slot>("NECKLACE");
-  const [grade, setGrade] = useState<Grade>("ANCIENT");
-  const [role, setRole] = useState<Role>("DEALER");
-  const [polish, setPolish] = useState<Partial<Record<PolishOption, Level | typeof ANY | typeof OFF>>>({});
-  const [enlightenment, setEnlightenment] = useState<string>(ANY);
-  const [range, setRange] = useState<string>(ANY);
-  const [quality, setQuality] = useState<string>(ANY);
+  // The conditions are kept in the address (M51 follow-up, PM 총괄 11-22): reload, back and a shared link come back
+  // to them. Not the search: it reads the auction, so the user presses 검색 (lib/tools/accessory-url.ts).
+  const [slot, setSlot] = useUrlState<Slot>("slot", "NECKLACE", ACCESSORY_SLOT_CODEC);
+  const [grade, setGrade] = useUrlState<Grade>("grade", "ANCIENT", ACCESSORY_GRADE_CODEC);
+  const [role, setRole] = useUrlState<Role>("role", "DEALER", ACCESSORY_ROLE_CODEC);
+  const [polish, setPolish] = useUrlState<PolishPicks>("polish", {}, ACCESSORY_POLISH_CODEC);
+  const [enlightenment, setEnlightenment] = useUrlState<string>("enl", ANY, ACCESSORY_ENLIGHTENMENT_CODEC);
+  const [range, setRange] = useUrlState<string>("range", ANY, ACCESSORY_RANGE_CODEC);
+  const [quality, setQuality] = useUrlState<string>("quality", ANY, ACCESSORY_QUALITY_CODEC);
   const [request, setRequest] = useState<SearchRequest | null>(null);
 
   const options = OPTIONS_BY[role][slot];
   const enlightenmentMax = ENLIGHTENMENT_MAX[grade][slot];
+  // The address holds what this slot, role and grade take (codex #1925 P3): a polish effect the slot does not carry
+  // for the role is dropped, and 깨달음 최소 comes down to the top. Adjusting state while rendering (guarded, so it
+  // settles in one pass); useUrlState then writes the address.
+  if (Object.keys(polish).some((option) => !options.includes(option as PolishOption)))
+    setPolish(Object.fromEntries(Object.entries(polish).filter(([option]) => options.includes(option as PolishOption))));
+  if (enlightenment !== ANY && Number(enlightenment) > enlightenmentMax) setEnlightenment(String(enlightenmentMax));
 
   const search = useInfiniteQuery({
     queryKey: ["accessory-search", request],
@@ -206,7 +229,11 @@ export function AccessorySearchTool() {
                 <div className={styles.numbers}>
                   <Field label="깨달음 최소">
                     {(id) => (
+                      // Keyed by its top step: when the grade or slot shortens the list (13 → 10), the select carried
+                      // its old pick across and answered the change with its first item (상관없음), undoing the clamp
+                      // above. A new list draws a new select with the clamped value.
                       <Select
+                        key={enlightenmentMax}
                         aria-labelledby={id}
                         value={enlightenment === ANY ? ANY : String(Math.min(Number(enlightenment), enlightenmentMax))}
                         items={[

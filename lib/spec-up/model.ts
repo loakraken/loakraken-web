@@ -1,6 +1,7 @@
 // Spec-up guide (backend #318, PM-프론트 10-11 16:37 ⑤): candidate upgrades
 // ranked by combat power per 10,000 gold. The backend computes every number;
 // the screen only formats them and folds what it could not compute.
+import { GAME_UPDATE_COPY, isGameUpdate } from "../api/game-update";
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
 import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, isUpgradeGear, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
@@ -291,7 +292,12 @@ export function splitCandidates(
     const code = own?.code ?? c.reasonCode ?? (unscored ? KRAKEN_UNSCORED : "UNKNOWN");
     const entry = folded.get(code) ?? {
       code,
-      reason: own?.reason ?? c.reason ?? (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
+      // An empty or blank sentence counts as none (codex #1902 P3: the held-armour notice read only its pointer).
+      reason:
+        said(own?.reason) ??
+        said(c.reason) ??
+        KNOWN_REASON[code] ??
+        (unscored ? KRAKEN_UNSCORED_REASON : "이 항목은 아직 계산하지 않았어요."),
       kinds: [],
       candidates: [],
     };
@@ -312,6 +318,26 @@ export function splitCandidates(
         return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => candidateKindLabel(c)))] };
       }),
   };
+}
+
+/** The api's armour CP gate hold (ArmorCpGate, spec-up.armor-cp-gate.enabled): same code as the simulator's. */
+export const ARMOR_CP_HELD = "ARMOR_CP_RESIDUAL_HIGH";
+/** Its api sentence (CombatPowerReasons.ARMOR_CP_RESIDUAL_HIGH), for an answer whose sentence came empty. */
+export const ARMOR_CP_HELD_REASON =
+  "장비로 계산한 전투력이 공식 전투력과 맞지 않아 방어구 재련 · 상급 재련 · 완갑 전투력은 계산하지 않았어요.";
+/** A code's own sentence when the api's came empty or blank (splitCandidates). */
+const KNOWN_REASON: Partial<Record<string, string>> = { [ARMOR_CP_HELD]: ARMOR_CP_HELD_REASON };
+const said = (text: string | null | undefined) => text?.trim() || null;
+export const ARMOR_HELD_POINTER = "그 후보는 목록 아래 ‘아직 계산하지 않은 후보’에 있어요.";
+
+/**
+ * The notice above a list whose armour rows the api held (PM 총괄 11-22): the folded line sits under the whole list,
+ * so a held dealer did not see why armour has no 전투력. The api's sentence once (one folded group per code) and where
+ * the rows are; null when no row folded with that code (gate off, inside the gate, or ranked under 크라켄 점수).
+ */
+export function armorHeldNotice(folded: readonly { code: string; reason: string }[]): string | null {
+  const group = folded.find((g) => g.code === ARMOR_CP_HELD);
+  return group ? `${group.reason} ${ARMOR_HELD_POINTER}` : null;
 }
 
 /**
@@ -496,6 +522,8 @@ export function splitKrakenCandidates(list: Candidate[]) {
 /** Why the 크라켄 점수 sort could not be used; the list then comes in 전투력 효율 order. */
 export function krakenUnavailableCopy(reason: string | null | undefined): string | null {
   if (!reason) return null;
+  // 2부 guard (web #1977): nothing is computed at all, so no other order is offered either.
+  if (isGameUpdate(reason)) return GAME_UPDATE_COPY.specUp;
   const why =
     reason === "DISABLED"
       ? "크라켄 점수 (10만G당) 정렬은 아직 준비 중이에요."
@@ -524,8 +552,17 @@ const KRAKEN_NOTE_OTHER = "지금은 점수 정렬 불가";
 /** "점수 정렬 준비 중 · 효율 순": what the bar shows in place of the cooldown toggle. */
 export function krakenUnavailableNote(reason: string | null | undefined): string | null {
   if (!reason) return null;
+  if (isGameUpdate(reason)) return GAME_UPDATE_COPY.specUpNote;
   return `${KRAKEN_NOTES[reason] ?? KRAKEN_NOTE_OTHER} · 효율 순`;
 }
 
 /** Every note the bar can show, for holding the room of the longest one. */
-export const KRAKEN_NOTE_ALL = [...Object.values(KRAKEN_NOTES), KRAKEN_NOTE_OTHER].map((why) => `${why} · 효율 순`);
+export const KRAKEN_NOTE_ALL = [
+  ...[...Object.values(KRAKEN_NOTES), KRAKEN_NOTE_OTHER].map((why) => `${why} · 효율 순`),
+  GAME_UPDATE_COPY.specUpNote,
+];
+
+/** Every candidate held by the 2부 guard (web #1977): the list says why it is empty, not that nothing qualifies. */
+export const guardedGuide = (guide: { candidates: readonly { reasonCode?: string | null }[]; krakenSortUnavailableReason?: string | null }) =>
+  isGameUpdate(guide.krakenSortUnavailableReason) ||
+  (guide.candidates.length > 0 && guide.candidates.every((c) => isGameUpdate(c.reasonCode)));

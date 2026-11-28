@@ -5,6 +5,18 @@
 import type { components } from "../api/combat-power-schema";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
+import { isGameUpdate } from "../api/game-update";
+import {
+  GEM_BASE_WILL,
+  GEM_MAX,
+  GEM_MIN,
+  WILL_SHORT,
+  gemEditError,
+  gemKey,
+  sameGem,
+  type CurrentGem,
+  type GemEdit,
+} from "./ark-gems";
 
 type Schemas = components["schemas"];
 export type Change = Schemas["ChangeRequest"];
@@ -38,6 +50,8 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   "POLISH",
   // api #838: core grade and point (계산 검증 1,060/1,060), PM 총괄 11-15.
   "ARK_GRID_CORE",
+  // api #1079: a gem swapped in a core (계산 검증 G1); the screen and the proxy open it with ARK_GEM_SIM only.
+  "ARK_GRID_GEM",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
@@ -131,8 +145,11 @@ export const KIND_LABEL: Record<string, string> = {
   STONE_ENGRAVING: "스톤",
   ARK_PASSIVE_POINT: "아크 패시브",
   ARK_GRID_CORE: "아크 그리드",
+  ARK_GRID_GEM: "아크 그리드 젬",
   ARM_GUARD: "팔 보호구",
 };
+/** A change's kind in Korean; a kind this screen does not know yet is '기타 항목', never the code (web #1979). */
+export const kindName = (kind: string) => (Object.hasOwn(KIND_LABEL, kind) ? KIND_LABEL[kind] : "기타 항목");
 
 /** What the user has changed, keyed by the target the backend uses. */
 export type Edits = {
@@ -160,6 +177,8 @@ export type Edits = {
   /** 깨달음 카르마 레벨 (api #1004), keyed by the tree (깨달음), apart from its points. */
   karma: Record<string, number>;
   core: Record<number, { grade: string; point: number }>;
+  /** 아크 그리드 젬 swapped in, per gemKey (`${slotIndex}:${index}`; api #1079). */
+  arkGem: Record<string, GemEdit>;
   /** 팔 보호구(완갑) step and grade (backend #342). */
   armGuard: { level?: number; grade?: string };
 };
@@ -178,6 +197,7 @@ export const NO_EDITS: Edits = {
   arkPassive: {},
   karma: {},
   core: {},
+  arkGem: {},
   armGuard: {},
 };
 
@@ -219,7 +239,8 @@ export type Grade = (typeof GRADES)[number];
 export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIGH: "상" };
 
 export type Current = {
-  gems: { slot: number; level: number }[];
+  /** `label`: the row's visible name (gemLabels); `name`, the gem's own, stays its identity. */
+  gems: { slot: number; level: number; name?: string; label?: string }[];
   /** `upgrade`: 업화 gear (isUpgradeGear); the weapon's 상급 재련 opens only then. */
   gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null; upgrade?: boolean }[];
   /** `value` is the worn line's text value ("+1.60%"), `part` the accessory's type (목걸이 …), when known. */
@@ -231,10 +252,31 @@ export type Current = {
   /** 깨달음 카르마 레벨 worn, only where the screen edits it (isKarmaSimEnabled) and the level was read. */
   karma?: number | null;
   cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
+  /** The gems a swap can start from (ARK_GEM_SIM on; currentGems). */
+  arkGems?: CurrentGem[];
   armGuard?: { level: number; grade: string } | null;
   /** Armour 재련 · 상급 재련 open on this screen (ARMOR_CP_SIM). Unset: as before, the weapon's refine only. */
   armor?: boolean;
 };
+
+/**
+ * Each gem row's visible name (and its level select's name with '레벨'), by slot (QA v0.3.15 RC P2-1: on real data the
+ * rows read only the gem's name, '6레벨 광휘의 보석 (귀속)' eleven times). The skill the official gem effects give
+ * for the slot comes first, as the spec-up list names a gem ('<skill> · <gem>'); rows that would still read the same
+ * (no skill, or the same skill and gem twice) add their slot ('(3번 칸)'). Display only: the gem's own name stays the
+ * row's identity (input history).
+ */
+export function gemLabels(
+  gems: readonly { slot: number; name: string }[],
+  skills: readonly { gemSlot?: number | null; name?: string | null }[] | null | undefined,
+): Map<number, string> {
+  const skillOf = new Map<number, string>();
+  for (const effect of skills ?? []) if (effect.gemSlot != null && effect.name) skillOf.set(effect.gemSlot, effect.name);
+  const base = gems.map((gem) => [gem.slot, skillOf.has(gem.slot) ? `${skillOf.get(gem.slot)} · ${gem.name}` : gem.name] as const);
+  const count = new Map<string, number>();
+  for (const [, name] of base) count.set(name, (count.get(name) ?? 0) + 1);
+  return new Map(base.map(([slot, name]) => [slot, (count.get(name) ?? 0) > 1 ? `${name} (${slot + 1}번 칸)` : name]));
+}
 
 /** The tree whose karma level the simulator edits, and the request's range (api #1004 KARMA_MAX_LEVEL). */
 export const KARMA_TREE = "깨달음";
@@ -453,6 +495,11 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
       changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });
   }
+  // A gem swap goes out only when it differs from the gem worn and is one the api takes (gemEditError).
+  for (const gem of current.arkGems ?? []) {
+    const swap = edits.arkGem[gemKey(gem)];
+    if (swap && !sameGem(swap, gem.edit) && !gemEditError(swap, gem.series)) changes.push(gemChange(gem, swap));
+  }
   const guard = current.armGuard;
   if (guard) {
     const level = edits.armGuard.level ?? guard.level;
@@ -472,16 +519,30 @@ export const ROLE_REASONS: ReadonlySet<string> = new Set(["SUPPORTER_MODEL_PENDI
 export const ARMOR_CP_RESIDUAL = "ARMOR_CP_RESIDUAL_HIGH";
 
 /**
- * A change the api does not compute for this character (the armour CP gate): '계산하지 않음', never 'coming soon'.
+ * A change the api does not compute for this character (the armour CP gate), or a gem swap that leaves its core
+ * short of 의지력 (ARK_GRID_WILL_SHORT, api #1079: which gem the game turns off is not known), or a character the 2부
+ * guard holds (GAME_UPDATE_UNSUPPORTED, web #1978): '계산하지 않음', never 'coming soon'.
  * One test for the 바꾼 것 row and the 예상 전투력 note, so the two never say different things (v0.3.15 RC P1-1).
  */
-export const notComputedHere = (item: { reasonCode?: string | null }) => item.reasonCode === ARMOR_CP_RESIDUAL;
+export const notComputedHere = (item: { reasonCode?: string | null }) =>
+  item.reasonCode === ARMOR_CP_RESIDUAL || item.reasonCode === WILL_SHORT || isGameUpdate(item.reasonCode);
 
 /** 팔 보호구 grades the simulator takes (backend #342). */
 export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
 export const ARM_GUARD_MAX = 25;
 
 /** The effective level a gem shows while editing (its own edit, then the bulk one). */
+/** One gem swap as the api takes it (api #1079): the gem by core slot and gem index, then the gem swapped in. */
+export const gemChange = (gem: { slotIndex: number; index: number }, swap: GemEdit): Change => ({
+  kind: "ARK_GRID_GEM",
+  slotIndex: gem.slotIndex,
+  index: gem.index,
+  gemType: swap.gemType,
+  willEfficiency: swap.willEfficiency,
+  point: swap.point,
+  effects: swap.effects.map((effect) => ({ name: effect.name, level: effect.level })),
+});
+
 export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {
   return edits.gems[gem.slot] ?? edits.gemAll ?? gem.level;
 }
@@ -534,13 +595,39 @@ const changeAllowed = (raw: Record<string, unknown>, out: Record<string, unknown
   return true;
 };
 
+const gemLevelOk = (n: unknown) => int(n) && (n as number) >= GEM_MIN && (n as number) <= GEM_MAX;
+
+/**
+ * 아크 그리드 젬 (api #1079), only with ARK_GEM_SIM on (off: production until its api ships, the proxy forwards none):
+ * exactly slotIndex · index · gemType · willEfficiency · point · effects, a type the api knows, 1~5 bounds, two
+ * options of only name (≤16) and level. Which type and options fit the core is the api's check (it knows the core).
+ * Returns the clean fields, or null.
+ */
+function gemFields(raw: Record<string, unknown>, gem: boolean): Record<string, unknown> | null {
+  if (!gem || !only(raw, ["slotIndex", "index", "gemType", "willEfficiency", "point", "effects"])) return null;
+  const { slotIndex, index, gemType, willEfficiency, point, effects } = raw;
+  if (!int(slotIndex) || (slotIndex as number) < 0 || !int(index) || (index as number) < 0) return null;
+  if (typeof gemType !== "string" || !Object.hasOwn(GEM_BASE_WILL, gemType)) return null;
+  if (!gemLevelOk(willEfficiency) || !gemLevelOk(point)) return null;
+  if (!Array.isArray(effects) || effects.length !== 2) return null;
+  const clean = [];
+  for (const effect of effects) {
+    if (!effect || typeof effect !== "object") return null;
+    const { name, level } = effect as Record<string, unknown>;
+    if (!only(effect as Record<string, unknown>, ["name", "level"])) return null;
+    if (typeof name !== "string" || !name || name.length > 16 || !gemLevelOk(level)) return null;
+    clean.push({ name, level });
+  }
+  return { kind: "ARK_GRID_GEM", slotIndex, index, gemType, willEfficiency, point, effects: clean };
+}
+
 /**
  * Server-side guard before the body leaves the proxy. `karma`: KARMA_SIM on this deployment; `armor`: ARMOR_CP_SIM
- * on this deployment.
+ * on this deployment; `gem`: ARK_GEM_SIM on this deployment (ARK_GRID_GEM, api #1079).
  */
 export function parseSimulateRequest(
   body: unknown,
-  { karma = false, armor = false }: { karma?: boolean; armor?: boolean } = {},
+  { karma = false, armor = false, gem = false }: { karma?: boolean; armor?: boolean; gem?: boolean } = {},
 ): SimulateRequest | null {
   if (!body || typeof body !== "object") return null;
   const { characterName, changes } = body as Record<string, unknown>;
@@ -552,6 +639,12 @@ export function parseSimulateRequest(
     if (!raw || typeof raw !== "object") return null;
     const change = raw as Record<string, unknown>;
     if (typeof change.kind !== "string" || !KINDS.has(change.kind)) return null;
+    if (change.kind === "ARK_GRID_GEM") {
+      const fields = gemFields(change, gem);
+      if (!fields) return null;
+      clean.push(fields as Change);
+      continue;
+    }
     const out: Record<string, unknown> = { kind: change.kind };
     // karmaLevel: 깨달음 카르마 레벨 (api #1004); dropped here, the api got 깨달음 without a level (web #1781).
     for (const key of ["slot", "index", "line", "level", "refine", "quality", "points", "slotIndex", "point", "karmaLevel"]) {
