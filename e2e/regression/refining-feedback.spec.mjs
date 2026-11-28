@@ -221,6 +221,19 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
           .map((el) => el.textContent.trim().slice(0, 30)),
       );
       expect(cut, "잘린 칸").toEqual([]);
+      // QA v0.3.16 P3-1 (web #1994): at 320 the purchase line ran ~50px past its half-width cell, unclipped (so the
+      // check above missed it). Every line stays inside its own cell.
+      const out = await materials(page).evaluate((table) =>
+        [...table.querySelectorAll("tbody td small")]
+          .filter((el) => {
+            // The text's own extent (the small box is the cell's width; nowrap text spills out of it).
+            const text = document.createRange();
+            text.selectNodeContents(el);
+            return text.getBoundingClientRect().right > el.closest("td").getBoundingClientRect().right + 1;
+          })
+          .map((el) => el.textContent.trim()),
+      );
+      expect(out, "칸을 넘는 구매 줄").toEqual([]);
       await expectNoHorizontalOverflow(page);
     });
 

@@ -766,7 +766,7 @@ function Result({
                     </small>
                   )}
                 </td>
-                <td data-label="쓰는 재료 시세">
+                <td className={styles.marketValue} data-label="쓰는 재료 시세">
                   {line.value == null
                     ? "—"
                     : formatCount(Math.round(line.value))}
