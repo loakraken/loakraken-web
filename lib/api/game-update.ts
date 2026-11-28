@@ -18,7 +18,7 @@ export const GAME_UPDATE_COPY = {
   /** 치명 · 신속 (crit-speed 422, api #1127): no numbers at all, so the whole result says it. */
   critSpeed: {
     title: "아직 계산하지 않아요",
-    text: "게임 업데이트로 바뀐 장비 정보라 아직 치명 · 신속을 계산하지 않아요. 업데이트 내용을 반영하면 다시 계산할 수 있어요.",
+    text: "게임 업데이트로 바뀐 장비 정보라 아직 치명 · 신속을 계산하지 않아요.",
   },
   /** 원정대 영수증, one member (status UNAVAILABLE + unavailableReasonCode): the row's short word, then its sentence. */
   receiptRow: "업데이트로 계산 안 함",
