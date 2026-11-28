@@ -103,6 +103,12 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(held).toContainText("게임 업데이트로 바뀐 장비 정보라 아직 이 캐릭터의 재련 비용을 계산하지 않아요.");
     await expect(page.getByRole("status").filter({ hasText: "1명 업데이트로 계산 안 함" })).toBeVisible();
     await expect(page.getByText("확인 못 함")).toHaveCount(0);
+    // The short word fits its amount cell on a phone (one line, nothing pushed sideways).
+    await page.setViewportSize({ width: 320, height: 900 });
+    await expect(held.locator("summary b")).toHaveText("업데이트로 계산 안 함");
+    const lines = await held.locator("summary b").evaluate((b) => Math.round(b.getBoundingClientRect().height / parseFloat(getComputedStyle(b).lineHeight)));
+    expect(lines).toBe(1);
+    await expectNoHorizontalOverflow(page);
 
     await page.goto(receiptPath("영수증업데이트전부"));
     await expect(total(page)).toHaveAttribute("data-status", "UNAVAILABLE");
