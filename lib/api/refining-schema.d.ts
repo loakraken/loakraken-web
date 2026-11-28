@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refining/special-stone-values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 특수 재련 돌파석 1개 가치
+         * @description 대상(등급·장비·현재 단계)마다 그 단계 일반 재련 기대 비용(회차별 최적, 보장 시도에는 숨결 없음) ÷ 특수 재련 평균 필요량(1회 소모량 ÷ 공식 기본 확률)으로 돌파석 1개 가치를 줍니다. 재료 값은 서버 시세 캐시(priceBasis)와 사용자 가격(prices, 그 이름만 덮음)을 씁니다(공식 호출 없음). 운명의 업화·팔 보호구·10단계는 1회 소모량 출처가 없어 그 줄이 UNSUPPORTED(SPECIAL_REFINE_UNSOURCED)이고, 시세도 사용자 가격도 없는 재료가 있으면 그 줄은 PRICE_MISSING입니다. status는 닫힌 값(OK·UNSUPPORTED·PRICE_MISSING)입니다. 스위치 refining.special-stone.enabled가 꺼져 있으면 404입니다.
+         */
+        post: operations["specialStoneValues"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -429,6 +449,146 @@ export interface components {
             ancestor: string;
             enhanced: string | null;
         };
+        SpecialStoneValuesRequest: {
+            /** @description 대상 1~28개(무기·방어구 × 14단계 = 28이 전체 순위). 같은 대상이 두 번이면 400 */
+            targets: components["schemas"]["SpecialStoneTargetRequest"][];
+            /**
+             * @description 재료 값 기준(재료 시세 API의 priceBasis와 같음). 생략하면 CURRENT_MIN_PRICE
+             * @enum {string}
+             */
+            priceBasis?: "CURRENT_MIN_PRICE" | "RECENT_PRICE" | "YDAY_AVG_PRICE";
+            /** @description 사용자 가격(그 이름의 시세만 덮음, 모든 대상에 같이). 요청한 단계가 쓰지 않는 이름이면 400 */
+            prices?: components["schemas"]["SpecialStonePriceRequest"][];
+        };
+        SpecialStoneTargetRequest: {
+            /**
+             * @description UPHWA는 받지만 그 줄은 UNSUPPORTED(SPECIAL_REFINE_UNSOURCED)
+             * @example JEONYUL
+             * @enum {string}
+             */
+            grade: "UPHWA" | "JEONYUL";
+            /**
+             * @description ARM_GUARD는 받지만 그 줄은 UNSUPPORTED
+             * @example WEAPON
+             * @enum {string}
+             */
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
+            /**
+             * Format: int32
+             * @description 현재 재련 단계(10~24). 값은 fromStage → fromStage + 1 한 단계의 것(/refining/plans fromStage와 같은 뜻)
+             * @example 20
+             */
+            fromStage: number;
+        };
+        SpecialStonePriceRequest: {
+            /** @description 재료 이름(재료 시세 API와 같은 이름) */
+            name: string;
+            /**
+             * @description 1개 골드(소수 둘째 자리까지, 0~10억)
+             * @example 14
+             */
+            unitPriceGold: number;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseSpecialStoneValuesResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["SpecialStoneValuesResponse"];
+        };
+        /** @description 특수 재련 돌파석 1개 가치. 가치 = 그 단계(fromStage → +1) 일반 재련 기대 비용(회차별 최적, 보장 시도에는 숨결 없음) ÷ 평균 필요량(1회 소모량 ÷ 공식 기본 확률). 특수 재련은 장인의 기운·실패 확률 증가가 없다(공식 가이드). */
+        SpecialStoneValuesResponse: {
+            /** @description 재료 값 기준(요청 값) */
+            priceBasis: string;
+            pricesObservedAt: string | null;
+            /** @description 일반 재련 단계표 규칙 버전 */
+            ruleVersion: string;
+            /** @description 특수 재련 1회 소모량 규칙 버전 */
+            specialRuleVersion: string;
+            perTrySource: components["schemas"]["SpecialStonePerTrySourceResponse"];
+            /** @description 대상마다 한 줄(요청 순서) */
+            rows: components["schemas"]["SpecialStoneRowResponse"][];
+        };
+        /** @description 1회 소모량 출처(출처 이름은 두지 않는다) */
+        SpecialStonePerTrySourceResponse: {
+            name: string;
+            url: string | null;
+            /** @description 본 날짜 */
+            capturedOn: string;
+            /** @description 출처가 한 곳뿐인지 */
+            singleSource: boolean;
+        };
+        SpecialStoneRowResponse: {
+            /** @enum {string} */
+            grade: "UPHWA" | "JEONYUL";
+            /** @enum {string} */
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
+            /** Format: int32 */
+            fromStage: number;
+            /**
+             * Format: int32
+             * @description fromStage + 1
+             */
+            targetStage: number;
+            /**
+             * @description OK · UNSUPPORTED · PRICE_MISSING(닫힌 값, 새 값은 깨는 변경)
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED" | "PRICE_MISSING";
+            reasonCode: string | null;
+            reason: string | null;
+            stone: string | null;
+            perTry: number | null;
+            baseRateBp: number | null;
+            averageNeeded: number | null;
+            expectedNormalAttempts: number | null;
+            expectedNormalCostGold: number | null;
+            valuePerStoneGold: number | null;
+            normalTry: components["schemas"]["SpecialStoneNormalTryResponse"] | null;
+            /** @description PRICE_MISSING: 사용자 가격도 시세도 없는 이름. 다른 상태면 빈 목록 */
+            missingPrices: string[];
+        };
+        SpecialStoneNormalTryResponse: {
+            materials: components["schemas"]["SpecialStoneMaterialResponse"][];
+            /**
+             * Format: int64
+             * @description 재련 골드
+             */
+            refineGold: number;
+            breath: components["schemas"]["SpecialStoneBreathResponse"] | null;
+            /**
+             * Format: int64
+             * @description 숨결 없이 1회 비용(골드, 반올림)
+             */
+            costWithoutBreathGold: number;
+            costWithMaxBreathGold: number | null;
+        };
+        SpecialStoneMaterialResponse: {
+            name: string;
+            /** @description 1회 개수 */
+            amount: number;
+            /** @description 1개 골드(사용자 가격 또는 시세) */
+            unitPriceGold: number;
+            /** @description 개수 × 1개 값 */
+            gold: number;
+        };
+        SpecialStoneBreathResponse: {
+            name: string;
+            /**
+             * Format: int32
+             * @description 최대 개수
+             */
+            max: number;
+            unitPriceGold: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -585,6 +745,66 @@ export interface operations {
             };
             /** @description INTERNAL_SERVER_ERROR */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    specialStoneValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpecialStoneValuesRequest"];
+            };
+        };
+        responses: {
+            /** @description REFINING_SPECIAL_STONE_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseSpecialStoneValuesResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 대상 0개·29개 이상·같은 대상 두 번, 단계 범위(10~24), 사용자 가격 형식(0~10억, 소수 둘째 자리)·같은 이름 두 번·요청한 단계가 쓰지 않는 이름 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 스위치가 꺼져 있음 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description REFINING_PRICE_PENDING: 재련 재료 시세 캐시가 아직 없음(Retry-After 초) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description REFINING_SOLVE_BUSY: 최적 풀이 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

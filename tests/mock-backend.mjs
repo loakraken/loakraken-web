@@ -1047,6 +1047,57 @@ createServer(async (req, res) => {
     if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
     return send(plan);
   }
+  // M42 특수 재련 돌파석 가치 (api #1099 special-stone-values): the api's integration-test sample
+  // (tests/refining-fixtures/special-stone-values.json, api develop c570b6e7). Every 전율 weapon / armour target 11–24
+  // copies the sample's OK row (무기 20 → 21) with the per-try count and base rate of its stage (계산 검증's table) and a
+  // synthetic cost that grows with the stage; armour uses its own breath. Prices override the sample's unit prices and
+  // the cost follows the one-try cost; a name no row uses is 400 (as the api). 업화, 완갑 and 10 copy the UNSUPPORTED row.
+  if (url.pathname === "/api/v1/refining/special-stone-values" && req.method === "POST") {
+    counts.refiningSpecial = (counts.refiningSpecial || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    const sample = JSON.parse(readFileSync(new URL("./refining-fixtures/special-stone-values.json", import.meta.url), "utf8"));
+    const [ok, unsupported] = sample.data.rows;
+    const perTry = { WEAPON: [30, 30, 35, 35, 35, 40, 40, 40, 45, 45, 50, 50, 60, 60], ARMOR: [12, 12, 14, 14, 14, 16, 16, 16, 18, 18, 20, 20, 24, 24] };
+    const rateBp = [500, 500, 400, 400, 400, 300, 300, 300, 150, 150, 100, 100, 50, 50];
+    const prices = new Map((request.prices ?? []).map((p) => [p.name, p.unitPriceGold]));
+    const used = new Set([...ok.normalTry.materials.map((m) => m.name), ok.normalTry.breath.name, "빙하의 숨결"]);
+    if ([...prices.keys()].some((name) => !used.has(name)))
+      return send({ code: "INVALID_REQUEST", message: "요청한 단계가 쓰지 않는 재료 이름입니다." }, 400);
+    const rows = request.targets.map((t) => {
+      const i = t.fromStage - 11;
+      if (t.grade !== "JEONYUL" || t.equipmentType === "ARM_GUARD" || i < 0)
+        return { ...unsupported, grade: t.grade, equipmentType: t.equipmentType, fromStage: t.fromStage, targetStage: t.fromStage + 1 };
+      const armor = t.equipmentType === "ARMOR";
+      const materials = ok.normalTry.materials.map((m) => {
+        const unit = prices.get(m.name) ?? m.unitPriceGold;
+        return { ...m, unitPriceGold: unit, gold: Math.round(m.amount * unit * 100) / 100 };
+      });
+      const breathName = armor ? "빙하의 숨결" : ok.normalTry.breath.name;
+      const breath = { ...ok.normalTry.breath, name: breathName, unitPriceGold: prices.get(breathName) ?? (armor ? 385 : ok.normalTry.breath.unitPriceGold) };
+      const without = Math.round(materials.reduce((sum, m) => sum + m.gold, 0) + ok.normalTry.refineGold);
+      const scale = (armor ? 0.35 : 1) * (0.4 + 0.06 * i);
+      const attempts = Math.round((ok.expectedNormalAttempts * (0.5 + 0.05 * i)) * 100) / 100;
+      const cost = Math.round(without * attempts * scale * 100) / 100;
+      const averageNeeded = perTry[t.equipmentType][i] / (rateBp[i] / 10_000);
+      return {
+        ...ok,
+        grade: t.grade,
+        equipmentType: t.equipmentType,
+        fromStage: t.fromStage,
+        targetStage: t.fromStage + 1,
+        perTry: perTry[t.equipmentType][i],
+        baseRateBp: rateBp[i],
+        averageNeeded,
+        expectedNormalAttempts: attempts,
+        expectedNormalCostGold: cost,
+        valuePerStoneGold: Math.round((cost / averageNeeded) * 10) / 10,
+        normalTry: { ...ok.normalTry, materials, breath, costWithoutBreathGold: without, costWithMaxBreathGold: Math.round(without + breath.max * breath.unitPriceGold) },
+      };
+    });
+    return send({ ...sample, data: { ...sample.data, priceBasis: request.priceBasis ?? "CURRENT_MIN_PRICE", rows } });
+  }
   // 상급 재련 (api #1091 advanced-plans, web #1951): the api's CI sample (tests/refining-fixtures/refining-advanced-plan.json),
   // one band per 10 stages crossed. Bands 0·20 copy the sample's first band, 10·30 its second (synthetic numbers, not
   // the model); a band started inside keeps the whole band's numbers. Weapon names its own materials. 전율 400; a

@@ -1,7 +1,8 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { parsePlanRequest, type PlanEnvelope } from "./model";
-import { isAdvancedEnvelope, isPlanEnvelope } from "./validate";
+import { isAdvancedEnvelope, isPlanEnvelope, isSpecialEnvelope } from "./validate";
 import { parseAdvancedRequest, type AdvancedEnvelope } from "./advanced";
+import { parseSpecialRequest, type SpecialEnvelope } from "./special";
 
 const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST", "REFINING_SUCCESS_RATE_MISMATCH", "REFINING_ARTISAN_ENERGY_MISMATCH"],
@@ -46,5 +47,31 @@ export async function requestAdvancedPlan(
     body: request,
     isValid: isAdvancedEnvelope,
     errorCodes: advancedErrorCodes,
+  });
+}
+
+// special-stone-values (api #1099 / #1101 / #1105): 409 while the price cache is empty, 429 REFINING_SOLVE_BUSY when
+// the user-price seat is taken (kept apart from the visitor rate limit, with its Retry-After). A switched-off api is 404.
+const specialErrorCodes: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  409: ["REFINING_PRICE_PENDING"],
+  415: ["UNSUPPORTED_MEDIA_TYPE"],
+  429: ["REFINING_SOLVE_BUSY"],
+};
+
+export async function requestSpecialStoneValues(
+  body: unknown,
+  origin: string | undefined,
+  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<BackendResult<SpecialEnvelope>> {
+  const request = parseSpecialRequest(body);
+  if (!request)
+    return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
+  return requestBackend(backendUrl(origin, "/api/v1/refining/special-stone-values"), {
+    ...options,
+    method: "POST",
+    body: request,
+    isValid: isSpecialEnvelope,
+    errorCodes: specialErrorCodes,
   });
 }
