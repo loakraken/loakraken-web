@@ -7,7 +7,7 @@ import { cn } from "cn"
 // Touch (web #1984): Base UI's tooltip opens on hover and keyboard focus only, and a tap cancels a pending open, so a
 // term's explanation could not be read on a phone. Here a tap on the trigger toggles it; a tap outside or Escape closes
 // it. Mouse and keyboard behave as before. No trigger in the app has an action of its own (checked when this landed).
-type TouchToggle = { tapped: () => void; touchDown: () => void }
+type TouchToggle = { tapped: () => void; pressed: (touch: boolean) => void; cancelled: () => void }
 const TouchToggleContext = createContext<TouchToggle | null>(null)
 
 function TooltipProvider({
@@ -36,13 +36,22 @@ function Tooltip({ open, defaultOpen, onOpenChange, ...props }: TooltipPrimitive
     onOpenChange?.(next, details)
   }
   const toggle: TouchToggle = {
-    touchDown: () => {
-      touching.current = true
+    // Every press sets it from its own pointer (web #1995): a mouse or pen press after a touch that never ended in a
+    // click (a scroll) clears it, so that click closes the tooltip as usual on a touch-and-mouse device.
+    pressed: (touch) => {
+      touching.current = touch
     },
-    // An uncontrolled tooltip only (every one in the app): a controlled one keeps its owner's open state.
-    tapped: () => {
+    cancelled: () => {
       touching.current = false
-      if (!controlled) setOwn(!shown)
+    },
+    // An uncontrolled tooltip only (every one in the app): a controlled one keeps its owner's open state. Flipped from
+    // the latest state, and the guard held until this click is fully handled (web #1995): cleared at once, Base UI's
+    // own press-close for the same click (still attached while the popup animates out) closed a quick re-tap again.
+    tapped: () => {
+      if (!controlled) setOwn((was) => !was)
+      setTimeout(() => {
+        touching.current = false
+      }, 0)
     },
   }
   return (
@@ -52,7 +61,7 @@ function Tooltip({ open, defaultOpen, onOpenChange, ...props }: TooltipPrimitive
   )
 }
 
-function TooltipTrigger({ onPointerDown, onClick, ...props }: TooltipPrimitive.Trigger.Props) {
+function TooltipTrigger({ onPointerDown, onPointerCancel, onClick, ...props }: TooltipPrimitive.Trigger.Props) {
   const touch = useContext(TouchToggleContext)
   const touched = useRef(false)
   return (
@@ -60,8 +69,14 @@ function TooltipTrigger({ onPointerDown, onClick, ...props }: TooltipPrimitive.T
       data-slot="tooltip-trigger"
       onPointerDown={(event) => {
         touched.current = event.pointerType === "touch"
-        if (touched.current) touch?.touchDown()
+        touch?.pressed(touched.current)
         onPointerDown?.(event)
+      }}
+      // A touch that turned into a scroll: no click follows, so nothing is left marked (web #1995).
+      onPointerCancel={(event) => {
+        touched.current = false
+        touch?.cancelled()
+        onPointerCancel?.(event)
       }}
       onClick={(event) => {
         onClick?.(event)

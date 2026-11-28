@@ -36,3 +36,44 @@ test("팔찌 효율: 누르면 열린다 @regression", async ({ page }) => {
   await page.getByRole("button", { name: /^팔찌 효율/ }).tap();
   await expect(tip(page)).toBeVisible();
 });
+
+// web #1995 (#1987 review P3s): a quick re-tap while it closes opens it again; a touch that became a scroll (pointerdown
+// → pointercancel, no click) opens nothing and leaves nothing marked, so a mouse click on a touch-and-mouse device still
+// closes it; Escape closes it.
+const term = (page) => page.getByRole("button", { name: /^보스 피해 환산/ }).first();
+const cancelledTouch = (locator) =>
+  locator.evaluate((el) => {
+    const init = { bubbles: true, cancelable: true, pointerType: "touch", pointerId: 7, isPrimary: true };
+    el.dispatchEvent(new PointerEvent("pointerdown", init));
+    el.dispatchEvent(new PointerEvent("pointercancel", init));
+  });
+
+test("닫히는 중에 다시 누르면 다시 열린다 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세"));
+  await term(page).tap();
+  await expect(tip(page)).toHaveText(NOTE);
+  // Close, then tap again at once, during the close animation.
+  await term(page).tap();
+  await term(page).tap();
+  await page.waitForTimeout(500);
+  await expect(tip(page)).toHaveText(NOTE);
+  await expect(tip(page)).toBeVisible();
+});
+
+test("스크롤로 끝난 터치는 열지 않고, 그 뒤 마우스 클릭으로 닫힌다 · Escape로도 닫힌다 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세"));
+  await cancelledTouch(term(page));
+  await page.waitForTimeout(300);
+  await expect(tip(page)).toHaveCount(0);
+  // Open by tap, a touch that becomes a scroll, then a mouse click on the trigger closes it.
+  await term(page).tap();
+  await expect(tip(page)).toHaveText(NOTE);
+  await cancelledTouch(term(page));
+  await term(page).click();
+  await expect(tip(page)).toHaveCount(0);
+  // Escape.
+  await term(page).tap();
+  await expect(tip(page)).toHaveText(NOTE);
+  await page.keyboard.press("Escape");
+  await expect(tip(page)).toHaveCount(0);
+});
