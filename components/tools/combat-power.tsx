@@ -58,7 +58,7 @@ import {
   hasNoAdvancedRefine,
   GRADES,
   GRADE_LABEL,
-  KIND_LABEL,
+  kindName,
   braceletName,
   gradeWithValue,
   arkPassiveMax,
@@ -106,6 +106,7 @@ import {
 } from "@/lib/combat-power/history";
 import { editsFor, gearTypeOf, type SpecUpChange } from "@/lib/spec-up/model";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { GAME_UPDATE_COPY, isGameUpdate } from "@/lib/api/game-update";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
 import quote from "./material-quote.module.css";
@@ -999,6 +1000,8 @@ function ResultBand({
   // (the armour CP gate) is counted as 계산하지 않음, never as 'coming soon'.
   const open = data?.contributions.filter((item) => !(item.status === "OK" && item.delta != null)) ?? [];
   const held = open.filter(notComputedHere).length;
+  // The 2부 guard holds every change (web #1977): the band says it is the game update, not a formula being checked.
+  const guarded = !!data && data.contributions.length > 0 && data.contributions.every((item) => isGameUpdate(item.reasonCode));
   const counts = (pending: number) =>
     `${pending > 0 ? ` · 계산 준비 중 ${pending}개` : ""}${held > 0 ? ` · 계산하지 않음 ${held}개` : ""}`;
   return (
@@ -1024,6 +1027,8 @@ function ResultBand({
       <p className={styles.bandNote}>
         {changed === 0
           ? "아래에서 값을 바꾸면 바로 다시 계산해요."
+          : guarded
+            ? GAME_UPDATE_COPY.simulator(changed)
           : computed && data.delta === 0 && !data.partial
             ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
             : computed
@@ -1081,9 +1086,13 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
       <ul>
         {data.contributions.map((item, i) => (
           <li key={`${item.kind}-${item.target}-${i}`}>
-            <span className={styles.kind}>{KIND_LABEL[item.kind] ?? item.kind}</span>
+            {/* Always a Korean name (PM 총괄 11-28, api #1129: a guarded row has only its kind): an unknown kind is
+                '기타 항목', never the bare code. */}
+            <span className={styles.kind}>{kindName(item.kind)}</span>
             <span className={styles.target}>
-              {item.target}
+              {/* A row the 2부 guard holds names only its request kind as the target (api #1129: the raw is not read),
+                  which the kind label before it already says: never the bare code (web #1979). */}
+              {item.target !== item.kind && item.target}
               {(item.from != null || item.to != null) && (
                 <small>
                   {changeText(item.kind, item.from) ?? "—"} →{" "}

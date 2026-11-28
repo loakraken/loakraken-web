@@ -129,3 +129,51 @@ test("priceNames: the page's own materials in plan order, then each part's breat
   const many = { part: { id: "weapon", type: "WEAPON" }, plan: plan(1, Array.from({ length: 20 }, (_, i) => [`재료 ${i}`, 1] as [string, number])) };
   assert.equal(priceNames([many] as unknown as PartPlan[], "expected").length, 20);
 });
+// web #1985 (계산 검증 11-28, real api plan, P0 for v0.3.16): 전율 무기 20→21, 536.59 expected breaths, break-even
+// breath price 1,155.1982G. Rounded first, 1,155.20–1,155.49G read BUY (1,155 vs 1,155) while the same row's totals
+// said 'without' was cheaper (1,859,773.23 vs 1,859,929.80). Now both come from the unrounded gold and always agree.
+test("the verdict and the cheaper side agree at the break-even price (unrounded, 계산 검증's numbers)", () => {
+  const breaths = 536.59;
+  const breakEven = 1155.1982;
+  const withoutTotal = 1_859_773.23;
+  // The 숨결 최대 side's gold so that one breath is worth exactly the break-even price.
+  const withGold = withoutTotal - breaths * breakEven;
+  const without = plan(withoutTotal, []);
+  const withBreath = plan(withGold, [["용암의 숨결", breaths]]);
+  const at = (unit: number) => breathCompare(without, withBreath, "expected", [price("용암의 숨결", unit)])!;
+
+  // 1,155.20: the row the sweep flagged — SKIP, 'without' cheaper, though both figures read 1,155.
+  const flagged = at(1155.2);
+  assert.equal(flagged.breathValue, 1155);
+  assert.equal(flagged.breathPrice, 1155);
+  assert.equal(flagged.verdict, "SKIP");
+  assert.equal(flagged.cheaper, "without");
+  // Just below break-even: BUY, 숨결 최대 cheaper.
+  const below = at(1155.19);
+  assert.equal(below.verdict, "BUY");
+  assert.equal(below.cheaper, "with");
+  // The whole band around it, a cent apart: never a flip.
+  for (let cents = 115_480; cents <= 115_560; cents += 1) {
+    const c = at(cents / 100);
+    const buy = c.verdict === "BUY";
+    const withSide = c.cheaper === "with" || c.cheaper === "same";
+    assert.equal(buy, withSide, `${cents / 100}G: verdict ${c.verdict}, cheaper ${c.cheaper}`);
+  }
+});
+
+test("the 방어구 case flips the same way and is fixed the same way (빙하의 숨결)", () => {
+  const breaths = 412.37;
+  const breakEven = 731.4567;
+  const withoutTotal = 912_345.67;
+  const without = plan(withoutTotal, []);
+  const withBreath = plan(withoutTotal - breaths * breakEven, [["빙하의 숨결", breaths]]);
+  const at = (unit: number) => breathCompare(without, withBreath, "expected", [price("빙하의 숨결", unit)])!;
+  // 731.46–731.49: rounded both read 731, the totals say 'without'.
+  for (const unit of [731.46, 731.47, 731.49]) {
+    const c = at(unit);
+    assert.equal(c.verdict, "SKIP", String(unit));
+    assert.equal(c.cheaper, "without", String(unit));
+  }
+  assert.equal(at(731.45).verdict, "BUY");
+  assert.equal(at(731.45).cheaper, "with");
+});

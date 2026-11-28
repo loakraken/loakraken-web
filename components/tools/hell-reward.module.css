@@ -6,6 +6,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
   grid-template-areas:
     "controls controls"
+    "roster roster"
     "main side";
   gap: 16px 24px;
 }
@@ -345,6 +346,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "controls"
+      "roster"
       "main"
       "side";
   }
