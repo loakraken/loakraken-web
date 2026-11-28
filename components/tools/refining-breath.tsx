@@ -4,7 +4,8 @@
 // and one breath's value against its price (lib/refining/breath.ts). Mounted under the result (프론트2 holds the
 // target card, 11-22 boundary). Each row keeps its lines from the first frame ('—' until the plans and prices
 // come), so nothing under it moves when they arrive (A7).
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { postMaterialPrices } from "@/lib/market/client";
 import { MAX_PRICE_NAMES, type PriceBasis } from "@/lib/market/model";
 import { postRefiningPlan } from "@/lib/refining/client";
@@ -80,10 +81,17 @@ export function RefiningBreathCompare({
   // fetch twice a minute); the result's minute refresh brings the new prices here too. A new basis or mode keeps the
   // last rows, dimmed, until the new prices come (no '—' flash).
   const tooMany = names.length > MAX_PRICE_NAMES;
+  const priceKey = ["material-prices", basis, [...names].sort().join("|")];
+  // The shared query may already hold the result's 429 with its wait (Retry-After). Turning this side on then would ask
+  // again at once (retry: false does not stop a fetch when an observer turns on), skipping the wait the result keeps
+  // (codex #1932 re-run P2). So this side waits it out too: off until the wait has passed, then on as before.
+  const queryClient = useQueryClient();
+  const shared = queryClient.getQueryState(priceKey);
+  const cooldown = useRateLimit(shared?.status === "error" ? shared.error : null);
   const prices = useQuery({
-    queryKey: ["material-prices", basis, [...names].sort().join("|")],
+    queryKey: priceKey,
     queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names }, signal),
-    enabled: names.length > 0 && !tooMany,
+    enabled: names.length > 0 && !tooMany && cooldown.seconds === 0,
     staleTime: PRICE_REFRESH_MS,
     placeholderData: keepPreviousData,
     retry: false,

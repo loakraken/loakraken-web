@@ -59,3 +59,38 @@ for (const width of [320, 1280]) {
     await expectNoHorizontalOverflow(page);
   });
 }
+
+// codex #1932 re-run P2: the result's price request answered 429 with a wait. The compare turns its side of the same
+// price query on only once its extra plans are in; it must keep the wait, not ask again at once.
+test("결과의 시세 요청이 429면 비교도 기다린다(바로 다시 묻지 않음) @regression", async ({ page }) => {
+  let priceCalls = 0;
+  let limited;
+  const served = new Promise((resolve) => (limited = resolve));
+  await page.route("**/api/markets/material-prices", async (route) => {
+    priceCalls++;
+    if (priceCalls === 1) {
+      await route.fulfill({
+        status: 429,
+        headers: { "Retry-After": "30", "Cache-Control": "no-store" },
+        json: { ok: false, error: { code: "LOST_ARK_RATE_LIMITED", status: 429, retryAt: Date.now() + 30_000 } },
+      });
+      limited();
+      return;
+    }
+    await route.continue();
+  });
+  // The compare's own extra plan (숨결 최대) comes only after the 429 is in, so its price side turns on during the wait.
+  await page.route("**/api/refining/plans", async (route) => {
+    if (route.request().postDataJSON()?.useBreath === true) await served;
+    await route.continue();
+  });
+  await page.goto("/tools/refining");
+  await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+  await expect(page.getByRole("heading", { name: "필요 재료" })).toBeVisible();
+  await served;
+  const compare = page.getByRole("region", { name: "숨결 쓰기 비교" });
+  // The extra plans are in: every row has both sides.
+  await expect(compare.getByRole("listitem").first().getByRole("definition")).toHaveCount(2);
+  await page.waitForTimeout(2_000);
+  expect(priceCalls, "429 대기 중 재료 시세 요청 수").toBe(1);
+});
