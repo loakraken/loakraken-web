@@ -441,6 +441,16 @@
     margin-top: 0;
     text-align: right;
   }
+  /* The two gold outputs take a whole row each (QA v0.3.16 P3-1, web #1994): in a half-width cell the purchase line
+     ('100개 묶음 294개 구매 · 96개 남음') ran ~50px past it at 320. Every card has both, so its shape is the same from
+     the first paint; a longer unit (주머니) wraps inside the row instead of running out. */
+  .table[data-wide] td.cost,
+  .table[data-wide] td.marketValue {
+    grid-column: 1 / -1;
+  }
+  .table[data-wide] td.cost small {
+    white-space: normal;
+  }
   .table[data-wide] td::before {
     content: attr(data-label);
     color: var(--slate);
