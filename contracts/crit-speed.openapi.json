@@ -64,6 +64,16 @@
               }
             }
           },
+          "422": {
+            "description": "GAME_UPDATE_UNSUPPORTED: 게임 업데이트로 바뀐 장비 정보라 계산하지 않음(2부 대비 막기·끄기 스위치가 켜졌을 때만, 기본 꺼짐). 숫자를 내지 않는다",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "429": {
             "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
@@ -523,6 +533,7 @@
       },
       "CritSpeedTargetResponse": {
         "type": "object",
+        "description": "치명타 목표. crit.mainSkillRate가 있으면 그 값으로, 없으면 totalRate로 잰다(필요 스탯 올림)",
         "properties": {
           "key": {
             "type": "string"
@@ -572,7 +583,7 @@
           },
           "total": {
             "type": "number",
-            "description": "base + observed + assumed(켠 토글 등 가정 출처)"
+            "description": "base + observed + assumed(켠 토글 등 가정 출처, 스킬 한정 토글 포함)"
           },
           "assumed": {
             "type": "number",

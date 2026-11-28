@@ -1928,6 +1928,9 @@ createServer(async (req, res) => {
     for await (const chunk of req) body += chunk;
     const request = JSON.parse(body);
     if (request.characterName === "미존재") return send({ code: "CHARACTER_NOT_FOUND" }, 404);
+    // 업데이트막힘 (2부 guard, api #1127): guarded or killed → 422 GAME_UPDATE_UNSUPPORTED, no numbers.
+    if (request.characterName === "업데이트막힘")
+      return send({ code: "GAME_UPDATE_UNSUPPORTED", message: "게임 업데이트로 바뀐 장비 정보라 아직 계산하지 않아요" }, 422);
     // Synthetic numbers that move with the assumptions; not game formulas.
     const base = JSON.parse(readFileSync(new URL("./crit-speed-fixtures/crit-speed.json", import.meta.url), "utf8"));
     const a = request.assumptions ?? {};
@@ -2484,6 +2487,27 @@ createServer(async (req, res) => {
       const row = data.equipment.characters.find((c) => c.status === "READY");
       Object.assign(row, { status: "SOMETHING_NEW", gold: null, parts: [], excluded: [], complete: null });
       data.total.status = "SOMETHING_NEW";
+    }
+    // 2부 guard (api #1127 / #1129): 영수증업데이트한명 — the first ready member's raw failed the shape check (enforce
+    // on): UNAVAILABLE + unavailableReasonCode, equipment null in its row, nothing added; the others count as before.
+    // 영수증업데이트전부 — CP_KILL_RECEIPT: every member UNAVAILABLE + the code, total 0 / UNAVAILABLE, nothing pending.
+    const blocked = (c) =>
+      Object.assign(c, { status: "UNAVAILABLE", unavailableReasonCode: "GAME_UPDATE_UNSUPPORTED", gold: null, parts: [], excluded: [], complete: null, observedAt: null });
+    if (who === "영수증업데이트한명") {
+      const row = data.equipment.characters.find((c) => c.status === "READY");
+      data.equipment.gold -= row.gold ?? 0;
+      data.total.gold -= row.gold ?? 0;
+      blocked(row);
+      data.coverage = { ...data.coverage, ready: data.coverage.ready - 1, unavailable: (data.coverage.unavailable ?? 0) + 1 };
+      data.total.status = "PARTIAL";
+    }
+    if (who === "영수증업데이트전부") {
+      for (const c of data.equipment.characters) blocked(c);
+      const n = data.equipment.characters.length;
+      data.coverage = { rosterCharacters: n, ready: 0, pending: 0, unavailable: n, nextAvailableAt: null };
+      data.equipment.gold = 0;
+      data.gems = { ...data.gems, gold: 0 };
+      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE", nonGold: [] };
     }
     // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
     if (who === "영수증시세없음") {

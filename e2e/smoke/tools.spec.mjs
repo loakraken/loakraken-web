@@ -293,6 +293,16 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await page.getByRole("button", { name: "계산하기" }).click();
     await expect(page.getByText("캐릭터를 찾지 못했어요")).toBeVisible();
   });
+
+  // 2부 guard (api #1127): a held character's 422 says why, not the generic '계산하지 못했어요' (the 422 was a 502).
+  test("게임 업데이트로 막힌 캐릭터는 이유를 말하고 숫자를 보이지 않는다", async ({ page }) => {
+    await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("업데이트막힘");
+    await page.getByRole("button", { name: "계산하기" }).click();
+    const alert = page.getByRole("alert").filter({ hasText: "아직 계산하지 않아요" });
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("게임 업데이트로 바뀐 장비 정보라 아직 치명 · 신속을 계산하지 않아요.");
+    await expect(page.getByText("계산하지 못했어요")).toHaveCount(0);
+  });
 });
 
 // 도구 목록(/tools)과 옛 돌파고 주소의 영구 이동(방향 전환 2026-10-10 §6).
