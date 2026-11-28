@@ -36,6 +36,7 @@ import {
 import quote from "./material-quote.module.css";
 import styles from "./hell-reward.module.css";
 import { FpEnd } from "@/components/ui/fp-end";
+import { HellRoster } from "./hell-roster";
 
 /** The boxes list's name, on the page and in the small window. */
 const LIST_LABEL = "상자별 값(좋은 순)";
@@ -402,6 +403,9 @@ export function HellRewardTool() {
                 <FpEnd />
               </label>
             </section>
+
+            {/* X4 (a): a roster character's card sets the key level it can enter (the only value taken from it). */}
+            <HellRoster keyLevels={HELL_DATA.keyLevels} level={level} onPick={setLevel} />
 
             <section
               className={styles.main}

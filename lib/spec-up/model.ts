@@ -1,6 +1,7 @@
 // Spec-up guide (backend #318, PM-프론트 10-11 16:37 ⑤): candidate upgrades
 // ranked by combat power per 10,000 gold. The backend computes every number;
 // the screen only formats them and folds what it could not compute.
+import { GAME_UPDATE_COPY, isGameUpdate } from "../api/game-update";
 import type { components } from "../api/spec-up-schema";
 import type { Character } from "../character/model";
 import { ADVANCED_REFINE_MAX, ARM_GUARD_GRADES, GRADES, isAdvancedRefineOpen, isRefineOpen, isUpgradeGear, KARMA_MAX, KARMA_TREE, POLISH_NONE, type Edits, type Grade } from "../combat-power/model";
@@ -521,6 +522,8 @@ export function splitKrakenCandidates(list: Candidate[]) {
 /** Why the 크라켄 점수 sort could not be used; the list then comes in 전투력 효율 order. */
 export function krakenUnavailableCopy(reason: string | null | undefined): string | null {
   if (!reason) return null;
+  // 2부 guard (web #1977): nothing is computed at all, so no other order is offered either.
+  if (isGameUpdate(reason)) return GAME_UPDATE_COPY.specUp;
   const why =
     reason === "DISABLED"
       ? "크라켄 점수 (10만G당) 정렬은 아직 준비 중이에요."
@@ -549,8 +552,17 @@ const KRAKEN_NOTE_OTHER = "지금은 점수 정렬 불가";
 /** "점수 정렬 준비 중 · 효율 순": what the bar shows in place of the cooldown toggle. */
 export function krakenUnavailableNote(reason: string | null | undefined): string | null {
   if (!reason) return null;
+  if (isGameUpdate(reason)) return GAME_UPDATE_COPY.specUpNote;
   return `${KRAKEN_NOTES[reason] ?? KRAKEN_NOTE_OTHER} · 효율 순`;
 }
 
 /** Every note the bar can show, for holding the room of the longest one. */
-export const KRAKEN_NOTE_ALL = [...Object.values(KRAKEN_NOTES), KRAKEN_NOTE_OTHER].map((why) => `${why} · 효율 순`);
+export const KRAKEN_NOTE_ALL = [
+  ...[...Object.values(KRAKEN_NOTES), KRAKEN_NOTE_OTHER].map((why) => `${why} · 효율 순`),
+  GAME_UPDATE_COPY.specUpNote,
+];
+
+/** Every candidate held by the 2부 guard (web #1977): the list says why it is empty, not that nothing qualifies. */
+export const guardedGuide = (guide: { candidates: readonly { reasonCode?: string | null }[]; krakenSortUnavailableReason?: string | null }) =>
+  isGameUpdate(guide.krakenSortUnavailableReason) ||
+  (guide.candidates.length > 0 && guide.candidates.every((c) => isGameUpdate(c.reasonCode)));
